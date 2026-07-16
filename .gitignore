@@ -1,0 +1,27 @@
+# Gradle
+.gradle/
+build/
+
+# IntelliJ
+.idea/
+*.iml
+out/
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+
+# Tomcat
+logs/
+temp/
+work/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local configuration
+application.properties
+.env
+*.env
