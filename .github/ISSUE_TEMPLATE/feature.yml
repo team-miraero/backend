@@ -1,6 +1,6 @@
 name: "✨ Feature"
 description: "새로운 기능을 개발합니다."
-title: ""
+title: "[FEAT] "
 labels:
   - "feature"
 
