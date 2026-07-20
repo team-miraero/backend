@@ -15,7 +15,7 @@ body:
   - type: textarea
     id: reproduction
     attributes:
-      label: "재현 방법"
+      label: "발생 과정"
       placeholder: |
         1.
         2.
