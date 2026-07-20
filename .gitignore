@@ -1,27 +1,124 @@
-# Gradle
-.gradle/
-build/
+# ========================================
+# IDE
+# ========================================
 
-# IntelliJ
+# IntelliJ IDEA
 .idea/
 *.iml
+*.iws
+*.ipr
 out/
 
-# Eclipse / STS
-.classpath
-.project
-.settings/
+# Visual Studio Code
+.vscode/
+.history/
 
-# Tomcat
-logs/
-temp/
-work/
 
-# OS
-.DS_Store
-Thumbs.db
+# ========================================
+# Java / Gradle
+# ========================================
 
-# Local configuration
-application.properties
+# Gradle cache and build output
+.gradle/
+**/build/
+
+# Java compiled files
+*.class
+
+# Packaged application files
+*.war
+*.ear
+*.nar
+
+# Keep Gradle Wrapper
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# JVM crash and heap dump files
+hs_err_pid*
+replay_pid*
+*.hprof
+
+
+# ========================================
+# Node / Vue
+# ========================================
+
+# Dependencies
+node_modules/
+
+# Vue build output
+dist/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Package manager cache
+.npm/
+.pnpm-store/
+
+# Tool cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+*.tsbuildinfo
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+
+# ========================================
+# Environment variables / Secrets
+# ========================================
+
+# Frontend environment variables
 .env
-*.env
+.env.*
+!.env.example
+
+# Spring secret configuration
+**/src/main/resources/application-secret.properties
+**/src/main/resources/application-local.properties
+
+# Keep configuration examples
+!**/src/main/resources/application-secret.properties.example
+!**/src/main/resources/application-local.properties.example
+
+
+# ========================================
+# Logs / Runtime files
+# ========================================
+
+logs/
+*.log
+*.pid
+
+# User-uploaded files
+uploads/
+
+
+# ========================================
+# Operating system
+# ========================================
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.stackdump
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+*.icloud
