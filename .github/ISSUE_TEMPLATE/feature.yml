@@ -1,0 +1,29 @@
+name: "✨ 기능 개발"
+description: "새로운 기능을 개발합니다."
+title: "[FEAT] "
+labels:
+  - "feature"
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: "기능 설명"
+      placeholder: "개발할 기능을 간단하게 설명해주세요."
+    validations:
+      required: true
+
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "작업 내용"
+      placeholder: |
+        - [ ] API 구현
+        - [ ] 테스트
+    validations:
+      required: true
+
+  - type: textarea
+    id: reference
+    attributes:
+      label: "참고 자료"
+      placeholder: "API 명세서, Figma, 관련 링크 등이 있다면 작성해주세요."
