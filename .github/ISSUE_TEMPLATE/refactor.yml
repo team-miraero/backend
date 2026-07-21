@@ -3,6 +3,7 @@ description: "기능 변경 없이 코드 구조를 개선합니다."
 title: "[REFACTOR] "
 labels:
   - "refactor"
+
 body:
   - type: textarea
     id: description
@@ -12,15 +13,17 @@ body:
     validations:
       required: true
 
-  - type: textarea
+  - type: checkboxes
     id: tasks
     attributes:
       label: "작업 내용"
-      placeholder: |
-        - [ ] 중복 코드 제거
-        - [ ] 메서드 분리
-    validations:
-      required: true
+      description: "해당하는 작업을 선택해주세요."
+      options:
+        - label: "코드 가독성 향상"
+        - label: "중복 코드 제거"
+        - label: "책임 분리 및 구조 개선"
+        - label: "성능 개선"
+        - label: "기타"
 
   - type: textarea
     id: reference
