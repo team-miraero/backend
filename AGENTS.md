@@ -7,7 +7,7 @@
 
 답변과 코드 설명은 한국어로 작성합니다.
 
-## 2. 기술 스택과 절대 제약
+## 2. 기술 스택과 절대 제약 
 
 - Java, Spring Framework 5.3.x, Spring MVC, Spring Security 5.8.x
 - MyBatis, MySQL 8.0, Redis

@@ -3,7 +3,7 @@
 이 문서는 Mapper, SQL, DDL, 데이터 모델 및 금융 계산 작업에 적용합니다.
 작업 전 최상위 `AGENTS.md`도 함께 확인합니다.
 
-## 1. MyBatis Mapper
+## 1. MyBatis Mapper 
 
 - Mapper 인터페이스명과 XML 파일명을 동일하게 작성합니다.
 - XML `namespace`는 Mapper 인터페이스의 전체 경로를 사용합니다.

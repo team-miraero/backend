@@ -3,7 +3,7 @@
 이 문서는 설정, Docker, Git, 테스트, 문서화와 작업 완료 검증에 적용합니다.
 작업 전 최상위 `AGENTS.md`도 함께 확인합니다.
 
-## 1. 설정
+## 1. 설정 
 
 - `application.properties`는 DB, Redis, JWT, CORS, 외부 API, 업로드,
   MyBatis, 인코딩, 로깅처럼 목적별 구역으로 관리합니다.

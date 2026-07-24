@@ -3,7 +3,7 @@
 이 문서는 Controller, DTO, API, 예외, 인증·인가, Redis, CORS와 외부 API 작업에
 적용합니다. 작업 전 최상위 `AGENTS.md`도 함께 확인합니다.
 
-## 1. DTO와 검증
+## 1. DTO와 검증 
 
 - Request DTO와 Response DTO를 분리합니다.
 - 필수 여부, 공백, 길이, 형식, 최솟값, 날짜 범위를 필드별로 정의합니다.
