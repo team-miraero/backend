@@ -3,4 +3,29 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd"
          version="4.0">
+    <context-param>
+        <param-name>contextClass</param-name>
+        <param-value>org.springframework.web.context.support.AnnotationConfigWebApplicationContext</param-value>
+    </context-param>
+
+    <context-param>
+        <param-name>contextConfigLocation</param-name>
+        <param-value>
+            org.jejuro.miraero.global.config.WebConfig
+            org.jejuro.miraero.global.config.DataSourceConfig
+            org.jejuro.miraero.global.config.MyBatisConfig
+            org.jejuro.miraero.global.config.SecurityConfig
+        </param-value>
+    </context-param>
+
+    <!-- Local profile activation example:
+    <context-param>
+        <param-name>spring.profiles.active</param-name>
+        <param-value>local</param-value>
+    </context-param>
+    -->
+
+    <listener>
+        <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+    </listener>
 </web-app>
