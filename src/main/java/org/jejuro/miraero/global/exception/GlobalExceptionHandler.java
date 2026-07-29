@@ -3,6 +3,7 @@ package org.jejuro.miraero.global.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.jejuro.miraero.global.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -25,6 +26,20 @@ public class GlobalExceptionHandler {
             errorCode.getCode(),
             errorCode.getMessage()
         ));
+  }
+
+  /*
+  형식이 옳지 않은 경우 예외 처리 (@Valid 검증 실패)
+   */
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMethodArgumentNotValidException(
+      MethodArgumentNotValidException exception
+  ) {
+    ErrorCode errorCode = CommonErrorCode.INVALID_INPUT_VALUE;
+
+    return ResponseEntity
+        .status(errorCode.getStatus())
+        .body(ApiResponse.error(errorCode));
   }
 
 
