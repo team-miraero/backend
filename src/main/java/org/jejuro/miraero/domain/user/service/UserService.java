@@ -1,9 +1,8 @@
 package org.jejuro.miraero.domain.user.service;
 
-import org.jejuro.miraero.domain.user.dto.request.UserSignUpRequest;
-import org.jejuro.miraero.domain.user.dto.response.UserSignUpResponse;
+import org.jejuro.miraero.domain.user.domain.User;
 
 public interface UserService {
 
-  UserSignUpResponse signUp(UserSignUpRequest request);
+    User create(UserCreateCommand command);
 }
