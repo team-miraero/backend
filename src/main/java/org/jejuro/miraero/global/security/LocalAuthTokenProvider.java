@@ -1,9 +1,7 @@
 package org.jejuro.miraero.global.security;
 
 import java.util.UUID;
-import org.springframework.stereotype.Component;
 
-@Component
 public class LocalAuthTokenProvider implements AuthTokenProvider {
 
     private static final Long ACCESS_TOKEN_EXPIRES_IN = 1800L;
