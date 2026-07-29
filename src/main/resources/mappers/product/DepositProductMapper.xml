@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jejuro.miraero.domain.product.mapper.DepositProductMapper">
+
+    <insert id="upsert"
+            parameterType="org.jejuro.miraero.domain.product.domain.DepositProduct"
+            useGeneratedKeys="true"
+            keyProperty="depositProductId"
+            keyColumn="deposit_product_id">
+        INSERT INTO deposit_product (
+            financial_institution_id,
+            product_code,
+            product_name,
+            join_method,
+            join_target,
+            join_restriction,
+            special_condition,
+            maturity_interest,
+            max_limit,
+            notice,
+            disclosure_month,
+            disclosure_start_date,
+            disclosure_end_date,
+            submitted_at
+        ) VALUES (
+            #{financialInstitutionId},
+            #{productCode},
+            #{productName},
+            #{joinMethod},
+            #{joinTarget},
+            #{joinRestriction},
+            #{specialCondition},
+            #{maturityInterest},
+            #{maxLimit},
+            #{notice},
+            #{disclosureMonth},
+            #{disclosureStartDate},
+            #{disclosureEndDate},
+            #{submittedAt}
+        ) AS new
+        ON DUPLICATE KEY UPDATE
+            deposit_product_id = LAST_INSERT_ID(deposit_product_id),
+            product_name = new.product_name,
+            join_method = new.join_method,
+            join_target = new.join_target,
+            join_restriction = new.join_restriction,
+            special_condition = new.special_condition,
+            maturity_interest = new.maturity_interest,
+            max_limit = new.max_limit,
+            notice = new.notice,
+            disclosure_month = new.disclosure_month,
+            disclosure_start_date = new.disclosure_start_date,
+            disclosure_end_date = new.disclosure_end_date,
+            submitted_at = new.submitted_at
+    </insert>
+</mapper>
