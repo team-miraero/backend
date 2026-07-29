@@ -11,7 +11,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
 @EnableTransactionManagement
-@MapperScan(basePackages = "org.jejuro.miraero.domain")
+@MapperScan(basePackages = "org.jejuro.miraero.domain.product.mapper")
 public class MyBatisConfig {
 
   @Bean

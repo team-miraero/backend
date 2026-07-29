@@ -88,6 +88,9 @@ pnpm-debug.log*
 !**/src/main/resources/application-secret.properties.example
 !**/src/main/resources/application-local.properties.example
 
+**/src/main/resources/application.properties
+!**/src/main/resources/application-example.properties
+
 
 # ========================================
 # Logs / Runtime files
