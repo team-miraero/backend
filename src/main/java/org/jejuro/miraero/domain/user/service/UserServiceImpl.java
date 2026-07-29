@@ -4,8 +4,10 @@ import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.user.dto.request.UserSignUpRequest;
 import org.jejuro.miraero.domain.user.dto.response.UserSignUpResponse;
+import org.jejuro.miraero.domain.user.exception.UserErrorCode;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
 import org.jejuro.miraero.domain.user.model.User;
+import org.jejuro.miraero.global.exception.BusinessException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +24,9 @@ public class UserServiceImpl implements UserService {
     boolean exists = userMapper.existsByEmail(request.getEmail());
 
     if (exists) {
-      throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+      throw new BusinessException(
+          UserErrorCode.EMAIL_ALREADY_EXISTS
+      );
     }
 
     String passwordHash = passwordEncoder.encode(request.getPassword());
