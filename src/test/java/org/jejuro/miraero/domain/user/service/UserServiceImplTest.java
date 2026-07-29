@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.jejuro.miraero.domain.mydata.service.MyDataConsentService;
 import org.jejuro.miraero.domain.user.dto.request.UserSignUpRequest;
 import org.jejuro.miraero.domain.user.dto.response.UserSignUpResponse;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
@@ -26,11 +27,14 @@ public class UserServiceImplTest {
   @Mock
   private PasswordEncoder passwordEncoder;
 
+  @Mock
+  private MyDataConsentService myDataConsentService;
+
   private UserService userService;
 
   @BeforeEach
   void setUp() {
-    userService = new UserServiceImpl(userMapper, passwordEncoder);
+    userService = new UserServiceImpl(userMapper, passwordEncoder, myDataConsentService);
   }
 
     @Test
@@ -62,5 +66,6 @@ public class UserServiceImplTest {
       verify(userMapper).existsByEmail("test@example.com");
       verify(passwordEncoder).encode("password123!");
       verify(userMapper).save(any(User.class));
+      verify(myDataConsentService).createInitialConsent(any());
     }
 }

@@ -2,6 +2,7 @@ package org.jejuro.miraero.domain.user.service;
 
 import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.mydata.service.MyDataConsentService;
 import org.jejuro.miraero.domain.user.dto.request.UserSignUpRequest;
 import org.jejuro.miraero.domain.user.dto.response.UserSignUpResponse;
 import org.jejuro.miraero.domain.user.exception.UserErrorCode;
@@ -10,6 +11,7 @@ import org.jejuro.miraero.domain.user.model.User;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -17,7 +19,9 @@ public class UserServiceImpl implements UserService {
 
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
+  private final MyDataConsentService myDataConsentService;
 
+  @Transactional
   public UserSignUpResponse signUp(UserSignUpRequest request) {
 
     //이메일 중복 체크
@@ -43,7 +47,7 @@ public class UserServiceImpl implements UserService {
     );
 
     userMapper.save(user);
-
+    myDataConsentService.createInitialConsent(user.getUserId());
     return new UserSignUpResponse(
         user.getUserId(),
         user.getName(),
