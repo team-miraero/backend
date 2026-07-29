@@ -1,6 +1,6 @@
 package org.jejuro.miraero.domain.mydata.mapper;
 
-import org.jejuro.miraero.domain.mydata.model.MyDataConsent;
+import org.jejuro.miraero.domain.mydata.domain.MyDataConsent;
 
 public interface MyDataConsentMapper {
 

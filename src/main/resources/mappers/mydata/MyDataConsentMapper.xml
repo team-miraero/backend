@@ -6,7 +6,7 @@
 <mapper namespace="org.jejuro.miraero.domain.mydata.mapper.MyDataConsentMapper">
 
   <insert id="save"
-    parameterType="org.jejuro.miraero.domain.mydata.model.MyDataConsent">
+    parameterType="org.jejuro.miraero.domain.mydata.domain.MyDataConsent">
     INSERT INTO mydata_consent(
     user_id,
     terms_version,

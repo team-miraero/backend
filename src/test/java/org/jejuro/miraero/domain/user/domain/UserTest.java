@@ -1,4 +1,4 @@
-package org.jejuro.miraero.domain.user.model;
+package org.jejuro.miraero.domain.user.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-public class UserTest {
+class UserTest {
 
   @Test
   @DisplayName("회원 정보를 입력하면 신규 회원 객체를 생성한다")

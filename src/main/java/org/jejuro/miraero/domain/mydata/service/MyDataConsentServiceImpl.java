@@ -2,8 +2,8 @@ package org.jejuro.miraero.domain.mydata.service;
 
 import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.mydata.domain.MyDataConsent;
 import org.jejuro.miraero.domain.mydata.mapper.MyDataConsentMapper;
-import org.jejuro.miraero.domain.mydata.model.MyDataConsent;
 import org.springframework.stereotype.Service;
 
 @Service

@@ -7,7 +7,7 @@
 
   <insert id="save"
     keyProperty="userId"
-    parameterType="org.jejuro.miraero.domain.user.model.User"
+    parameterType="org.jejuro.miraero.domain.user.domain.User"
     useGeneratedKeys="true">
     INSERT INTO miraero_user (
     name,

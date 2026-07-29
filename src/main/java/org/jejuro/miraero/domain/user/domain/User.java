@@ -1,4 +1,4 @@
-package org.jejuro.miraero.domain.user.model;
+package org.jejuro.miraero.domain.user.domain;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

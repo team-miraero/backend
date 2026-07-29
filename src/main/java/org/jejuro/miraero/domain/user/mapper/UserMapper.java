@@ -1,7 +1,7 @@
 package org.jejuro.miraero.domain.user.mapper;
 
 import org.apache.ibatis.annotations.Param;
-import org.jejuro.miraero.domain.user.model.User;
+import org.jejuro.miraero.domain.user.domain.User;
 
 public interface UserMapper {
 

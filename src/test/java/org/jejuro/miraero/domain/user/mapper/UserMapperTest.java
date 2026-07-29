@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
-import org.jejuro.miraero.domain.user.model.User;
+import org.jejuro.miraero.domain.user.domain.User;
 import org.jejuro.miraero.global.config.DataSourceConfig;
 import org.jejuro.miraero.global.config.MyBatisConfig;
 import org.junit.jupiter.api.DisplayName;
