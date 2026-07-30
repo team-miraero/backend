@@ -652,75 +652,171 @@ CREATE TABLE `auto_saving_history` (
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE `expense_category` (
+                                    `expense_category_id` BIGINT NOT NULL AUTO_INCREMENT
+                                        COMMENT '지출 카테고리 ID',
+
+                                    `category_name` VARCHAR(50) NOT NULL
+                                        COMMENT '지출 카테고리명',
+
+                                    CONSTRAINT `pk_expense_category`
+                                        PRIMARY KEY (`expense_category_id`),
+
+                                    CONSTRAINT `uk_expense_category_name`
+                                        UNIQUE (`category_name`)
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COMMENT='지출 카테고리';
+
 CREATE TABLE `transaction` (
-    `transaction_id` BIGINT NOT NULL AUTO_INCREMENT
-        COMMENT '내부 거래 ID',
+                               `transaction_id` BIGINT NOT NULL AUTO_INCREMENT
+                                   COMMENT '내부 거래 ID',
 
-    `user_id` BIGINT NOT NULL COMMENT '회원 ID',
+                               `user_id` BIGINT NOT NULL
+                                   COMMENT '회원 ID',
 
-    `account_id` BIGINT NULL COMMENT '연결된 금융계좌 ID',
-    `prepaid_instrument_id` BIGINT NULL,
-    `card_id` BIGINT NULL,
+                               `account_id` BIGINT NULL
+                                   COMMENT '연결된 금융계좌 ID',
 
-    `ex_transaction_id` BIGINT NOT NULL
-        COMMENT '외부 금융기관 거래 ID',
+                               `prepaid_instrument_id` BIGINT NULL
+                                   COMMENT '연결된 선불전자지급수단 ID',
 
-    `transaction_type` VARCHAR(30) NOT NULL COMMENT '거래 유형',
-    `amount` BIGINT NOT NULL COMMENT '거래금액',
-    `balance_after` BIGINT NULL COMMENT '거래 후 잔액',
+                               `card_id` BIGINT NULL
+                                   COMMENT '연결된 카드 ID',
 
-    `transacted_at` DATETIME NOT NULL COMMENT '거래 일시',
+                               `expense_category_id` BIGINT NULL
+                                   COMMENT '지출 카테고리 ID',
 
-    `category_name` VARCHAR(50) NOT NULL,
-    `merchant_name` VARCHAR(100) NULL COMMENT '가맹점명',
+                               `ex_transaction_id` BIGINT NOT NULL
+                                   COMMENT '외부 금융기관 거래 ID',
 
-    `created_at` DATETIME NOT NULL
-        DEFAULT CURRENT_TIMESTAMP COMMENT '저장 일시',
+                               `transaction_type` VARCHAR(30) NOT NULL
+                                   COMMENT '거래 유형',
 
-    `updated_at` DATETIME NOT NULL
-        DEFAULT CURRENT_TIMESTAMP
-        ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일시',
+                               `amount` BIGINT NOT NULL
+                                   COMMENT '거래금액',
 
-    `synced_at` DATETIME NOT NULL COMMENT '동기화 일시',
-		
-		CONSTRAINT `ck_transaction_type`
-CHECK (`transaction_type` IN (
-    'DEPOSIT',
-    'WITHDRAWAL',
-    'PAYMENT',
-    'REFUND',
-    'TRANSFER'
-)),
-    
-    CONSTRAINT `pk_transaction`
-        PRIMARY KEY (`transaction_id`),
+                               `balance_after` BIGINT NULL
+                                   COMMENT '거래 후 잔액',
 
-    CONSTRAINT `uk_transaction_ex_transaction_id`
-        UNIQUE (`ex_transaction_id`),
+                               `transacted_at` DATETIME NOT NULL
+                                   COMMENT '거래 일시',
 
-    INDEX `idx_transaction_user_transacted_at`
-        (`user_id`, `transacted_at`),
+                               `merchant_name` VARCHAR(100) NULL
+                                   COMMENT '가맹점명 또는 거래처명',
 
-    CONSTRAINT `fk_transaction_user`
-        FOREIGN KEY (`user_id`)
-        REFERENCES `miraero_user` (`user_id`)
-        ON DELETE CASCADE,
+                               `created_at` DATETIME NOT NULL
+                                   DEFAULT CURRENT_TIMESTAMP
+                                   COMMENT '생성 일시',
 
-    CONSTRAINT `fk_transaction_account`
-        FOREIGN KEY (`account_id`)
-        REFERENCES `account` (`account_id`)
-        ON DELETE SET NULL,
+                               `updated_at` DATETIME NOT NULL
+                                   DEFAULT CURRENT_TIMESTAMP
+                                   ON UPDATE CURRENT_TIMESTAMP
+                                   COMMENT '수정 일시',
 
-    CONSTRAINT `fk_transaction_prepaid_instrument`
-        FOREIGN KEY (`prepaid_instrument_id`)
-        REFERENCES `prepaid_instrument` (`prepaid_instrument_id`)
-        ON DELETE SET NULL,
+                               `synced_at` DATETIME NOT NULL
+                                   COMMENT '동기화 일시',
 
-    CONSTRAINT `fk_transaction_card`
-        FOREIGN KEY (`card_id`)
-        REFERENCES `card` (`card_id`)
-        ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                               CONSTRAINT `pk_transaction`
+                                   PRIMARY KEY (`transaction_id`),
+
+                               CONSTRAINT `uk_transaction_user_ex_transaction`
+                                   UNIQUE (`user_id`, `ex_transaction_id`),
+
+                               CONSTRAINT `ck_transaction_type`
+                                   CHECK (
+                                       `transaction_type` IN (
+                                                              'DEPOSIT',
+                                                              'WITHDRAWAL',
+                                                              'PAYMENT',
+                                                              'REFUND',
+                                                              'TRANSFER'
+                                           )
+                                       ),
+
+                               CONSTRAINT `ck_transaction_amount`
+                                   CHECK (`amount` >= 0),
+
+                               INDEX `idx_transaction_user_transacted_at`
+                                   (`user_id`, `transacted_at`),
+
+                               INDEX `idx_transaction_user_category_transacted_at`
+                                   (`user_id`, `expense_category_id`, `transacted_at`),
+
+                               CONSTRAINT `fk_transaction_user`
+                                   FOREIGN KEY (`user_id`)
+                                       REFERENCES `miraero_user` (`user_id`)
+                                       ON DELETE CASCADE,
+
+                               CONSTRAINT `fk_transaction_account`
+                                   FOREIGN KEY (`account_id`)
+                                       REFERENCES `account` (`account_id`)
+                                       ON DELETE SET NULL,
+
+                               CONSTRAINT `fk_transaction_prepaid_instrument`
+                                   FOREIGN KEY (`prepaid_instrument_id`)
+                                       REFERENCES `prepaid_instrument` (`prepaid_instrument_id`)
+                                       ON DELETE SET NULL,
+
+                               CONSTRAINT `fk_transaction_card`
+                                   FOREIGN KEY (`card_id`)
+                                       REFERENCES `card` (`card_id`)
+                                       ON DELETE SET NULL,
+
+                               CONSTRAINT `fk_transaction_expense_category`
+                                   FOREIGN KEY (`expense_category_id`)
+                                       REFERENCES `expense_category` (`expense_category_id`)
+                                       ON DELETE SET NULL
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COMMENT='사용자 금융 거래내역';
+
+CREATE TABLE `expense_category_target` (
+                                           `expense_category_target_id` BIGINT NOT NULL AUTO_INCREMENT
+                                               COMMENT '카테고리별 목표 지출 ID',
+
+                                           `user_id` BIGINT NOT NULL
+                                               COMMENT '회원 ID',
+
+                                           `expense_category_id` BIGINT NOT NULL
+                                               COMMENT '지출 카테고리 ID',
+
+                                           `target_amount` BIGINT NOT NULL
+                                               COMMENT '목표 지출금액',
+
+                                           `created_at` DATETIME NOT NULL
+                                               DEFAULT CURRENT_TIMESTAMP
+                                               COMMENT '생성 일시',
+
+                                           `updated_at` DATETIME NOT NULL
+                                               DEFAULT CURRENT_TIMESTAMP
+                                               ON UPDATE CURRENT_TIMESTAMP
+                                               COMMENT '수정 일시',
+
+                                           CONSTRAINT `pk_expense_category_target`
+                                               PRIMARY KEY (`expense_category_target_id`),
+
+                                           CONSTRAINT `uk_expense_category_target_user_category`
+                                               UNIQUE (`user_id`, `expense_category_id`),
+
+                                           CONSTRAINT `ck_expense_category_target_amount`
+                                               CHECK (`target_amount` >= 0),
+
+                                           INDEX `idx_expense_category_target_user`
+                                               (`user_id`),
+
+                                           CONSTRAINT `fk_expense_category_target_user`
+                                               FOREIGN KEY (`user_id`)
+                                                   REFERENCES `miraero_user` (`user_id`)
+                                                   ON DELETE CASCADE,
+
+                                           CONSTRAINT `fk_expense_category_target_category`
+                                               FOREIGN KEY (`expense_category_id`)
+                                                   REFERENCES `expense_category` (`expense_category_id`)
+                                                   ON DELETE RESTRICT
+) ENGINE=InnoDB
+  DEFAULT CHARSET=utf8mb4
+  COMMENT='사용자 카테고리별 목표 지출';
 
 CREATE TABLE `ai_coach_conversation` (
     `ai_coach_conversation_id` BIGINT NOT NULL AUTO_INCREMENT,
