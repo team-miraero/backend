@@ -9,4 +9,12 @@ public interface AuthTokenProvider {
   Long getAccessTokenExpiresIn();
 
   Long getRefreshTokenExpiresIn();
+
+  boolean validateToken(String token);
+
+  Long getUserId(String token);
+
+  String getEmail(String token);
+
+  boolean isAccessToken(String token);
 }
