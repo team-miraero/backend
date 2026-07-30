@@ -1,5 +1,7 @@
 package org.jejuro.miraero.global.security;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -42,7 +44,6 @@ public class JwtAuthTokenProvider implements AuthTokenProvider {
   @Override
   public String createRefreshToken(Long userId, String email) {
     return createToken(userId, email, REFRESH_TOKEN_TYPE, refreshTokenExpiresIn);
-
   }
 
   @Override
@@ -53,6 +54,33 @@ public class JwtAuthTokenProvider implements AuthTokenProvider {
   @Override
   public Long getRefreshTokenExpiresIn() {
     return refreshTokenExpiresIn;
+  }
+
+  @Override
+  public boolean validateToken(String token) {
+    try {
+      parseClaims(token);
+      return true;
+    } catch (JwtException | IllegalArgumentException exception) {
+      return false;
+    }
+  }
+
+  @Override
+  public Long getUserId(String token) {
+    return Long.valueOf(parseClaims(token).getSubject());
+  }
+
+  @Override
+  public String getEmail(String token) {
+    return parseClaims(token).get("email", String.class);
+  }
+
+  @Override
+  public boolean isAccessToken(String token) {
+    String tokenType = parseClaims(token).get(TOKEN_TYPE_CLAIM, String.class);
+
+    return ACCESS_TOKEN_TYPE.equals(tokenType);
   }
 
   private String createToken(
@@ -72,5 +100,13 @@ public class JwtAuthTokenProvider implements AuthTokenProvider {
         .setExpiration(expiration)
         .signWith(signingKey, SignatureAlgorithm.HS256)
         .compact();
+  }
+
+  private Claims parseClaims(String token) {
+    return Jwts.parserBuilder()
+        .setSigningKey(signingKey)
+        .build()
+        .parseClaimsJws(token)
+        .getBody();
   }
 }
