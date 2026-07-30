@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper">
+
+    <insert id="saveAll"
+            parameterType="java.util.List">
+
+        INSERT INTO goal_asset (
+            goal_id,
+            asset_type,
+            asset_id
+        )
+        VALUES
+
+        <foreach collection="goalAssets" item="goalAsset" separator=",">
+            (
+            #{goalAsset.goalId},
+            #{goalAsset.assetType},
+            #{goalAsset.assetId}
+            )
+        </foreach>
+
+    </insert>
+
+</mapper>

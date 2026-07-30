@@ -3,21 +3,36 @@ package org.jejuro.miraero.domain.goal.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
+import org.jejuro.miraero.domain.goal.domain.Goal;
+import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
+import org.jejuro.miraero.domain.goal.dto.response.GoalCreateResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalPossibilityResponse;
+import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
+import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+
+@ExtendWith(MockitoExtension.class)
 class GoalServiceImplTest {
 
-    private GoalService goalService;
+    @Mock
+    private GoalMapper goalMapper;
 
-    @BeforeEach
-    void setUp() {
-        goalService = new GoalServiceImpl();
-    }
+    @Mock
+    private GoalAssetMapper goalAssetMapper;
+
+    @InjectMocks
+    private GoalServiceImpl goalService;
 
     private GoalPossibilityRequest createRequest(
             long goalAmount,
@@ -80,4 +95,30 @@ class GoalServiceImplTest {
         assertEquals(80_000L, response.getRequiredMonthly());
         assertTrue(response.isPossible());
     }
+
+    @Test
+    @DisplayName("목표 생성 성공 시 생성된 goalId를 반환한다.")
+    void createGoal_success() {
+
+        // given
+        Long userId = 1L;
+
+        GoalCreateRequest request = GoalCreateRequest.builder()
+                .goalName("제주도 여행")
+                .goalAmount(3_000_000L)
+                .startAmount(500_000L)
+                .goalMonths(12)
+                .build();
+
+        // when
+        goalService.createGoal(userId, request);
+
+        // then
+        verify(goalMapper)
+                .save(any(Goal.class));
+
+        verify(goalAssetMapper, never())
+                .saveAll(any());
+    }
+
 }

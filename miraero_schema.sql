@@ -480,7 +480,7 @@ CREATE TABLE `goal` (
     `start_amount` BIGINT NOT NULL DEFAULT 0,
     `start_date` DATE NOT NULL,
     `goal_date` DATE NOT NULL,
-    `goal_status` VARCHAR(20) NOT NULL COMMENT 'ACTIVE, PAUSED, COMPLETED',
+    `goal_status` VARCHAR(20) NOT NULL DEFAULT 'ACTIVE' COMMENT 'ACTIVE, PAUSED, COMPLETED',
     `goal_type` VARCHAR(20) NOT NULL,
     `is_collected` BOOLEAN NOT NULL DEFAULT FALSE,
     `completed_date` DATE NULL,
