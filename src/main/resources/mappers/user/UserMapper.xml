@@ -38,4 +38,21 @@
     WHERE email = #{email}
     )
   </select>
+
+  <select id="findByEmail"
+    parameterType="string"
+    resultType="org.jejuro.miraero.domain.user.domain.User">
+    SELECT
+    user_id AS userId,
+    name,
+    birth_date AS birthDate,
+    company_name AS companyName,
+    monthly_income AS monthlyIncome,
+    email,
+    password_hash AS passwordHash,
+    kb_pay_id AS kbPayId,
+    created_at AS createdAt
+    FROM miraero_user
+    WHERE email = #{email}
+  </select>
 </mapper>
