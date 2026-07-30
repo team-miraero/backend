@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jejuro.miraero.domain.transaction.mapper.TransactionMapper">
+
+    <resultMap id="transactionQueryResultMap"
+               type="org.jejuro.miraero.domain.transaction.domain.TransactionQueryResult">
+        <id property="transactionId" column="transaction_id"/>
+        <result property="transactionType" column="transaction_type"/>
+        <result property="amount" column="amount"/>
+        <result property="balanceAfter" column="balance_after"/>
+        <result property="transactedAt" column="transacted_at"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="categoryName" column="category_name"/>
+    </resultMap>
+
+    <sql id="transactionSearchCondition">
+        WHERE t.user_id = #{userId}
+          AND t.transacted_at <![CDATA[>=]]> #{condition.startDateTime}
+          AND t.transacted_at <![CDATA[<]]> #{condition.endDateTime}
+        <if test="condition.categoryId != null">
+            AND t.expense_category_id = #{condition.categoryId}
+        </if>
+    </sql>
+
+    <select id="findTransactions" resultMap="transactionQueryResultMap">
+        SELECT
+            t.transaction_id,
+            t.transaction_type,
+            t.amount,
+            t.balance_after,
+            t.transacted_at,
+            ec.expense_category_id AS category_id,
+            ec.category_name
+        FROM `transaction` t
+        LEFT JOIN expense_category ec
+            ON t.expense_category_id = ec.expense_category_id
+        <include refid="transactionSearchCondition"/>
+        ORDER BY t.transacted_at DESC, t.transaction_id DESC
+        LIMIT #{condition.size} OFFSET #{condition.offset}
+    </select>
+
+    <select id="countTransactions" resultType="long">
+        SELECT COUNT(*)
+        FROM `transaction` t
+        <include refid="transactionSearchCondition"/>
+    </select>
+</mapper>
