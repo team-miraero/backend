@@ -100,9 +100,9 @@ class AuthServiceImplTest {
         .thenReturn(user);
     when(passwordEncoder.matches(request.getPassword(), user.getPasswordHash()))
         .thenReturn(true);
-    when(authTokenProvider.createAccessToken(user.getUserId(), user.getEmail()))
+    when(authTokenProvider.createAccessToken(user.getUserId()))
         .thenReturn("access-token");
-    when(authTokenProvider.createRefreshToken(user.getUserId(), user.getEmail()))
+    when(authTokenProvider.createRefreshToken(user.getUserId()))
         .thenReturn("refresh-token");
     when(authTokenProvider.getAccessTokenExpiresIn())
         .thenReturn(1800L);
@@ -124,8 +124,8 @@ class AuthServiceImplTest {
     verify(userMapper).findByEmail("test@example.com");
     verify(passwordEncoder).matches("password123!", "encodedPassword");
     verify(myDataLinkService).syncUserData(user);
-    verify(authTokenProvider).createAccessToken(user.getUserId(), user.getEmail());
-    verify(authTokenProvider).createRefreshToken(user.getUserId(), user.getEmail());
+    verify(authTokenProvider).createAccessToken(user.getUserId());
+    verify(authTokenProvider).createRefreshToken(user.getUserId());
   }
 
   @Test
@@ -149,8 +149,8 @@ class AuthServiceImplTest {
     verify(userMapper).findByEmail("not-found@example.com");
     verify(passwordEncoder, never()).matches(any(), any());
     verify(myDataLinkService, never()).syncUserData(any());
-    verify(authTokenProvider, never()).createAccessToken(any(), any());
-    verify(authTokenProvider, never()).createRefreshToken(any(), any());
+    verify(authTokenProvider, never()).createAccessToken(any());
+    verify(authTokenProvider, never()).createRefreshToken(any());
   }
 
   @Test
@@ -178,13 +178,9 @@ class AuthServiceImplTest {
     verify(userMapper).findByEmail("test@example.com");
     verify(passwordEncoder).matches("wrongPassword123!", "encodedPassword");
     verify(myDataLinkService, never()).syncUserData(any());
-    verify(authTokenProvider, never()).createAccessToken(any(), any());
-    verify(authTokenProvider, never()).createRefreshToken(any(), any());
-    verify(refreshTokenRepository).save(
-        user.getUserId(),
-        "refresh-token",
-        1209600L
-    );
+    verify(authTokenProvider, never()).createAccessToken(any());
+    verify(authTokenProvider, never()).createRefreshToken(any());
+    verify(refreshTokenRepository, never()).save(any(), any(), any());
   }
 
   private User createUser() {

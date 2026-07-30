@@ -38,7 +38,7 @@ class ExpenseAnalysisControllerTest {
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
-        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(new AuthenticatedUser(USER_ID, "test@example.com")));
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(new AuthenticatedUser(USER_ID)));
     }
 
     @Test

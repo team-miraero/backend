@@ -3,9 +3,11 @@ package org.jejuro.miraero.domain.auth.service;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.auth.dto.request.LoginRequest;
 import org.jejuro.miraero.domain.auth.dto.request.SignUpRequest;
+import org.jejuro.miraero.domain.auth.dto.request.TokenReissueRequest;
 import org.jejuro.miraero.domain.auth.dto.response.LoginResponse;
 import org.jejuro.miraero.domain.auth.dto.response.LoginUserResponse;
 import org.jejuro.miraero.domain.auth.dto.response.SignUpResponse;
+import org.jejuro.miraero.domain.auth.dto.response.TokenReissueResponse;
 import org.jejuro.miraero.domain.auth.dto.response.TokenResponse;
 import org.jejuro.miraero.domain.auth.exception.AuthErrorCode;
 import org.jejuro.miraero.domain.auth.repository.RefreshTokenRepository;
@@ -22,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AuthServiceImpl implements AuthService {
 
   private static final String TOKEN_TYPE = "Bearer";
@@ -62,15 +65,9 @@ public class AuthServiceImpl implements AuthService {
 
     myDataLinkService.syncUserData(user);
 
-    String accessToken = authTokenProvider.createAccessToken(
-        user.getUserId(),
-        user.getEmail()
-    );
+    String accessToken = authTokenProvider.createAccessToken(user.getUserId());
 
-    String refreshToken = authTokenProvider.createRefreshToken(
-        user.getUserId(),
-        user.getEmail()
-    );
+    String refreshToken = authTokenProvider.createRefreshToken(user.getUserId());
 
     refreshTokenRepository.save(
         user.getUserId(),
@@ -89,6 +86,53 @@ public class AuthServiceImpl implements AuthService {
     return new LoginResponse(
         token,
         AUTO_LOGIN,
+        LoginUserResponse.from(user)
+    );
+  }
+
+  @Override
+  @Transactional
+  public TokenReissueResponse reissue(TokenReissueRequest request) {
+    String refreshToken = request.getRefreshToken();
+
+    if (!authTokenProvider.validateToken(refreshToken)
+        || !authTokenProvider.isRefreshToken(refreshToken)) {
+      throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+    }
+
+    Long userId = authTokenProvider.getUserId(refreshToken);
+    String savedRefreshToken = refreshTokenRepository.findByUserId(userId);
+
+    if (savedRefreshToken == null || !savedRefreshToken.equals(refreshToken)) {
+      throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+    }
+
+    User user = userMapper.findById(userId);
+
+    if (user == null) {
+      throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
+    }
+
+    String newAccessToken = authTokenProvider.createAccessToken(user.getUserId());
+
+    String newRefreshToken = authTokenProvider.createRefreshToken(user.getUserId());
+
+    refreshTokenRepository.save(
+        user.getUserId(),
+        newRefreshToken,
+        authTokenProvider.getRefreshTokenExpiresIn()
+    );
+
+    TokenResponse token = new TokenResponse(
+        newAccessToken,
+        newRefreshToken,
+        TOKEN_TYPE,
+        authTokenProvider.getAccessTokenExpiresIn(),
+        authTokenProvider.getRefreshTokenExpiresIn()
+    );
+
+    return new TokenReissueResponse(
+        token,
         LoginUserResponse.from(user)
     );
   }

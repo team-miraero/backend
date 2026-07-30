@@ -72,8 +72,6 @@ class SecurityConfigTest {
         .thenReturn(true);
     when(authTokenProvider.getUserId("access-token"))
         .thenReturn(1L);
-    when(authTokenProvider.getEmail("access-token"))
-        .thenReturn("test@example.com");
 
     mockMvc.perform(
             get("/api/test/protected")
