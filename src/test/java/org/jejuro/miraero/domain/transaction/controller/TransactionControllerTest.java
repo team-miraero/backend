@@ -20,6 +20,8 @@ import org.jejuro.miraero.domain.transaction.service.TransactionService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.exception.GlobalExceptionHandler;
+import org.jejuro.miraero.global.security.AuthenticatedUser;
+import org.jejuro.miraero.global.security.JwtAuthenticationToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -29,9 +31,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 
 @ExtendWith(MockitoExtension.class)
 class TransactionControllerTest {
+
+    private static final Long USER_ID = 42L;
 
     @Mock
     private TransactionService transactionService;
@@ -45,7 +51,11 @@ class TransactionControllerTest {
         mockMvc = MockMvcBuilders
                 .standaloneSetup(transactionController)
                 .setControllerAdvice(new GlobalExceptionHandler())
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
+        SecurityContextHolder.getContext().setAuthentication(
+                new JwtAuthenticationToken(new AuthenticatedUser(USER_ID, "test@example.com"))
+        );
     }
 
     @Test
@@ -62,7 +72,7 @@ class TransactionControllerTest {
                 )),
                 PaginationResponse.of(1, 10, 1L)
         );
-        given(transactionService.getTransactions(eq(1L), any(TransactionSearchCondition.class)))
+        given(transactionService.getTransactions(eq(USER_ID), any(TransactionSearchCondition.class)))
                 .willReturn(response);
 
         mockMvc.perform(get("/api/transactions")
@@ -79,7 +89,7 @@ class TransactionControllerTest {
 
         ArgumentCaptor<TransactionSearchCondition> conditionCaptor =
                 ArgumentCaptor.forClass(TransactionSearchCondition.class);
-        verify(transactionService).getTransactions(eq(1L), conditionCaptor.capture());
+        verify(transactionService).getTransactions(eq(USER_ID), conditionCaptor.capture());
         TransactionSearchCondition condition = conditionCaptor.getValue();
         org.junit.jupiter.api.Assertions.assertEquals(2026, condition.getYear());
         org.junit.jupiter.api.Assertions.assertEquals(7, condition.getMonth());
@@ -95,7 +105,7 @@ class TransactionControllerTest {
                 Collections.emptyList(),
                 PaginationResponse.of(1, 10, 0L)
         );
-        given(transactionService.getTransactions(eq(1L), any(TransactionSearchCondition.class)))
+        given(transactionService.getTransactions(eq(USER_ID), any(TransactionSearchCondition.class)))
                 .willReturn(response);
 
         mockMvc.perform(get("/api/transactions")
@@ -108,13 +118,13 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$.data.transactions").isEmpty())
                 .andExpect(jsonPath("$.data.pagination.totalElements").value(0));
 
-        verify(transactionService).getTransactions(eq(1L), any(TransactionSearchCondition.class));
+        verify(transactionService).getTransactions(eq(USER_ID), any(TransactionSearchCondition.class));
     }
 
     @Test
     @DisplayName("Service 입력값 예외는 전역 예외 처리 형식으로 반환한다")
     void getTransactions_invalidRequest() throws Exception {
-        given(transactionService.getTransactions(eq(1L), any(TransactionSearchCondition.class)))
+        given(transactionService.getTransactions(eq(USER_ID), any(TransactionSearchCondition.class)))
                 .willThrow(new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE));
 
         mockMvc.perform(get("/api/transactions")
@@ -126,6 +136,6 @@ class TransactionControllerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("COMMON_002"));
 
-        verify(transactionService).getTransactions(eq(1L), any(TransactionSearchCondition.class));
+        verify(transactionService).getTransactions(eq(USER_ID), any(TransactionSearchCondition.class));
     }
 }
