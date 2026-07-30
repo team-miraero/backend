@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jejuro.miraero.domain.transaction.mapper.ExpenseAnalysisMapper">
+    <sql id="expenseCondition">
+        WHERE t.user_id = #{userId}
+          AND t.transaction_type = 'PAYMENT'
+          AND t.transacted_at <![CDATA[>=]]> #{condition.startDateTime}
+          AND t.transacted_at <![CDATA[<]]> #{condition.endDateTime}
+    </sql>
+    <select id="findRecentExpenses" resultType="org.jejuro.miraero.domain.transaction.domain.RecentTransactionQueryResult">
+        SELECT t.transaction_id AS transactionId, t.merchant_name AS transactionName, ec.expense_category_id AS categoryId, ec.category_name AS categoryName, t.amount, t.transacted_at AS transactedAt
+        FROM `transaction` t LEFT JOIN expense_category ec ON t.expense_category_id = ec.expense_category_id
+        <include refid="expenseCondition"/> ORDER BY t.transacted_at DESC, t.transaction_id DESC LIMIT 5
+    </select>
+    <select id="findCategoryExpenses" resultType="org.jejuro.miraero.domain.transaction.domain.CategoryExpenseQueryResult">
+        SELECT t.expense_category_id AS categoryId, ec.category_name AS categoryName, SUM(t.amount) AS amount
+        FROM `transaction` t LEFT JOIN expense_category ec ON t.expense_category_id = ec.expense_category_id
+        <include refid="expenseCondition"/> GROUP BY t.expense_category_id, ec.category_name ORDER BY amount DESC, t.expense_category_id ASC
+    </select>
+    <select id="sumTotalExpenses" resultType="long">
+        SELECT COALESCE(SUM(t.amount), 0) FROM `transaction` t <include refid="expenseCondition"/>
+    </select>
+</mapper>
