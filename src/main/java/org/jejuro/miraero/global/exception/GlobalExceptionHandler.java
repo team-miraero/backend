@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jejuro.miraero.global.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -60,5 +61,19 @@ public class GlobalExceptionHandler {
             errorCode.getCode(),
             errorCode.getMessage()
         ));
+  }
+
+  /*
+    쿠키 누락
+   */
+  @ExceptionHandler(MissingRequestCookieException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMissingRequestCookieException(
+      MissingRequestCookieException exception
+  ) {
+    ErrorCode errorCode = CommonErrorCode.INVALID_INPUT_VALUE;
+
+    return ResponseEntity
+        .status(errorCode.getStatus())
+        .body(ApiResponse.error(errorCode));
   }
 }

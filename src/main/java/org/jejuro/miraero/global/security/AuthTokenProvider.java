@@ -2,9 +2,9 @@ package org.jejuro.miraero.global.security;
 
 public interface AuthTokenProvider {
 
-  String createAccessToken(Long userId, String email);
+  String createAccessToken(Long userId);
 
-  String createRefreshToken(Long userId, String email);
+  String createRefreshToken(Long userId);
 
   Long getAccessTokenExpiresIn();
 
@@ -14,7 +14,7 @@ public interface AuthTokenProvider {
 
   Long getUserId(String token);
 
-  String getEmail(String token);
-
   boolean isAccessToken(String token);
+
+  boolean isRefreshToken(String token);
 }

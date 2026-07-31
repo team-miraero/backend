@@ -54,7 +54,7 @@ class TransactionControllerTest {
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .build();
         SecurityContextHolder.getContext().setAuthentication(
-                new JwtAuthenticationToken(new AuthenticatedUser(USER_ID, "test@example.com"))
+                new JwtAuthenticationToken(new AuthenticatedUser(USER_ID))
         );
     }
 

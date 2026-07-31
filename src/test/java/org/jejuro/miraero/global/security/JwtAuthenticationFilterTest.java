@@ -56,8 +56,6 @@ class JwtAuthenticationFilterTest {
         .thenReturn(true);
     when(authTokenProvider.getUserId("access-token"))
         .thenReturn(1L);
-    when(authTokenProvider.getEmail("access-token"))
-        .thenReturn("test@example.com");
 
     filter.doFilter(request, response, filterChain);
 
@@ -67,7 +65,6 @@ class JwtAuthenticationFilterTest {
         (AuthenticatedUser) authentication.getPrincipal();
 
     assertEquals(1L, user.getUserId());
-    assertEquals("test@example.com", user.getEmail());
     verify(filterChain).doFilter(request, response);
   }
 

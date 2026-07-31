@@ -24,13 +24,12 @@ class JwtAuthTokenProviderTest {
   void createAccessToken() {
     JwtAuthTokenProvider provider = createProvider();
 
-    String token = provider.createAccessToken(1L, "test@example.com");
+    String token = provider.createAccessToken(1L);
 
     Claims claims = parseClaims(token);
 
     assertNotNull(token);
     assertEquals("1", claims.getSubject());
-    assertEquals("test@example.com", claims.get("email"));
     assertEquals("ACCESS", claims.get("tokenType"));
   }
 
@@ -39,13 +38,12 @@ class JwtAuthTokenProviderTest {
   void createRefreshToken() {
     JwtAuthTokenProvider provider = createProvider();
 
-    String token = provider.createRefreshToken(1L, "test@example.com");
+    String token = provider.createRefreshToken(1L);
 
     Claims claims = parseClaims(token);
 
     assertNotNull(token);
     assertEquals("1", claims.getSubject());
-    assertEquals("test@example.com", claims.get("email"));
     assertEquals("REFRESH", claims.get("tokenType"));
   }
 
@@ -62,7 +60,7 @@ class JwtAuthTokenProviderTest {
   @DisplayName("유효한 토큰이면 true를 반환한다")
   void validateToken_validToken() {
     JwtAuthTokenProvider provider = createProvider();
-    String token = provider.createAccessToken(1L, "test@example.com");
+    String token = provider.createAccessToken(1L);
 
     boolean valid = provider.validateToken(token);
 
@@ -80,24 +78,22 @@ class JwtAuthTokenProviderTest {
   }
 
   @Test
-  @DisplayName("토큰에서 userId와 email을 추출한다")
+  @DisplayName("토큰에서 userId를 추출한다")
   void getUserInfo() {
     JwtAuthTokenProvider provider = createProvider();
-    String token = provider.createAccessToken(1L, "test@example.com");
+    String token = provider.createAccessToken(1L);
 
     Long userId = provider.getUserId(token);
-    String email = provider.getEmail(token);
 
     assertEquals(1L, userId);
-    assertEquals("test@example.com", email);
   }
 
   @Test
   @DisplayName("Access Token 여부를 확인한다")
   void isAccessToken() {
     JwtAuthTokenProvider provider = createProvider();
-    String accessToken = provider.createAccessToken(1L, "test@example.com");
-    String refreshToken = provider.createRefreshToken(1L, "test@example.com");
+    String accessToken = provider.createAccessToken(1L);
+    String refreshToken = provider.createRefreshToken(1L);
 
     assertTrue(provider.isAccessToken(accessToken));
     assertFalse(provider.isAccessToken(refreshToken));

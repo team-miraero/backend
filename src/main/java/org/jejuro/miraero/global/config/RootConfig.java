@@ -27,7 +27,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @Import({
     DataSourceConfig.class,
     MyBatisConfig.class,
-    SecurityConfig.class
+    SecurityConfig.class,
+    RedisConfig.class
 })
 public class RootConfig {
 
