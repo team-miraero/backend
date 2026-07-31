@@ -37,13 +37,13 @@ public class JwtAuthTokenProvider implements AuthTokenProvider {
   }
 
   @Override
-  public String createAccessToken(Long userId, String email) {
-    return createToken(userId, email, ACCESS_TOKEN_TYPE, accessTokenExpiresIn);
+  public String createAccessToken(Long userId) {
+    return createToken(userId, ACCESS_TOKEN_TYPE, accessTokenExpiresIn);
   }
 
   @Override
-  public String createRefreshToken(Long userId, String email) {
-    return createToken(userId, email, REFRESH_TOKEN_TYPE, refreshTokenExpiresIn);
+  public String createRefreshToken(Long userId) {
+    return createToken(userId, REFRESH_TOKEN_TYPE, refreshTokenExpiresIn);
   }
 
   @Override
@@ -72,20 +72,21 @@ public class JwtAuthTokenProvider implements AuthTokenProvider {
   }
 
   @Override
-  public String getEmail(String token) {
-    return parseClaims(token).get("email", String.class);
-  }
-
-  @Override
   public boolean isAccessToken(String token) {
     String tokenType = parseClaims(token).get(TOKEN_TYPE_CLAIM, String.class);
 
     return ACCESS_TOKEN_TYPE.equals(tokenType);
   }
 
+  @Override
+  public boolean isRefreshToken(String token) {
+    String tokenType = parseClaims(token).get(TOKEN_TYPE_CLAIM, String.class);
+
+    return REFRESH_TOKEN_TYPE.equals(tokenType);
+  }
+
   private String createToken(
       Long userId,
-      String email,
       String tokenType,
       Long expiresIn
   ) {
@@ -94,7 +95,6 @@ public class JwtAuthTokenProvider implements AuthTokenProvider {
 
     return Jwts.builder()
         .setSubject(String.valueOf(userId))
-        .claim("email", email)
         .claim(TOKEN_TYPE_CLAIM, tokenType)
         .setIssuedAt(now)
         .setExpiration(expiration)

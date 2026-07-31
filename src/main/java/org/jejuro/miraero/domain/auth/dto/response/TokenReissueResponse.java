@@ -4,10 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 
 @Getter
-public class LoginResponse {
+public class TokenReissueResponse {
 
   private final TokenResponse token;
-  private final Boolean autoLogin;
   private final LoginUserResponse user;
 
   @JsonIgnore
@@ -16,12 +15,11 @@ public class LoginResponse {
   @JsonIgnore
   private final Long refreshTokenExpiresIn;
 
-  public LoginResponse(
+  public TokenReissueResponse(
       String accessToken,
       String refreshToken,
       Long accessTokenExpiresIn,
       Long refreshTokenExpiresIn,
-      Boolean autoLogin,
       LoginUserResponse user
   ) {
     this.token = new TokenResponse(
@@ -29,7 +27,6 @@ public class LoginResponse {
         "Bearer",
         accessTokenExpiresIn
     );
-    this.autoLogin = autoLogin;
     this.user = user;
     this.refreshToken = refreshToken;
     this.refreshTokenExpiresIn = refreshTokenExpiresIn;

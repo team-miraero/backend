@@ -13,6 +13,7 @@ import org.jejuro.miraero.domain.auth.dto.request.SignUpRequest;
 import org.jejuro.miraero.domain.auth.dto.response.LoginResponse;
 import org.jejuro.miraero.domain.auth.dto.response.SignUpResponse;
 import org.jejuro.miraero.domain.auth.exception.AuthErrorCode;
+import org.jejuro.miraero.domain.auth.repository.RefreshTokenRepository;
 import org.jejuro.miraero.domain.mydata.service.MyDataLinkService;
 import org.jejuro.miraero.domain.user.domain.User;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
@@ -31,161 +32,166 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
 
-    @Mock
-    private UserMapper userMapper;
+  @Mock
+  private UserMapper userMapper;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
+  @Mock
+  private PasswordEncoder passwordEncoder;
 
-    @Mock
-    private MyDataLinkService myDataLinkService;
+  @Mock
+  private MyDataLinkService myDataLinkService;
 
-    @Mock
-    private AuthTokenProvider authTokenProvider;
+  @Mock
+  private AuthTokenProvider authTokenProvider;
 
-    @Mock
-    private UserService userService;
+  @Mock
+  private UserService userService;
 
-    private AuthService authService;
+  @Mock
+  private RefreshTokenRepository refreshTokenRepository;
 
-    @BeforeEach
-    void setUp() {
-        authService = new AuthServiceImpl(
-            userMapper,
-            passwordEncoder,
-            myDataLinkService,
-            authTokenProvider,
-            userService
-        );
-    }
+  private AuthService authService;
 
-    @Test
-    @DisplayName("회원가입 요청을 UserService에 위임하고 가입 응답을 반환한다")
-    void signUp_success() {
-        SignUpRequest request = new SignUpRequest(
-            "test@example.com",
-            "password123!"
-        );
+  @BeforeEach
+  void setUp() {
+    authService = new AuthServiceImpl(
+        userMapper,
+        passwordEncoder,
+        myDataLinkService,
+        authTokenProvider,
+        userService,
+        refreshTokenRepository
+    );
+  }
 
-        User user = createUser();
+  @Test
+  @DisplayName("회원가입 요청을 UserService에 위임하고 가입 응답을 반환한다")
+  void signUp_success() {
+    SignUpRequest request = new SignUpRequest(
+        "test@example.com",
+        "password123!"
+    );
 
-        when(userService.create(any(UserCreateCommand.class)))
-            .thenReturn(user);
+    User user = createUser();
 
-        SignUpResponse response = authService.signUp(request);
+    when(userService.create(any(UserCreateCommand.class)))
+        .thenReturn(user);
 
-        assertEquals(user.getUserId(), response.getUserId());
-        assertEquals(user.getName(), response.getName());
-        assertEquals(user.getEmail(), response.getEmail());
+    SignUpResponse response = authService.signUp(request);
 
-        verify(userService).create(any(UserCreateCommand.class));
-    }
+    assertEquals(user.getUserId(), response.getUserId());
+    assertEquals(user.getName(), response.getName());
+    assertEquals(user.getEmail(), response.getEmail());
 
-    @Test
-    @DisplayName("이메일과 비밀번호가 일치하면 로그인 응답을 반환한다")
-    void login_success() {
-        LoginRequest request = new LoginRequest(
-            "test@example.com",
-            "password123!"
-        );
+    verify(userService).create(any(UserCreateCommand.class));
+  }
 
-        User user = createUser();
+  @Test
+  @DisplayName("이메일과 비밀번호가 일치하면 로그인 응답을 반환한다")
+  void login_success() {
+    LoginRequest request = new LoginRequest(
+        "test@example.com",
+        "password123!"
+    );
 
-        when(userMapper.findByEmail(request.getEmail()))
-            .thenReturn(user);
-        when(passwordEncoder.matches(request.getPassword(), user.getPasswordHash()))
-            .thenReturn(true);
-        when(authTokenProvider.createAccessToken(user.getUserId(), user.getEmail()))
-            .thenReturn("access-token");
-        when(authTokenProvider.createRefreshToken(user.getUserId(), user.getEmail()))
-            .thenReturn("refresh-token");
-        when(authTokenProvider.getAccessTokenExpiresIn())
-            .thenReturn(1800L);
-        when(authTokenProvider.getRefreshTokenExpiresIn())
-            .thenReturn(1209600L);
+    User user = createUser();
 
-        LoginResponse response = authService.login(request);
+    when(userMapper.findByEmail(request.getEmail()))
+        .thenReturn(user);
+    when(passwordEncoder.matches(request.getPassword(), user.getPasswordHash()))
+        .thenReturn(true);
+    when(authTokenProvider.createAccessToken(user.getUserId()))
+        .thenReturn("access-token");
+    when(authTokenProvider.createRefreshToken(user.getUserId()))
+        .thenReturn("refresh-token");
+    when(authTokenProvider.getAccessTokenExpiresIn())
+        .thenReturn(1800L);
+    when(authTokenProvider.getRefreshTokenExpiresIn())
+        .thenReturn(1209600L);
 
-        assertEquals("access-token", response.getToken().getAccessToken());
-        assertEquals("refresh-token", response.getToken().getRefreshToken());
-        assertEquals("Bearer", response.getToken().getTokenType());
-        assertEquals(1800L, response.getToken().getAccessTokenExpiresIn());
-        assertEquals(1209600L, response.getToken().getRefreshTokenExpiresIn());
-        assertEquals(true, response.getAutoLogin());
-        assertEquals(user.getUserId(), response.getUser().getUserId());
-        assertEquals(user.getName(), response.getUser().getName());
-        assertEquals(user.getEmail(), response.getUser().getEmail());
+    LoginResponse response = authService.login(request);
 
-        verify(userMapper).findByEmail("test@example.com");
-        verify(passwordEncoder).matches("password123!", "encodedPassword");
-        verify(myDataLinkService).syncUserData(user);
-        verify(authTokenProvider).createAccessToken(user.getUserId(), user.getEmail());
-        verify(authTokenProvider).createRefreshToken(user.getUserId(), user.getEmail());
-    }
+    assertEquals("access-token", response.getToken().getAccessToken());
+    assertEquals("Bearer", response.getToken().getTokenType());
+    assertEquals(1800L, response.getToken().getAccessTokenExpiresIn());
+    assertEquals("refresh-token", response.getRefreshToken());
+    assertEquals(1209600L, response.getRefreshTokenExpiresIn());
+    assertEquals(true, response.getAutoLogin());
+    assertEquals(user.getUserId(), response.getUser().getUserId());
+    assertEquals(user.getName(), response.getUser().getName());
+    assertEquals(user.getEmail(), response.getUser().getEmail());
 
-    @Test
-    @DisplayName("이메일에 해당하는 회원이 없으면 인증 예외를 던진다")
-    void login_emailNotFound() {
-        LoginRequest request = new LoginRequest(
-            "not-found@example.com",
-            "password123!"
-        );
+    verify(userMapper).findByEmail("test@example.com");
+    verify(passwordEncoder).matches("password123!", "encodedPassword");
+    verify(myDataLinkService).syncUserData(user);
+    verify(authTokenProvider).createAccessToken(user.getUserId());
+    verify(authTokenProvider).createRefreshToken(user.getUserId());
+  }
 
-        when(userMapper.findByEmail(request.getEmail()))
-            .thenReturn(null);
+  @Test
+  @DisplayName("이메일에 해당하는 회원이 없으면 인증 예외를 던진다")
+  void login_emailNotFound() {
+    LoginRequest request = new LoginRequest(
+        "not-found@example.com",
+        "password123!"
+    );
 
-        BusinessException exception = assertThrows(
-            BusinessException.class,
-            () -> authService.login(request)
-        );
+    when(userMapper.findByEmail(request.getEmail()))
+        .thenReturn(null);
 
-        assertEquals(AuthErrorCode.INVALID_EMAIL_OR_PASSWORD, exception.getErrorCode());
+    BusinessException exception = assertThrows(
+        BusinessException.class,
+        () -> authService.login(request)
+    );
 
-        verify(userMapper).findByEmail("not-found@example.com");
-        verify(passwordEncoder, never()).matches(any(), any());
-        verify(myDataLinkService, never()).syncUserData(any());
-        verify(authTokenProvider, never()).createAccessToken(any(), any());
-        verify(authTokenProvider, never()).createRefreshToken(any(), any());
-    }
+    assertEquals(AuthErrorCode.INVALID_EMAIL_OR_PASSWORD, exception.getErrorCode());
 
-    @Test
-    @DisplayName("비밀번호가 일치하지 않으면 인증 예외를 던진다")
-    void login_passwordMismatch() {
-        LoginRequest request = new LoginRequest(
-            "test@example.com",
-            "wrongPassword123!"
-        );
+    verify(userMapper).findByEmail("not-found@example.com");
+    verify(passwordEncoder, never()).matches(any(), any());
+    verify(myDataLinkService, never()).syncUserData(any());
+    verify(authTokenProvider, never()).createAccessToken(any());
+    verify(authTokenProvider, never()).createRefreshToken(any());
+  }
 
-        User user = createUser();
+  @Test
+  @DisplayName("비밀번호가 일치하지 않으면 인증 예외를 던진다")
+  void login_passwordMismatch() {
+    LoginRequest request = new LoginRequest(
+        "test@example.com",
+        "wrongPassword123!"
+    );
 
-        when(userMapper.findByEmail(request.getEmail()))
-            .thenReturn(user);
-        when(passwordEncoder.matches(request.getPassword(), user.getPasswordHash()))
-            .thenReturn(false);
+    User user = createUser();
 
-        BusinessException exception = assertThrows(
-            BusinessException.class,
-            () -> authService.login(request)
-        );
+    when(userMapper.findByEmail(request.getEmail()))
+        .thenReturn(user);
+    when(passwordEncoder.matches(request.getPassword(), user.getPasswordHash()))
+        .thenReturn(false);
 
-        assertEquals(AuthErrorCode.INVALID_EMAIL_OR_PASSWORD, exception.getErrorCode());
+    BusinessException exception = assertThrows(
+        BusinessException.class,
+        () -> authService.login(request)
+    );
 
-        verify(userMapper).findByEmail("test@example.com");
-        verify(passwordEncoder).matches("wrongPassword123!", "encodedPassword");
-        verify(myDataLinkService, never()).syncUserData(any());
-        verify(authTokenProvider, never()).createAccessToken(any(), any());
-        verify(authTokenProvider, never()).createRefreshToken(any(), any());
-    }
+    assertEquals(AuthErrorCode.INVALID_EMAIL_OR_PASSWORD, exception.getErrorCode());
 
-    private User createUser() {
-        return User.create(
-            "테스트 사용자",
-            LocalDate.of(2000, 1, 1),
-            "테스트 회사",
-            3_000_000L,
-            "test@example.com",
-            "encodedPassword",
-            1L
-        );
-    }
+    verify(userMapper).findByEmail("test@example.com");
+    verify(passwordEncoder).matches("wrongPassword123!", "encodedPassword");
+    verify(myDataLinkService, never()).syncUserData(any());
+    verify(authTokenProvider, never()).createAccessToken(any());
+    verify(authTokenProvider, never()).createRefreshToken(any());
+    verify(refreshTokenRepository, never()).save(any(), any(), any());
+  }
+
+  private User createUser() {
+    return User.create(
+        "테스트 사용자",
+        LocalDate.of(2000, 1, 1),
+        "테스트 회사",
+        3_000_000L,
+        "test@example.com",
+        "encodedPassword",
+        1L
+    );
+  }
 }

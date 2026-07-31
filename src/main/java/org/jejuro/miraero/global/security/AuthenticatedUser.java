@@ -1,12 +1,13 @@
 package org.jejuro.miraero.global.security;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
-@AllArgsConstructor
 public class AuthenticatedUser {
 
-  private Long userId;
-  private String email;
+  private final Long userId;
+
+  public AuthenticatedUser(Long userId) {
+    this.userId = userId;
+  }
 }
