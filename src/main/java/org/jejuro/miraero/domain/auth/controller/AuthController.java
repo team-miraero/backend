@@ -9,6 +9,8 @@ import org.jejuro.miraero.domain.auth.dto.response.LoginResponse;
 import org.jejuro.miraero.domain.auth.dto.response.SignUpResponse;
 import org.jejuro.miraero.domain.auth.dto.response.TokenReissueResponse;
 import org.jejuro.miraero.domain.auth.service.AuthService;
+import org.jejuro.miraero.global.exception.BusinessException;
+import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -60,9 +62,13 @@ public class AuthController {
 
   @PostMapping("/reissue")
   public ResponseEntity<ApiResponse<TokenReissueResponse>> reissue(
-      @CookieValue(REFRESH_TOKEN_COOKIE_NAME) String refreshToken,
+      @CookieValue(value = REFRESH_TOKEN_COOKIE_NAME, required = false) String refreshToken,
       HttpServletResponse httpServletResponse
   ) {
+    if (refreshToken == null || refreshToken.isBlank()) {
+      throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+    }
+
     TokenReissueResponse response = authService.reissue(refreshToken);
 
     addRefreshTokenCookie(

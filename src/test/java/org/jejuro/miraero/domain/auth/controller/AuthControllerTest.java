@@ -11,11 +11,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import javax.servlet.http.Cookie;
 import org.jejuro.miraero.domain.auth.dto.request.LoginRequest;
 import org.jejuro.miraero.domain.auth.dto.request.SignUpRequest;
 import org.jejuro.miraero.domain.auth.dto.response.LoginResponse;
 import org.jejuro.miraero.domain.auth.dto.response.LoginUserResponse;
 import org.jejuro.miraero.domain.auth.dto.response.SignUpResponse;
+import org.jejuro.miraero.domain.auth.dto.response.TokenReissueResponse;
 import org.jejuro.miraero.domain.auth.service.AuthService;
 import org.jejuro.miraero.domain.user.exception.UserErrorCode;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -198,6 +200,38 @@ class AuthControllerTest {
             .andExpect(jsonPath("$.data.user.email").value("test@example.com"));
 
         verify(authService).login(any(LoginRequest.class));
+    }
+
+    @Test
+    void reissue_usesRefreshTokenCookieAndReturnsAccessToken() throws Exception {
+        TokenReissueResponse response = new TokenReissueResponse(
+            "new-access-token",
+            "new-refresh-token",
+            1800L,
+            1209600L,
+            new LoginUserResponse(1L, "테스트 사용자", "test@example.com")
+        );
+        given(authService.reissue("refresh-token")).willReturn(response);
+
+        mockMvc.perform(post("/api/auth/reissue")
+                .cookie(new Cookie("refreshToken", "refresh-token")))
+            .andExpect(status().isOk())
+            .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("refreshToken=new-refresh-token")))
+            .andExpect(jsonPath("$.success").value(true))
+            .andExpect(jsonPath("$.data.token.accessToken").value("new-access-token"))
+            .andExpect(jsonPath("$.data.refreshToken").doesNotExist());
+
+        verify(authService).reissue("refresh-token");
+    }
+
+    @Test
+    void reissue_withoutRefreshTokenCookieReturnsBadRequest() throws Exception {
+        mockMvc.perform(post("/api/auth/reissue"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.success").value(false))
+            .andExpect(jsonPath("$.error.code").value("COMMON_002"));
+
+        verify(authService, never()).reissue(any());
     }
 
     @Test
