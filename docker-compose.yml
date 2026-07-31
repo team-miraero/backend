@@ -29,7 +29,12 @@ services:
     ports:
       - "${REDIS_PORT}:6379"
 
-    command: redis-server --appendonly yes
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD}
 
     volumes:
       - redis-data:/data

@@ -2,6 +2,7 @@ package org.jejuro.miraero.domain.auth.repository;
 
 import java.time.Duration;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -9,9 +10,10 @@ import org.springframework.stereotype.Repository;
 @RequiredArgsConstructor
 public class RedisRefreshTokenRepository implements RefreshTokenRepository {
 
-  private static final String KEY_PREFIX = "refreshToken:";
-
   private final StringRedisTemplate stringRedisTemplate;
+
+  @Value("${redis.key-prefix.refresh-token}")
+  private String refreshTokenKeyPrefix;
 
   @Override
   public void save(Long userId, String refreshToken, Long expiresIn) {
@@ -33,6 +35,6 @@ public class RedisRefreshTokenRepository implements RefreshTokenRepository {
   }
 
   private String createKey(Long userId) {
-    return KEY_PREFIX + userId;
+    return refreshTokenKeyPrefix + userId;
   }
 }
