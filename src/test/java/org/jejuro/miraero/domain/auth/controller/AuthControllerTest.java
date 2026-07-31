@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,7 +16,6 @@ import org.jejuro.miraero.domain.auth.dto.request.SignUpRequest;
 import org.jejuro.miraero.domain.auth.dto.response.LoginResponse;
 import org.jejuro.miraero.domain.auth.dto.response.LoginUserResponse;
 import org.jejuro.miraero.domain.auth.dto.response.SignUpResponse;
-import org.jejuro.miraero.domain.auth.dto.response.TokenResponse;
 import org.jejuro.miraero.domain.auth.service.AuthService;
 import org.jejuro.miraero.domain.user.exception.UserErrorCode;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -163,13 +163,10 @@ class AuthControllerTest {
         );
 
         LoginResponse response = new LoginResponse(
-            new TokenResponse(
-                "access-token",
-                "refresh-token",
-                "Bearer",
-                1800L,
-                1209600L
-            ),
+            "access-token",
+            "refresh-token",
+            1800L,
+            1209600L,
             true,
             new LoginUserResponse(
                 1L,
@@ -188,12 +185,13 @@ class AuthControllerTest {
             )
             .andDo(print())
             .andExpect(status().isOk())
+            .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("refreshToken=refresh-token")))
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.token.accessToken").value("access-token"))
-            .andExpect(jsonPath("$.data.token.refreshToken").value("refresh-token"))
+            .andExpect(jsonPath("$.data.token.refreshToken").doesNotExist())
             .andExpect(jsonPath("$.data.token.tokenType").value("Bearer"))
             .andExpect(jsonPath("$.data.token.accessTokenExpiresIn").value(1800))
-            .andExpect(jsonPath("$.data.token.refreshTokenExpiresIn").value(1209600))
+            .andExpect(jsonPath("$.data.token.refreshTokenExpiresIn").doesNotExist())
             .andExpect(jsonPath("$.data.autoLogin").value(true))
             .andExpect(jsonPath("$.data.user.userId").value(1))
             .andExpect(jsonPath("$.data.user.name").value("테스트 사용자"))

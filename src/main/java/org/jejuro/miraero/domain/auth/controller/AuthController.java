@@ -5,7 +5,6 @@ import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.auth.dto.request.LoginRequest;
 import org.jejuro.miraero.domain.auth.dto.request.SignUpRequest;
-import org.jejuro.miraero.domain.auth.dto.request.TokenReissueRequest;
 import org.jejuro.miraero.domain.auth.dto.response.LoginResponse;
 import org.jejuro.miraero.domain.auth.dto.response.SignUpResponse;
 import org.jejuro.miraero.domain.auth.dto.response.TokenReissueResponse;
@@ -26,6 +25,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AuthController {
 
+  private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
+  private static final String REFRESH_TOKEN_COOKIE_PATH = "/api/auth";
+  private static final String SAME_SITE_POLICY = "Lax";
+
   private final AuthService authService;
 
   @PostMapping("/signup")
@@ -42,24 +45,14 @@ public class AuthController {
   @PostMapping("/login")
   public ResponseEntity<ApiResponse<LoginResponse>> login(
       @Valid @RequestBody LoginRequest request,
-      HttpServletResponse httpServletResponse) {
+      HttpServletResponse httpServletResponse
+  ) {
     LoginResponse response = authService.login(request);
 
-    //Refresh Token 쿠키에 저장
-    ResponseCookie refreshTokenCookie = ResponseCookie.from(
-            "refreshToken",
-            response.getToken().getRefreshToken()
-        )
-        .httpOnly(true)
-        .secure(false)
-        .path("/api/auth")
-        .maxAge(response.getToken().getRefreshTokenExpiresIn())
-        .sameSite("Lax")
-        .build();
-
-    httpServletResponse.addHeader(
-        HttpHeaders.SET_COOKIE,
-        refreshTokenCookie.toString()
+    addRefreshTokenCookie(
+        httpServletResponse,
+        response.getRefreshToken(),
+        response.getRefreshTokenExpiresIn()
     );
 
     return ResponseEntity.ok(ApiResponse.success(response));
@@ -67,29 +60,40 @@ public class AuthController {
 
   @PostMapping("/reissue")
   public ResponseEntity<ApiResponse<TokenReissueResponse>> reissue(
-      @CookieValue("refreshToken") String refreshToken,
+      @CookieValue(REFRESH_TOKEN_COOKIE_NAME) String refreshToken,
       HttpServletResponse httpServletResponse
   ) {
-    TokenReissueResponse response = authService.reissue(
-        new TokenReissueRequest(refreshToken)
+    TokenReissueResponse response = authService.reissue(refreshToken);
+
+    addRefreshTokenCookie(
+        httpServletResponse,
+        response.getRefreshToken(),
+        response.getRefreshTokenExpiresIn()
     );
 
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  private void addRefreshTokenCookie(
+      HttpServletResponse httpServletResponse,
+      String refreshToken,
+      Long refreshTokenExpiresIn
+  ) {
     ResponseCookie refreshTokenCookie = ResponseCookie.from(
-            "refreshToken",
-            response.getToken().getRefreshToken()
+            REFRESH_TOKEN_COOKIE_NAME,
+            refreshToken
         )
         .httpOnly(true)
         .secure(false)
-        .path("/api/auth")
-        .maxAge(response.getToken().getRefreshTokenExpiresIn())
-        .sameSite("Lax")
+        .path(REFRESH_TOKEN_COOKIE_PATH)
+        .maxAge(refreshTokenExpiresIn)
+        .sameSite(SAME_SITE_POLICY)
         .build();
 
     httpServletResponse.addHeader(
         HttpHeaders.SET_COOKIE,
         refreshTokenCookie.toString()
     );
-
-    return ResponseEntity.ok(ApiResponse.success(response));
   }
+
 }

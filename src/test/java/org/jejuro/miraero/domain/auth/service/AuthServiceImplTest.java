@@ -112,10 +112,10 @@ class AuthServiceImplTest {
     LoginResponse response = authService.login(request);
 
     assertEquals("access-token", response.getToken().getAccessToken());
-    assertEquals("refresh-token", response.getToken().getRefreshToken());
     assertEquals("Bearer", response.getToken().getTokenType());
     assertEquals(1800L, response.getToken().getAccessTokenExpiresIn());
-    assertEquals(1209600L, response.getToken().getRefreshTokenExpiresIn());
+    assertEquals("refresh-token", response.getRefreshToken());
+    assertEquals(1209600L, response.getRefreshTokenExpiresIn());
     assertEquals(true, response.getAutoLogin());
     assertEquals(user.getUserId(), response.getUser().getUserId());
     assertEquals(user.getName(), response.getUser().getName());

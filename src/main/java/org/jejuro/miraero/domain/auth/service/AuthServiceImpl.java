@@ -3,12 +3,10 @@ package org.jejuro.miraero.domain.auth.service;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.auth.dto.request.LoginRequest;
 import org.jejuro.miraero.domain.auth.dto.request.SignUpRequest;
-import org.jejuro.miraero.domain.auth.dto.request.TokenReissueRequest;
 import org.jejuro.miraero.domain.auth.dto.response.LoginResponse;
 import org.jejuro.miraero.domain.auth.dto.response.LoginUserResponse;
 import org.jejuro.miraero.domain.auth.dto.response.SignUpResponse;
 import org.jejuro.miraero.domain.auth.dto.response.TokenReissueResponse;
-import org.jejuro.miraero.domain.auth.dto.response.TokenResponse;
 import org.jejuro.miraero.domain.auth.exception.AuthErrorCode;
 import org.jejuro.miraero.domain.auth.repository.RefreshTokenRepository;
 import org.jejuro.miraero.domain.mydata.service.MyDataLinkService;
@@ -27,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AuthServiceImpl implements AuthService {
 
-  private static final String TOKEN_TYPE = "Bearer";
   private static final boolean AUTO_LOGIN = true;
 
   private final UserMapper userMapper;
@@ -65,26 +62,23 @@ public class AuthServiceImpl implements AuthService {
 
     myDataLinkService.syncUserData(user);
 
-    String accessToken = authTokenProvider.createAccessToken(user.getUserId());
-
-    String refreshToken = authTokenProvider.createRefreshToken(user.getUserId());
+    Long userId = user.getUserId();
+    String accessToken = authTokenProvider.createAccessToken(userId);
+    String refreshToken = authTokenProvider.createRefreshToken(userId);
+    Long accessTokenExpiresIn = authTokenProvider.getAccessTokenExpiresIn();
+    Long refreshTokenExpiresIn = authTokenProvider.getRefreshTokenExpiresIn();
 
     refreshTokenRepository.save(
-        user.getUserId(),
+        userId,
         refreshToken,
-        authTokenProvider.getRefreshTokenExpiresIn()
-    );
-
-    TokenResponse token = new TokenResponse(
-        accessToken,
-        refreshToken,
-        TOKEN_TYPE,
-        authTokenProvider.getAccessTokenExpiresIn(),
-        authTokenProvider.getRefreshTokenExpiresIn()
+        refreshTokenExpiresIn
     );
 
     return new LoginResponse(
-        token,
+        accessToken,
+        refreshToken,
+        accessTokenExpiresIn,
+        refreshTokenExpiresIn,
         AUTO_LOGIN,
         LoginUserResponse.from(user)
     );
@@ -92,9 +86,7 @@ public class AuthServiceImpl implements AuthService {
 
   @Override
   @Transactional
-  public TokenReissueResponse reissue(TokenReissueRequest request) {
-    String refreshToken = request.getRefreshToken();
-
+  public TokenReissueResponse reissue(String refreshToken) {
     if (!authTokenProvider.validateToken(refreshToken)
         || !authTokenProvider.isRefreshToken(refreshToken)) {
       throw new BusinessException(AuthErrorCode.INVALID_REFRESH_TOKEN);
@@ -114,25 +106,22 @@ public class AuthServiceImpl implements AuthService {
     }
 
     String newAccessToken = authTokenProvider.createAccessToken(user.getUserId());
-
     String newRefreshToken = authTokenProvider.createRefreshToken(user.getUserId());
+
+    Long accessTokenExpiresIn = authTokenProvider.getAccessTokenExpiresIn();
+    Long refreshTokenExpiresIn = authTokenProvider.getRefreshTokenExpiresIn();
 
     refreshTokenRepository.save(
         user.getUserId(),
         newRefreshToken,
-        authTokenProvider.getRefreshTokenExpiresIn()
-    );
-
-    TokenResponse token = new TokenResponse(
-        newAccessToken,
-        newRefreshToken,
-        TOKEN_TYPE,
-        authTokenProvider.getAccessTokenExpiresIn(),
-        authTokenProvider.getRefreshTokenExpiresIn()
+        refreshTokenExpiresIn
     );
 
     return new TokenReissueResponse(
-        token,
+        newAccessToken,
+        newRefreshToken,
+        accessTokenExpiresIn,
+        refreshTokenExpiresIn,
         LoginUserResponse.from(user)
     );
   }
