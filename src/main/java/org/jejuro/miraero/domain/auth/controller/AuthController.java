@@ -12,10 +12,12 @@ import org.jejuro.miraero.domain.auth.service.AuthService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.response.ApiResponse;
+import org.jejuro.miraero.global.security.AuthenticatedUser;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -80,6 +82,18 @@ public class AuthController {
     return ResponseEntity.ok(ApiResponse.success(response));
   }
 
+  @PostMapping("/logout")
+  public ResponseEntity<Void> logout(
+      @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
+      HttpServletResponse httpServletResponse
+  ) {
+    authService.logout(authenticatedUser.getUserId());
+
+    expireRefreshTokenCookie(httpServletResponse);
+
+    return ResponseEntity.noContent().build();
+  }
+
   private void addRefreshTokenCookie(
       HttpServletResponse httpServletResponse,
       String refreshToken,
@@ -93,6 +107,26 @@ public class AuthController {
         .secure(false)
         .path(REFRESH_TOKEN_COOKIE_PATH)
         .maxAge(refreshTokenExpiresIn)
+        .sameSite(SAME_SITE_POLICY)
+        .build();
+
+    httpServletResponse.addHeader(
+        HttpHeaders.SET_COOKIE,
+        refreshTokenCookie.toString()
+    );
+  }
+
+  private void expireRefreshTokenCookie(
+      HttpServletResponse httpServletResponse
+  ) {
+    ResponseCookie refreshTokenCookie = ResponseCookie.from(
+            REFRESH_TOKEN_COOKIE_NAME,
+            ""
+        )
+        .httpOnly(true)
+        .secure(false)
+        .path(REFRESH_TOKEN_COOKIE_PATH)
+        .maxAge(0)
         .sameSite(SAME_SITE_POLICY)
         .build();
 

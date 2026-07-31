@@ -183,6 +183,15 @@ class AuthServiceImplTest {
     verify(refreshTokenRepository, never()).save(any(), any(), any());
   }
 
+  @Test
+  @DisplayName("로그아웃하면 사용자의 Refresh Token을 삭제한다.")
+  void logout_success() {
+    Long userId = 1L;
+
+    authService.logout(userId);
+    verify(refreshTokenRepository).deleteByUserId(userId);
+  }
+
   private User createUser() {
     return User.create(
         "테스트 사용자",

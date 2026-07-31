@@ -13,4 +13,6 @@ public interface AuthService {
   LoginResponse login(LoginRequest request);
 
   TokenReissueResponse reissue(String refreshToken);
+
+  void logout(Long userId);
 }
