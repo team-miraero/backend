@@ -298,8 +298,10 @@ CREATE TABLE `account` (
         DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일시',
 
-    `synced_at` DATETIME NOT NULL COMMENT '마지막 동기화 일시',
-		
+    `synced_at` DATETIME NOT NULL
+    DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP COMMENT '마지막 동기화 일시',
+
 				CONSTRAINT `ck_account_type`
 		CHECK (`account_type` IN (
 		    'CHECKING',
@@ -309,7 +311,7 @@ CREATE TABLE `account` (
 		    'ISA',
 		    'CMA'
 		)),
-	
+
     CONSTRAINT `pk_account`
         PRIMARY KEY (`account_id`),
 
@@ -337,7 +339,8 @@ CREATE TABLE `card` (
     `card_type` VARCHAR(20) NOT NULL
         COMMENT 'CREDIT, CHECK, PREPAID',
 
-    `synced_at` DATETIME NOT NULL COMMENT '마지막 동기화 일시',
+    `synced_at` DATETIME NOT NULL
+		    DEFAULT CURRENT_TIMESTAMP COMMENT '마지막 동기화 일시',
 
     `created_at` DATETIME NOT NULL
         DEFAULT CURRENT_TIMESTAMP COMMENT '생성 일시',
@@ -345,14 +348,14 @@ CREATE TABLE `card` (
     `updated_at` DATETIME NOT NULL
         DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일시',
-		
+
 		CONSTRAINT `ck_card_type`
 				CHECK (`card_type` IN (
 				    'CREDIT',
 				    'CHECK',
 				    'PREPAID'
 				)),
-    
+
     CONSTRAINT `pk_card`
         PRIMARY KEY (`card_id`),
 
@@ -383,7 +386,8 @@ CREATE TABLE `prepaid_instrument` (
     `ex_prepaid_instrument_id` BIGINT NOT NULL
         COMMENT '외부 선불전자지급수단 ID',
 
-    `synced_at` DATETIME NOT NULL COMMENT '마지막 동기화 일시',
+    `synced_at` DATETIME NOT NULL
+	    DEFAULT CURRENT_TIMESTAMP COMMENT '마지막 동기화 일시',
 
     `created_at` DATETIME NOT NULL
         DEFAULT CURRENT_TIMESTAMP COMMENT '생성 일시',
@@ -391,7 +395,7 @@ CREATE TABLE `prepaid_instrument` (
     `updated_at` DATETIME NOT NULL
         DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일시',
-		
+
 		CONSTRAINT `ck_prepaid_instrument_type`
 CHECK (`prepaid_instrument_type` IN (
     'PAY_MONEY',
@@ -399,7 +403,7 @@ CHECK (`prepaid_instrument_type` IN (
     'POINT',
     'PREPAID_CARD'
 )),
-		
+
     CONSTRAINT `pk_prepaid_instrument`
         PRIMARY KEY (`prepaid_instrument_id`),
 
@@ -437,7 +441,8 @@ CREATE TABLE `loan` (
         DEFAULT CURRENT_TIMESTAMP
         ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 일시',
 
-    `synced_at` DATETIME NOT NULL COMMENT '마지막 동기화 일시',
+    `synced_at` DATETIME NOT NULL
+	    DEFAULT CURRENT_TIMESTAMP COMMENT '마지막 동기화 일시',
 
     CONSTRAINT `pk_loan`
         PRIMARY KEY (`loan_id`),
@@ -449,22 +454,22 @@ CREATE TABLE `loan` (
         FOREIGN KEY (`user_id`)
         REFERENCES `miraero_user` (`user_id`)
         ON DELETE CASCADE,
-		
+
 		CONSTRAINT `ck_loan_amount`
 		    CHECK (`loan_amount` > 0),
-		
+
 		CONSTRAINT `ck_loan_remaining_amount`
 		    CHECK (`remaining_amount` >= 0),
-		
+
 		CONSTRAINT `ck_loan_remaining_less_than_amount`
 		    CHECK (`remaining_amount` <= `loan_amount`),
-		
+
 		CONSTRAINT `ck_loan_interest_rate`
 			    CHECK (`interest_rate` >= 0),
-		
+
 		CONSTRAINT `ck_loan_date`
 		    CHECK (`loan_start_date` <= `maturity_date`)
-		    
+
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `goal` (
@@ -480,7 +485,7 @@ CREATE TABLE `goal` (
     `is_collected` BOOLEAN NOT NULL DEFAULT FALSE,
     `completed_date` DATE NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-		
+
 		CONSTRAINT `ck_goal_status`
 CHECK (`goal_status` IN (
     'ACTIVE',
@@ -505,7 +510,7 @@ CREATE TABLE `money_box` (
     `account_number` VARBINARY(512) NOT NULL,
     `masked_account_number` VARCHAR(50) NULL,
     `money_box_type` VARCHAR(20) NOT NULL COMMENT 'GOAL, SAVING',
-		
+
 		CONSTRAINT `ck_money_box_type`
 CHECK (`money_box_type` IN (
     'GOAL',
@@ -527,7 +532,7 @@ CREATE TABLE `goal_asset` (
     `asset_type` VARCHAR(20) NOT NULL COMMENT 'ACCOUNT, LOAN, MONEY_BOX',
     `asset_id` BIGINT NOT NULL COMMENT '연결된 자산 ID',
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성 일시',
-		
+
 		CONSTRAINT `ck_goal_asset_type`
 CHECK (`asset_type` IN (
     'ACCOUNT',
@@ -560,7 +565,7 @@ CREATE TABLE `auto_transfer` (
     `end_date` DATE NULL COMMENT '자동이체 종료일',
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '데이터 기준 일시',
     `auto_transfer_status` VARCHAR(20) NOT NULL,
-		
+
 		CONSTRAINT `ck_auto_transfer_status`
 CHECK (`auto_transfer_status` IN (
     'ACTIVE',
@@ -583,10 +588,10 @@ CHECK (`auto_transfer_status` IN (
         FOREIGN KEY (`money_box_id`)
         REFERENCES `money_box` (`money_box_id`)
         ON DELETE SET NULL,
-        
+
     CONSTRAINT `ck_auto_transfer_day`
     CHECK (`transfer_day` BETWEEN 1 AND 31)
-    
+
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `auto_saving` (
@@ -596,7 +601,7 @@ CREATE TABLE `auto_saving` (
     `account_id` BIGINT NOT NULL COMMENT '내부 출금 계좌 ID',
     `max_amount` BIGINT NULL,
     `auto_saving_status` VARCHAR(20) NOT NULL COMMENT 'ACTIVE, PAUSED',
-		
+
 		CONSTRAINT `ck_auto_saving_status`
 CHECK (`auto_saving_status` IN (
     'ACTIVE',
@@ -715,7 +720,7 @@ CREATE TABLE `transaction` (
                                    COMMENT '수정 일시',
 
                                `synced_at` DATETIME NOT NULL
-                                   COMMENT '동기화 일시',
+                                   DEFAULT CURRENT_TIMESTAMP COMMENT '마지막 동기화 일시',
 
                                CONSTRAINT `pk_transaction`
                                    PRIMARY KEY (`transaction_id`),
