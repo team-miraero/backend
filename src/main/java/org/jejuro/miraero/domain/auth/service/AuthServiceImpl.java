@@ -125,4 +125,10 @@ public class AuthServiceImpl implements AuthService {
         LoginUserResponse.from(user)
     );
   }
+
+  @Override
+  @Transactional
+  public void logout(Long userId) {
+    refreshTokenRepository.deleteByUserId(userId);
+  }
 }
