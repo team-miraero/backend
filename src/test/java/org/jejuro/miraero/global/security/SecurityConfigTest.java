@@ -2,6 +2,8 @@ package org.jejuro.miraero.global.security;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -95,6 +97,26 @@ class SecurityConfigTest {
                 .header("Authorization", "Bearer refresh-token")
         )
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void reissueAndSwaggerPaths_arePublic() throws Exception {
+    mockMvc.perform(get("/api/auth/reissue"))
+        .andExpect(status().isNotFound());
+    mockMvc.perform(get("/swagger-ui.html"))
+        .andExpect(status().isNotFound());
+    mockMvc.perform(get("/v2/api-docs"))
+        .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void cors_allowsConfiguredOriginWithCredentials() throws Exception {
+    mockMvc.perform(options("/api/test/protected")
+            .header("Origin", "http://localhost:5173")
+            .header("Access-Control-Request-Method", "GET"))
+        .andExpect(status().isOk())
+        .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"))
+        .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
   }
 
   @Configuration
