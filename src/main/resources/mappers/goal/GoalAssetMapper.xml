@@ -4,8 +4,8 @@
 
 <mapper namespace="org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper">
 
-    <insert id="saveAll"
-            parameterType="java.util.List">
+    <!-- 목표 연결 자산 저장 -->
+    <insert id="saveAll">
 
         INSERT INTO goal_asset (
             goal_id,
@@ -14,14 +14,20 @@
         )
         VALUES
 
-        <foreach collection="goalAssets" item="goalAsset" separator=",">
+        <foreach collection="assets" item="asset" separator=",">
             (
-            #{goalAsset.goalId},
-            #{goalAsset.assetType},
-            #{goalAsset.assetId}
+            #{asset.goalId},
+            #{asset.assetType},
+            #{asset.assetId}
             )
         </foreach>
 
     </insert>
+
+
+
+    <select id="findByGoalId" resultType="org.jejuro.miraero.domain.goal.domain.GoalAsset">
+        SELECT asset_id,asset_type FROM goal_asset WHERE goal_id = #{goalId}
+    </select>
 
 </mapper>

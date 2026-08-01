@@ -3,7 +3,10 @@ package org.jejuro.miraero.domain.goal.service;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
 import org.jejuro.miraero.domain.goal.dto.response.GoalCreateResponse;
+import org.jejuro.miraero.domain.goal.dto.response.GoalListResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalPossibilityResponse;
+
+import java.util.List;
 
 public interface GoalService {
     GoalPossibilityResponse checkPossibility(
@@ -14,4 +17,6 @@ public interface GoalService {
         Long userId,
         GoalCreateRequest request
     );
+
+    List<GoalListResponse> getGoalsByUserId(Long userId);
 }

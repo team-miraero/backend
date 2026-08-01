@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class Goal {
     private Long goalId;
     private Long userId;
-    private String goalType;
+    private GoalType goalType;
     private String goalName;
     private Long goalAmount;
     private Long startAmount;
@@ -24,10 +24,17 @@ public class Goal {
     private LocalDate completedDate;
     private LocalDateTime createdAt;
 
+
+    public void setGoalId(Long goalId) {
+        this.goalId = goalId;
+    }
+
+
     @Builder
     public Goal(
+            Long goalId,
             Long userId,
-            String goalType,
+            GoalType goalType,
             String goalName,
             Long goalAmount,
             Long startAmount,
@@ -37,6 +44,7 @@ public class Goal {
             boolean isCollected,
             LocalDate completedDate
     ) {
+        this.goalId = goalId;
         this.userId = userId;
         this.goalType = goalType;
         this.goalName = goalName;

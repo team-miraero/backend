@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 
 
 @Getter
@@ -24,5 +25,7 @@ public class GoalPossibilityRequest {
     @Positive
     private Integer goalMonths;
 
+    @NotNull
+    @PositiveOrZero
     private Long startAmount;
 }
