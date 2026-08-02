@@ -108,6 +108,18 @@ public class GoalController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
+    @DeleteMapping("/{goalId")
+    public ResponseEntity<ApiResponse<Void>> deleteGoal(
+            @PathVariable Long goalId
+    ){
+        //JWT 적용 예정
+        Long userId = 1L;
+
+        goalService.deleteGoal(userId,goalId);
+
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
 
 
 }

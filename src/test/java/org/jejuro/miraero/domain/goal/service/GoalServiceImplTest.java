@@ -304,4 +304,29 @@ class GoalServiceImplTest {
         verify(goalMapper).update(any(Goal.class));
     }
 
+    @Test
+    @DisplayName("목표 삭제 성공")
+    void deleteGoal_success() {
+        // given
+        Long userId = 1L;
+        Long goalId = 10L;
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .userId(userId)
+                .goalName("여행")
+                .goalAmount(1000000L)
+                .build();
+
+        when(goalMapper.findByIdAndUserId(userId, goalId))
+                .thenReturn(goal);
+
+        // when
+        goalService.deleteGoal(userId, goalId);
+
+        // then
+        verify(goalMapper, times(1))
+                .delete(goalId);
+    }
+
 }

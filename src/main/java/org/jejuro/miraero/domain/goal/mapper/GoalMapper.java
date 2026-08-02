@@ -16,4 +16,5 @@ public interface GoalMapper {
             @Param("goalId") Long goalId
     );
     int update(@Param("goal") Goal goal);
+    void delete(@Param("goalId") Long goalId);
 }

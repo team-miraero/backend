@@ -27,4 +27,6 @@ public interface GoalService {
     void updateGoal(
             Long userId, Long goalId, GoalUpdateRequest request
             );
+
+    void deleteGoal(Long userId, Long goalId);
 }

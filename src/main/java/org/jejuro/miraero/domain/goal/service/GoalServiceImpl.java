@@ -31,10 +31,14 @@ public class GoalServiceImpl implements GoalService{
 
 
     /**
-     * 목표 실현 가능성을 조회한다.
+     * 목표 실현 가능성 조회
+     *
+     * 목표 금액, 시작 금액, 목표 기간을 기준으로
+     * 필요한 월 저축 금액을 계산하고 사용 가능한 금액과 비교하여
+     * 목표 달성 가능 여부를 반환한다.
      *
      * @param request 목표 실현 가능성 조회 요청 정보
-     * @return 목표 실현 가능성 응답 정보
+     * @return 목표 실현 가능성 정보
      */
     @Override
     @Transactional(readOnly = true)
@@ -80,7 +84,10 @@ public class GoalServiceImpl implements GoalService{
 
 
     /**
-     * 목표를 생성한다.
+     * 목표 생성
+     *
+     * 사용자가 입력한 목표 정보를 기반으로 목표를 생성하고,
+     * 생성된 목표와 연결할 자산 정보를 저장한다.
      *
      * @param userId 사용자 ID
      * @param request 목표 생성 요청 정보
@@ -123,10 +130,13 @@ public class GoalServiceImpl implements GoalService{
     }
 
     /**
-     * 사용자의 목표 목록을 조회한다.
+     * 사용자의 목표 목록을 조회
+     *
+     * 사용자가 생성한 목표 목록을 조회하고,
+     * 각 목표의 현재 달성 금액 및 진행률을 계산하여 반환한다.
      *
      * @param userId 사용자 ID
-     * @return 사용자가 생성한 목표 목록
+     * @return 사용자의 목표 목록
      */
     @Override
     @Transactional(readOnly = true)
@@ -170,6 +180,16 @@ public class GoalServiceImpl implements GoalService{
         ));
     }
 
+    /**
+     * 목표 상세 조회
+     *
+     * 특정 목표의 기본 정보와 연결된 자산 정보를 기반으로
+     * 현재 진행률, 기간 정보, 목표 달성 페이스를 계산하여 반환한다.
+     *
+     * @param userId 사용자 ID
+     * @param goalId 목표 ID
+     * @return 목표 상세 정보
+     */
     @Override
     @Transactional(readOnly = true)
     public GoalDetailResponse getGoalDetail(Long userId, Long goalId) {
@@ -315,10 +335,15 @@ public class GoalServiceImpl implements GoalService{
     }
 
     /**
-     * 해당 목표를 수정한다
-     * @param userId
-     * @param goalId
-     * @param request
+     * 목표 수정
+     *
+     * 사용자가 생성한 목표 정보를 수정한다.
+     * 요청 값 중 전달된 값만 변경하며,
+     * 전달되지 않은 값은 기존 정보를 유지한다.
+     *
+     * @param userId 사용자 ID
+     * @param goalId 목표 ID
+     * @param request 목표 수정 요청 정보
      */
     @Override
     @Transactional
@@ -372,5 +397,27 @@ public class GoalServiceImpl implements GoalService{
                     CommonErrorCode.INVALID_INPUT_VALUE
             );
         }
+    }
+
+    /**
+     * 목표 삭제
+     *
+     * 사용자가 생성한 목표를 삭제한다.
+     * 목표와 연결된 자산 정보는 FK CASCADE 설정에 의해 함께 삭제된다.
+     *
+     * @param userId 사용자 ID
+     * @param goalId 목표 ID
+     */
+    @Override
+    @Transactional
+    public void deleteGoal(Long userId, Long goalId) {
+        Goal goal = goalMapper.findByIdAndUserId(userId,goalId);
+
+        if (goal == null) {
+            throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        }
+
+        // 목표 삭제
+        goalMapper.delete(goalId);
     }
 }

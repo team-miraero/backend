@@ -78,4 +78,9 @@
         AND user_id = #{userId}
     </update>
 
+    <delete id="delete">
+        DELETE FROM goal
+        WHERE goal_id = #{goalId}
+    </delete>
+
 </mapper>
