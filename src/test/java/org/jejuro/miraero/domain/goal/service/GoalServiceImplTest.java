@@ -9,6 +9,7 @@ import org.jejuro.miraero.domain.goal.domain.*;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
+import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
 import org.jejuro.miraero.domain.goal.dto.response.GoalCreateResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalDetailResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalListResponse;
@@ -271,6 +272,36 @@ class GoalServiceImplTest {
                 BusinessException.class,
                 () -> goalService.getGoalDetail(userId, goalId)
         );
+    }
+
+    @Test
+    @DisplayName("목표 수정 성공")
+    void updateGoal_success() {
+        // given
+        Long userId = 1L;
+        Long goalId = 1L;
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .userId(userId)
+                .goalName("결혼 자금")
+                .goalAmount(20000000L)
+                .build();
+
+        GoalUpdateRequest request = GoalUpdateRequest.builder()
+                .goalName("수정된 목표")
+                .goalAmount(30000000L)
+                .goalMonths(24)
+                .build();
+
+        when(goalMapper.findByIdAndUserId(userId, goalId))
+                .thenReturn(goal);
+
+        // when
+        goalService.updateGoal(userId, goalId, request);
+
+        // then
+        verify(goalMapper).update(any(Goal.class));
     }
 
 }

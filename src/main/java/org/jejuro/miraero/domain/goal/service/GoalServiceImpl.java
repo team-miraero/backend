@@ -5,6 +5,7 @@ import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.PaceStatus;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
+import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
 import org.jejuro.miraero.domain.goal.dto.response.*;
 import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -313,5 +314,63 @@ public class GoalServiceImpl implements GoalService{
         }
     }
 
+    /**
+     * 해당 목표를 수정한다
+     * @param userId
+     * @param goalId
+     * @param request
+     */
+    @Override
+    @Transactional
+    public void updateGoal(Long userId, Long goalId, GoalUpdateRequest request) {
 
+        Goal goal = goalMapper.findByIdAndUserId(userId, goalId);
+
+        if (goal == null) {
+            throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        }
+
+        validateUpdateRequest(request);
+
+        LocalDate goalDate = null;
+
+        if (request.getGoalMonths() != null) {
+            goalDate = LocalDate.now()
+                    .plusMonths(request.getGoalMonths())
+                    .with(TemporalAdjusters.lastDayOfMonth());
+        }
+
+        goal.update(
+                request.getGoalName(),
+                request.getGoalAmount(),
+                goalDate
+        );
+
+        goalMapper.update(goal);
+    }
+
+    private void validateUpdateRequest(GoalUpdateRequest request) {
+
+        if (request.getGoalAmount() != null
+                && request.getGoalAmount() <= 0) {
+            throw new BusinessException(
+                    CommonErrorCode.INVALID_INPUT_VALUE
+            );
+        }
+
+        if (request.getGoalName() != null
+                && request.getGoalName().isBlank()) {
+            throw new BusinessException(
+                    CommonErrorCode.INVALID_INPUT_VALUE
+            );
+        }
+
+        Integer goalMonths = request.getGoalMonths();
+
+        if (goalMonths != null && goalMonths <= 0) {
+            throw new BusinessException(
+                    CommonErrorCode.INVALID_INPUT_VALUE
+            );
+        }
+    }
 }

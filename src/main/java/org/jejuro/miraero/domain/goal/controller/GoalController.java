@@ -4,11 +4,13 @@ package org.jejuro.miraero.domain.goal.controller;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
+import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
 import org.jejuro.miraero.domain.goal.dto.response.GoalCreateResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalDetailResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalListResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalPossibilityResponse;
 import org.jejuro.miraero.domain.goal.service.GoalService;
+import org.jejuro.miraero.domain.user.service.UserService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.response.ApiResponse;
@@ -25,6 +27,7 @@ import java.util.List;
 public class GoalController {
 
     private final GoalService goalService;
+    private final UserService userService;
 
     /**
      * 목표 실현 가능성 조회
@@ -92,6 +95,19 @@ public class GoalController {
                 ApiResponse.success(goalService.getGoalDetail(userId,goalId))
         );
     }
+
+    @PatchMapping("/{goalId}")
+    public ResponseEntity<ApiResponse<Void>> updateGoal(
+            @PathVariable Long goalId,
+            @RequestBody GoalUpdateRequest request
+    ) {
+        //JWT에서 받아오기로
+        Long userId = 1L;
+        goalService.updateGoal(userId ,goalId, request);
+
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
 
 
 }

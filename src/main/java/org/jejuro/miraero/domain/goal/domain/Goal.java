@@ -48,4 +48,26 @@ public class Goal {
         this.isCollected = isCollected;
         this.completedDate = completedDate;
     }
+
+    public void setGoalId(Long goalId){
+        this.goalId = goalId;
+    }
+
+    public void update(
+            String goalName,
+            Long goalAmount,
+            LocalDate goalDate
+    ) {
+        if (goalName != null) {
+            this.goalName = goalName;
+        }
+
+        if (goalAmount != null) {
+            this.goalAmount = goalAmount;
+        }
+
+        if (goalDate != null) {
+            this.goalDate = goalDate;
+        }
+    }
 }

@@ -2,6 +2,7 @@ package org.jejuro.miraero.domain.goal.service;
 
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
+import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
 import org.jejuro.miraero.domain.goal.dto.response.GoalCreateResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalDetailResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalListResponse;
@@ -23,4 +24,7 @@ public interface GoalService {
 
     GoalDetailResponse getGoalDetail(Long userId, Long goalId);
 
+    void updateGoal(
+            Long userId, Long goalId, GoalUpdateRequest request
+            );
 }

@@ -67,4 +67,15 @@
           AND goal_id = #{goalId}
     </select>
 
+    <update id="update"
+            parameterType="org.jejuro.miraero.domain.goal.domain.Goal">
+        UPDATE goal
+        SET
+            goal_name = #{goalName},
+            goal_amount = #{goalAmount},
+            goal_date = #{goalDate}
+        WHERE goal_id = #{goalId}
+        AND user_id = #{userId}
+    </update>
+
 </mapper>
