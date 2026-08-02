@@ -4,6 +4,7 @@ package org.jejuro.miraero.domain.goal.dto.response;
 import lombok.Builder;
 import lombok.Getter;
 import org.jejuro.miraero.domain.goal.domain.Goal;
+import org.jejuro.miraero.domain.goal.domain.GoalStatus;
 import org.jejuro.miraero.domain.goal.domain.GoalType;
 
 @Getter
@@ -13,7 +14,7 @@ public class GoalListResponse {
     private String goalName;
     private GoalType goalType;
     private Integer progressRate;
-    private String status;
+    private GoalStatus status;
 
     public static GoalListResponse from(Goal goal, Integer progressRate){
         return GoalListResponse.builder()

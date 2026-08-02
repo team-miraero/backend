@@ -5,9 +5,12 @@ import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
 import org.jejuro.miraero.domain.goal.dto.response.GoalCreateResponse;
+import org.jejuro.miraero.domain.goal.dto.response.GoalDetailResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalListResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalPossibilityResponse;
 import org.jejuro.miraero.domain.goal.service.GoalService;
+import org.jejuro.miraero.global.exception.BusinessException;
+import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.response.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +26,9 @@ public class GoalController {
 
     private final GoalService goalService;
 
+    /**
+     * 목표 실현 가능성 조회
+     */
     @PostMapping("/possibility")
     public ResponseEntity<ApiResponse<GoalPossibilityResponse>> checkPossibility(
             @Valid @RequestBody GoalPossibilityRequest request
@@ -35,11 +41,17 @@ public class GoalController {
         );
     }
 
+    /**
+     * 목표 생성
+     */
     @PostMapping
     public ResponseEntity<ApiResponse<GoalCreateResponse>> createGoal(
             //@AuthenticationPrincipal CustomUserDetails userDetails,
             @Valid @RequestBody GoalCreateRequest request
     ) {
+        if(request == null){
+            throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
+        }
 
         // TODO: 인증 구현 후 userId 가져오기
         Long userId = 1L;
@@ -65,6 +77,19 @@ public class GoalController {
                 ApiResponse.success(
                     goalService.getGoalsByUserId(userId)
                 )
+        );
+    }
+
+    /**
+     * 목표 상세 조회
+     */
+    @GetMapping("/{goalId}")
+    public ResponseEntity<ApiResponse<GoalDetailResponse>> getGoalDetail(
+            @PathVariable Long goalId
+    ){
+        Long userId = 1L;
+        return ResponseEntity.ok(
+                ApiResponse.success(goalService.getGoalDetail(userId,goalId))
         );
     }
 

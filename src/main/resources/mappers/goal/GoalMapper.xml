@@ -34,10 +34,12 @@
 
     </insert>
 
+
     <select id="findGoalsByUserId"
     resultType="org.jejuro.miraero.domain.goal.domain.Goal">
 
         SELECT
+            user_id,
             goal_id,
             goal_name,
             goal_type,
@@ -49,6 +51,20 @@
 
     </select>
 
-
+    <select id="findByIdAndUserId" resultType="org.jejuro.miraero.domain.goal.domain.Goal">
+        SELECT
+            goal_id,
+            user_id,
+            goal_name,
+            goal_type,
+            goal_amount,
+            start_amount,
+            goal_status,
+            start_date,
+            goal_date
+        FROM goal
+        WHERE user_id = #{userId}
+          AND goal_id = #{goalId}
+    </select>
 
 </mapper>

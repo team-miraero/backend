@@ -1,9 +1,7 @@
 package org.jejuro.miraero.domain.goal.domain;
 
 
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -19,16 +17,10 @@ public class Goal {
     private Long startAmount;
     private LocalDate goalDate;
     private LocalDate startDate;
-    private String goalStatus;
+    private GoalStatus goalStatus;
     private boolean isCollected;
     private LocalDate completedDate;
     private LocalDateTime createdAt;
-
-
-    public void setGoalId(Long goalId) {
-        this.goalId = goalId;
-    }
-
 
     @Builder
     public Goal(
@@ -40,7 +32,7 @@ public class Goal {
             Long startAmount,
             LocalDate goalDate,
             LocalDate startDate,
-            String goalStatus,
+            GoalStatus goalStatus,
             boolean isCollected,
             LocalDate completedDate
     ) {

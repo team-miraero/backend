@@ -1,24 +1,20 @@
 package org.jejuro.miraero.domain.goal.service;
 
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-import org.jejuro.miraero.domain.goal.domain.AssetType;
-import org.jejuro.miraero.domain.goal.domain.Goal;
-import org.jejuro.miraero.domain.goal.domain.GoalAsset;
-import org.jejuro.miraero.domain.goal.domain.GoalType;
+import org.jejuro.miraero.domain.goal.domain.*;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
 import org.jejuro.miraero.domain.goal.dto.response.GoalCreateResponse;
+import org.jejuro.miraero.domain.goal.dto.response.GoalDetailResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalListResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalPossibilityResponse;
-import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
 import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
+import org.jejuro.miraero.global.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,6 +23,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.List;
 
 
@@ -35,8 +32,6 @@ class GoalServiceImplTest {
 
     @Mock
     private GoalMapper goalMapper;
-    @Mock
-    private GoalAssetMapper goalAssetMapper;
 
     @Mock
     private GoalAssetService goalAssetService;
@@ -175,7 +170,7 @@ class GoalServiceImplTest {
                 .goalType(GoalType.WEDDING)
                 .goalAmount(2_000_000L)
                 .startAmount(500_000L)
-                .goalStatus("ACTIVE")
+                .goalStatus(GoalStatus.ACTIVE)
                 .build();
 
         Goal goal2 = Goal.builder()
@@ -184,7 +179,7 @@ class GoalServiceImplTest {
                 .goalType(GoalType.INDEPENDENCE)
                 .goalAmount(10_000_000L)
                 .startAmount(200_000L)
-                .goalStatus("ACTIVE")
+                .goalStatus(GoalStatus.ACTIVE)
                 .build();
 
         when(goalMapper.findGoalsByUserId(userId)).thenReturn(List.of(goal1,goal2));
@@ -215,6 +210,67 @@ class GoalServiceImplTest {
 
         verify(goalAssetService)
                 .calculateCurrentAmount(2L);
+    }
+
+    @Test
+    @DisplayName("목표 상세 조회 성공")
+    void getGoalDetail_success() {
+
+        // given
+        Long userId = 1L;
+        Long goalId = 1L;
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .goalName("결혼 자금")
+                .goalType(GoalType.WEDDING)
+                .goalAmount(20_000_000L)
+                .startAmount(1_000_000L)
+                .startDate(LocalDate.now())
+                .goalDate(LocalDate.now().plusMonths(24))
+                .goalStatus(GoalStatus.ACTIVE)
+                .build();
+
+
+        when(goalMapper.findByIdAndUserId(userId, goalId))
+                .thenReturn(goal);
+
+        when(goalAssetService.calculateCurrentAmount(goalId))
+                .thenReturn(5_000_000L);
+
+
+        // when
+        GoalDetailResponse response =
+                goalService.getGoalDetail(userId, goalId);
+
+
+        // then
+        assertEquals("결혼 자금", response.getGoalName());
+        assertEquals(5_000_000L, response.getCurrentAmount());
+        assertEquals(25, response.getProgressRate());
+
+        verify(goalMapper)
+                .findByIdAndUserId(userId, goalId);
+
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 목표 조회 시 예외 발생")
+    void getGoalDetail_notFound() {
+
+        // given
+        Long userId = 1L;
+        Long goalId = 999L;
+
+        when(goalMapper.findByIdAndUserId(userId, goalId))
+                .thenReturn(null);
+
+
+        // then
+        assertThrows(
+                BusinessException.class,
+                () -> goalService.getGoalDetail(userId, goalId)
+        );
     }
 
 }

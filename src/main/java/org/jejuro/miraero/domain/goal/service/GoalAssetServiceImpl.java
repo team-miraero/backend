@@ -6,7 +6,7 @@ import org.jejuro.miraero.domain.goal.domain.GoalAsset;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
-import org.jejuro.miraero.global.exception.ErrorCode;
+import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,26 +47,31 @@ public class GoalAssetServiceImpl implements GoalAssetService {
             };
 
             if (!exists) {
-                throw new IllegalArgumentException("자산이 존재하지 않습니다. assetType: " + asset.getAssetType() + ", assetId: " + asset.getAssetId());
-                //BusinessException(ErrorCode.ASSET_NOT_FOUND);
+                throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+                //throw new BusinessException(AssetErrorCode.ASSET_NOT_FOUND);
             }
         }
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Long calculateCurrentAmount(Long goalId) {
         List<GoalAsset> assets = goalAssetMapper.findByGoalId(goalId);
         long totalAmount = 0L;
+
         for (GoalAsset asset : assets) {
-            switch (asset.getAssetType()) {
-                case ACCOUNT -> {} // totalAmount += accountMapper.findCurrentAmount(asset.getAssetId());
-                case MONEY_BOX -> {} //MONEY_BOX ->totalAmount += moneyBoxMapper.findCurrentAmount(asset.getAssetId());
-                case LOAN -> {
-                    // 대출은 진행률 계산에서 제외
-                }
-                default -> throw new IllegalArgumentException("지원하지 않는 자산 타입입니다." + asset.getAssetType());
-                    // throw new BusinessException(ErrorCode.INVALID_ASSET_TYPE);
-            }
+
+            Long amount = switch (asset.getAssetType()) {
+                case ACCOUNT ->
+                        0L;//accountMapper.findCurrentAmount(asset.getAssetId());
+
+                case MONEY_BOX ->
+                        0L; //moneyBoxMapper.findCurrentAmount(asset.getAssetId());
+
+                case LOAN -> 0L; // 대출 제외
+            };
+
+            totalAmount += (amount == null ? 0L : amount);
         }
         return totalAmount;
     }
