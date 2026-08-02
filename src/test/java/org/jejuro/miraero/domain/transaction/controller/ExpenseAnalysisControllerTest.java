@@ -8,7 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Collections;
-import org.jejuro.miraero.domain.transaction.dto.response.CategoryExpenseSummaryResponse;
+import org.jejuro.miraero.domain.transaction.dto.response.CategoryThreeMonthAverageResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.ExpenseDashboardResponse;
 import org.jejuro.miraero.domain.transaction.service.ExpenseAnalysisService;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -43,9 +43,10 @@ class ExpenseAnalysisControllerTest {
 
     @Test
     void getDashboard_successAndEmptyData() throws Exception {
-        given(service.getDashboard(USER_ID, 2026, 7)).willReturn(new ExpenseDashboardResponse(2026, 7, Collections.emptyList(), new CategoryExpenseSummaryResponse(0L, Collections.emptyList())));
+        given(service.getDashboard(USER_ID, 2026, 7)).willReturn(new ExpenseDashboardResponse(2026, 7, Collections.emptyList(), new CategoryThreeMonthAverageResponse("2026-04", "2026-06", Collections.emptyList())));
         mockMvc.perform(get("/api/expense-analysis/dashboard").param("year", "2026").param("month", "7"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.data.recentTransactions").isEmpty());
+                .andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.data.recentTransactions").isEmpty())
+                .andExpect(jsonPath("$.data.categoryThreeMonthAverages.startMonth").value("2026-04"));
         verify(service).getDashboard(USER_ID, 2026, 7);
     }
 

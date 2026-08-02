@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
-public class CategoryExpenseQueryResult {
+public class CategoryThreeMonthExpenseQueryResult {
 
     private Long categoryId;
     private String categoryName;
-    private Long amount;
+    private Long totalAmount;
 }

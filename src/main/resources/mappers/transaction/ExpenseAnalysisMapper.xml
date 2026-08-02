@@ -12,12 +12,9 @@
         FROM `transaction` t LEFT JOIN expense_category ec ON t.expense_category_id = ec.expense_category_id
         <include refid="expenseCondition"/> ORDER BY t.transacted_at DESC, t.transaction_id DESC LIMIT 5
     </select>
-    <select id="findCategoryExpenses" resultType="org.jejuro.miraero.domain.transaction.domain.CategoryExpenseQueryResult">
-        SELECT t.expense_category_id AS categoryId, ec.category_name AS categoryName, SUM(t.amount) AS amount
+    <select id="findCategoryThreeMonthExpenses" resultType="org.jejuro.miraero.domain.transaction.domain.CategoryThreeMonthExpenseQueryResult">
+        SELECT t.expense_category_id AS categoryId, ec.category_name AS categoryName, SUM(t.amount) AS totalAmount
         FROM `transaction` t LEFT JOIN expense_category ec ON t.expense_category_id = ec.expense_category_id
-        <include refid="expenseCondition"/> GROUP BY t.expense_category_id, ec.category_name ORDER BY amount DESC, t.expense_category_id ASC
-    </select>
-    <select id="sumTotalExpenses" resultType="long">
-        SELECT COALESCE(SUM(t.amount), 0) FROM `transaction` t <include refid="expenseCondition"/>
+        <include refid="expenseCondition"/> GROUP BY t.expense_category_id, ec.category_name ORDER BY totalAmount DESC, t.expense_category_id ASC
     </select>
 </mapper>

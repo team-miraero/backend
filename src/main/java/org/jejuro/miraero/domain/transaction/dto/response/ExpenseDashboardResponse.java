@@ -10,5 +10,5 @@ public class ExpenseDashboardResponse {
     private Integer year;
     private Integer month;
     private List<RecentTransactionResponse> recentTransactions;
-    private CategoryExpenseSummaryResponse categoryExpenseSummary;
+    private CategoryThreeMonthAverageResponse categoryThreeMonthAverages;
 }
