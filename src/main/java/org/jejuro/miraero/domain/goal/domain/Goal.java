@@ -70,4 +70,8 @@ public class Goal {
             this.goalDate = goalDate;
         }
     }
+
+    public void changeStatus(GoalStatus goalStatus) {
+        this.goalStatus = goalStatus;
+    }
 }

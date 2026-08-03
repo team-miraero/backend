@@ -29,4 +29,5 @@ public interface GoalService {
             );
 
     void deleteGoal(Long userId, Long goalId);
+    void saveCollection(Long userId, Long goalId);
 }

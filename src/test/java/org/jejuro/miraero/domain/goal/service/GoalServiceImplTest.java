@@ -3,6 +3,7 @@ package org.jejuro.miraero.domain.goal.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 import org.jejuro.miraero.domain.goal.domain.*;
@@ -329,4 +330,69 @@ class GoalServiceImplTest {
                 .delete(goalId);
     }
 
+    @Test
+    @DisplayName("완료된 목표는 컬렉션 저장 성공")
+    void saveCollection_success() {
+
+        Long userId = 1L;
+        Long goalId = 10L;
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .userId(userId)
+                .goalStatus(GoalStatus.COMPLETED)
+                .build();
+
+        when(goalMapper.findByIdAndUserId(userId, goalId))
+                .thenReturn(goal);
+
+
+        goalService.saveCollection(userId, goalId);
+
+
+        verify(goalMapper)
+                .updateCollection(userId, goalId);
+    }
+
+    @Test
+    @DisplayName("목표 달성률이 100%이면 목표 상태가 COMPLETED로 변경된다")
+    void getGoalDetail_completeGoal_success() {
+
+        // given
+        Long userId = 1L;
+        Long goalId = 10L;
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .userId(userId)
+                .goalName("여행")
+                .goalAmount(1_000_000L)
+                .startAmount(0L)
+                .goalStatus(GoalStatus.ACTIVE)
+                .startDate(LocalDate.of(2026, 1, 1))
+                .goalDate(LocalDate.of(2026, 12, 31))
+                .build();
+
+        given(goalMapper.findByIdAndUserId(userId, goalId))
+                .willReturn(goal);
+
+        // 현재 금액 = 목표 금액 → 달성률 100%
+        given(goalAssetService.calculateCurrentAmount(goalId))
+                .willReturn(1_000_000L);
+
+
+        // when
+        GoalDetailResponse response =
+                goalService.getGoalDetail(userId, goalId);
+
+
+        // then
+        verify(goalMapper)
+                .updateCompleteStatus(goalId);
+
+        assertEquals(
+                GoalStatus.COMPLETED,
+                response.getStatus()
+        );
+    }
 }

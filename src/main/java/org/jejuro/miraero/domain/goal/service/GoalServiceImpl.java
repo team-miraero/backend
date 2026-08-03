@@ -2,15 +2,16 @@ package org.jejuro.miraero.domain.goal.service;
 
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.goal.domain.Goal;
+import org.jejuro.miraero.domain.goal.domain.GoalStatus;
 import org.jejuro.miraero.domain.goal.domain.PaceStatus;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
 import org.jejuro.miraero.domain.goal.dto.response.*;
+import org.jejuro.miraero.domain.goal.exception.GoalErrorCode;
 import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
-import org.jejuro.miraero.global.exception.GoalErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -164,7 +165,7 @@ public class GoalServiceImpl implements GoalService{
     }
 
     /**
-     * 목표 진행률 계산 반올림처리
+     * 목표 진행률 계산 소수점 버림 처리
      */
     private Integer calculateProgressRate(Long currentAmount, Long goalAmount) {
         if (goalAmount == null || goalAmount == 0) {
@@ -175,9 +176,9 @@ public class GoalServiceImpl implements GoalService{
             return 0;
         }
 
-        return Math.min(100,(int) Math.round(
-                currentAmount * 100.0 / goalAmount
-        ));
+        return Math.min(100,
+                (int) (currentAmount * 100.0 / goalAmount)
+        );
     }
 
     /**
@@ -191,7 +192,7 @@ public class GoalServiceImpl implements GoalService{
      * @return 목표 상세 정보
      */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public GoalDetailResponse getGoalDetail(Long userId, Long goalId) {
 
         // 목표 기본 정보 조회
@@ -211,6 +212,14 @@ public class GoalServiceImpl implements GoalService{
                 currentAmount,
                 goal.getGoalAmount()
         );
+
+        // 목표 완료 처리
+        if (progressRate == 100
+                && goal.getGoalStatus() != GoalStatus.COMPLETED) {
+
+            goalMapper.updateCompleteStatus(goal.getGoalId());
+            goal.changeStatus(GoalStatus.COMPLETED);
+        }
 
         // 기간 정보 생성
         GoalPeriodResponse period = GoalPeriodResponse.builder()
@@ -420,4 +429,31 @@ public class GoalServiceImpl implements GoalService{
         // 목표 삭제
         goalMapper.delete(goalId);
     }
+
+    /**
+     * 목표 컬렉션 저장
+     *
+     * 사용자가 완료한 목표를 컬렉션에 저장한다.
+     * 본인의 목표인지 검증하며, 목표 상태가 COMPLETED인 경우에만 저장 가능하다.
+     *
+     * @param userId 사용자ID
+     * @param goalId 저장할 목표 ID
+     */
+    @Override
+    @Transactional
+    public void saveCollection(Long userId, Long goalId) {
+
+        Goal goal = goalMapper.findByIdAndUserId(userId,goalId);
+
+        if( goal == null){
+            throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        }
+
+        if(goal.getGoalStatus() != GoalStatus.COMPLETED){
+            throw new BusinessException(GoalErrorCode.GOAL_NOT_COMPLETED);
+        }
+
+        goalMapper.updateCollection(userId,goalId);
+    }
+
 }
