@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.jejuro.miraero.domain.transaction.mapper.PeerAverageMapper">
+    <select id="findCategoryPeerAverages"
+            resultType="org.jejuro.miraero.domain.transaction.domain.PeerCategoryAverageQueryResult">
+        WITH target_user AS (
+            SELECT
+                CASE
+                    WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 20 AND 24 THEN 1
+                    WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 25 AND 29 THEN 2
+                    WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) BETWEEN 30 AND 34 THEN 3
+                    WHEN TIMESTAMPDIFF(YEAR, birth_date, CURDATE()) >= 35 THEN 4
+                END AS age_group,
+                CASE
+                    WHEN monthly_income <![CDATA[<]]> 3000000 THEN 1
+                    WHEN monthly_income <![CDATA[<]]> 4000000 THEN 2
+                    WHEN monthly_income <![CDATA[<]]> 5000000 THEN 3
+                    WHEN monthly_income <![CDATA[>=]]> 5000000 THEN 4
+                END AS income_group
+            FROM miraero_user
+            WHERE user_id = #{userId}
+        ),
+        peer_users AS (
+            SELECT peer.user_id
+            FROM miraero_user peer
+            CROSS JOIN target_user target
+            WHERE CASE
+                WHEN TIMESTAMPDIFF(YEAR, peer.birth_date, CURDATE()) BETWEEN 20 AND 24 THEN 1
+                WHEN TIMESTAMPDIFF(YEAR, peer.birth_date, CURDATE()) BETWEEN 25 AND 29 THEN 2
+                WHEN TIMESTAMPDIFF(YEAR, peer.birth_date, CURDATE()) BETWEEN 30 AND 34 THEN 3
+                WHEN TIMESTAMPDIFF(YEAR, peer.birth_date, CURDATE()) >= 35 THEN 4
+            END = target.age_group
+              AND CASE
+                WHEN peer.monthly_income <![CDATA[<]]> 3000000 THEN 1
+                WHEN peer.monthly_income <![CDATA[<]]> 4000000 THEN 2
+                WHEN peer.monthly_income <![CDATA[<]]> 5000000 THEN 3
+                WHEN peer.monthly_income <![CDATA[>=]]> 5000000 THEN 4
+            END = target.income_group
+        ),
+        peer_category_expenses AS (
+            SELECT
+                peer.user_id,
+                category.expense_category_id AS category_id,
+                COALESCE(SUM(transaction_data.amount), 0) AS total_amount
+            FROM peer_users peer
+            CROSS JOIN expense_category category
+            LEFT JOIN `transaction` transaction_data
+                ON transaction_data.user_id = peer.user_id
+                AND transaction_data.expense_category_id = category.expense_category_id
+                AND transaction_data.transaction_type = 'PAYMENT'
+                AND transaction_data.transacted_at <![CDATA[>=]]> #{startDateTime}
+                AND transaction_data.transacted_at <![CDATA[<]]> #{endDateTime}
+            GROUP BY peer.user_id, category.expense_category_id
+        )
+        SELECT
+            category.expense_category_id AS categoryId,
+            category.category_name AS categoryName,
+            COALESCE(CAST(FLOOR(AVG(peer_category_expenses.total_amount)) AS SIGNED), 0) AS peerAverageAmount
+        FROM expense_category category
+        LEFT JOIN peer_category_expenses
+            ON peer_category_expenses.category_id = category.expense_category_id
+        GROUP BY category.expense_category_id, category.category_name
+        ORDER BY category.expense_category_id ASC
+    </select>
+</mapper>

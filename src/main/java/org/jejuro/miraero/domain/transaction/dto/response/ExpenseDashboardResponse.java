@@ -11,6 +11,7 @@ public class ExpenseDashboardResponse {
     private Integer month;
     private List<RecentTransactionResponse> recentTransactions;
     private CategoryThreeMonthAverageResponse categoryThreeMonthAverages;
+    private PeerAverageResponse peerCategoryAverages;
     private List<CategoryMonthChangeResponse> categoryMonthChanges;
 
     public ExpenseDashboardResponse(
@@ -19,6 +20,30 @@ public class ExpenseDashboardResponse {
             List<RecentTransactionResponse> recentTransactions,
             CategoryThreeMonthAverageResponse categoryThreeMonthAverages
     ) {
-        this(year, month, recentTransactions, categoryThreeMonthAverages, java.util.Collections.emptyList());
+        this(
+                year,
+                month,
+                recentTransactions,
+                categoryThreeMonthAverages,
+                new PeerAverageResponse(java.util.Collections.emptyList()),
+                java.util.Collections.emptyList()
+        );
+    }
+
+    public ExpenseDashboardResponse(
+            Integer year,
+            Integer month,
+            List<RecentTransactionResponse> recentTransactions,
+            CategoryThreeMonthAverageResponse categoryThreeMonthAverages,
+            List<CategoryMonthChangeResponse> categoryMonthChanges
+    ) {
+        this(
+                year,
+                month,
+                recentTransactions,
+                categoryThreeMonthAverages,
+                new PeerAverageResponse(java.util.Collections.emptyList()),
+                categoryMonthChanges
+        );
     }
 }

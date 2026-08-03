@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,6 +16,8 @@ import org.jejuro.miraero.domain.transaction.domain.CategoryThreeMonthExpenseQue
 import org.jejuro.miraero.domain.transaction.domain.RecentTransactionQueryResult;
 import org.jejuro.miraero.domain.transaction.dto.request.ExpenseAnalysisSearchCondition;
 import org.jejuro.miraero.domain.transaction.dto.response.ExpenseDashboardResponse;
+import org.jejuro.miraero.domain.transaction.dto.response.PeerAverageCategoryResponse;
+import org.jejuro.miraero.domain.transaction.dto.response.PeerAverageResponse;
 import org.jejuro.miraero.domain.transaction.mapper.ExpenseAnalysisMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.junit.jupiter.api.Test;
@@ -28,10 +31,12 @@ class ExpenseAnalysisServiceImplTest {
 
     @Mock
     private ExpenseAnalysisMapper mapper;
+    @Mock
+    private PeerAverageService peerAverageService;
 
     @Test
     void getDashboard_returnsRecentTransactionsAndThreeMonthCategoryAverages() {
-        ExpenseAnalysisService service = new ExpenseAnalysisServiceImpl(mapper);
+        ExpenseAnalysisService service = service();
         when(mapper.findRecentExpenses(eq(1L), any())).thenReturn(List.of(
                 new RecentTransactionQueryResult(1L, "배달 음식", 1L, "식비", 150_000L, LocalDateTime.of(2026, 7, 15, 12, 30))
         ));
@@ -43,6 +48,9 @@ class ExpenseAnalysisServiceImplTest {
                 new CategoryMonthExpenseQueryResult(1L, "food", 250_000L, 280_000L),
                 new CategoryMonthExpenseQueryResult(2L, "cafe", 0L, 0L)
         ));
+        when(peerAverageService.getPeerAverages(1L, 2026, 7)).thenReturn(new PeerAverageResponse(List.of(
+                new PeerAverageCategoryResponse(1L, "Food", 285_000L)
+        )));
 
         ExpenseDashboardResponse response = service.getDashboard(1L, 2026, 7);
 
@@ -50,15 +58,17 @@ class ExpenseAnalysisServiceImplTest {
         assertEquals("2026-04", response.getCategoryThreeMonthAverages().getStartMonth());
         assertEquals("2026-06", response.getCategoryThreeMonthAverages().getEndMonth());
         assertEquals(220_000L, response.getCategoryThreeMonthAverages().getCategories().get(0).getAverageMonthlyAmount());
+        assertEquals(285_000L, response.getPeerCategoryAverages().getCategories().get(0).getPeerAverageAmount());
         assertEquals(30_000L, response.getCategoryMonthChanges().get(0).getChangeAmount());
         assertEquals(0L, response.getCategoryMonthChanges().get(1).getPreviousMonthAmount());
         assertEquals(0L, response.getCategoryMonthChanges().get(1).getCurrentMonthAmount());
         assertEquals(0L, response.getCategoryMonthChanges().get(1).getChangeAmount());
+        verify(peerAverageService).getPeerAverages(1L, 2026, 7);
     }
 
     @Test
     void getDashboard_usesCompletedThreeMonthRangeExcludingCurrentMonth() {
-        ExpenseAnalysisService service = new ExpenseAnalysisServiceImpl(mapper);
+        ExpenseAnalysisService service = service();
         when(mapper.findRecentExpenses(eq(1L), any())).thenReturn(Collections.emptyList());
         when(mapper.findCategoryThreeMonthExpenses(eq(1L), any())).thenReturn(Collections.emptyList());
 
@@ -94,7 +104,7 @@ class ExpenseAnalysisServiceImplTest {
 
     @Test
     void getDashboard_alwaysDividesTotalByThreeWithTruncation() {
-        ExpenseAnalysisService service = new ExpenseAnalysisServiceImpl(mapper);
+        ExpenseAnalysisService service = service();
         when(mapper.findRecentExpenses(eq(1L), any())).thenReturn(Collections.emptyList());
         when(mapper.findCategoryThreeMonthExpenses(eq(1L), any())).thenReturn(List.of(
                 new CategoryThreeMonthExpenseQueryResult(1L, "식비", 100_000L)
@@ -107,7 +117,7 @@ class ExpenseAnalysisServiceImplTest {
 
     @Test
     void getDashboard_returnsEmptyAverageCategoriesWhenNoPaymentExistsInPeriod() {
-        ExpenseAnalysisService service = new ExpenseAnalysisServiceImpl(mapper);
+        ExpenseAnalysisService service = service();
         when(mapper.findRecentExpenses(eq(1L), any())).thenReturn(Collections.emptyList());
         when(mapper.findCategoryThreeMonthExpenses(eq(1L), any())).thenReturn(Collections.emptyList());
 
@@ -121,8 +131,14 @@ class ExpenseAnalysisServiceImplTest {
 
     @Test
     void getDashboard_rejectsInvalidMonth() {
-        ExpenseAnalysisService service = new ExpenseAnalysisServiceImpl(mapper);
+        ExpenseAnalysisService service = service();
 
         assertThrows(BusinessException.class, () -> service.getDashboard(1L, 2026, 13));
+    }
+
+    private ExpenseAnalysisService service() {
+        lenient().when(peerAverageService.getPeerAverages(any(), any(), any()))
+                .thenReturn(new PeerAverageResponse(Collections.emptyList()));
+        return new ExpenseAnalysisServiceImpl(mapper, peerAverageService);
     }
 }
