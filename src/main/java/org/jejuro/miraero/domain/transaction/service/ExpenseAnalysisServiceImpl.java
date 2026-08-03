@@ -1,16 +1,16 @@
 package org.jejuro.miraero.domain.transaction.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import org.jejuro.miraero.domain.transaction.domain.CategoryExpenseQueryResult;
+import org.jejuro.miraero.domain.transaction.domain.CategoryMonthExpenseQueryResult;
+import org.jejuro.miraero.domain.transaction.domain.CategoryThreeMonthExpenseQueryResult;
 import org.jejuro.miraero.domain.transaction.domain.RecentTransactionQueryResult;
 import org.jejuro.miraero.domain.transaction.dto.request.ExpenseAnalysisSearchCondition;
-import org.jejuro.miraero.domain.transaction.dto.response.CategoryExpenseItemResponse;
-import org.jejuro.miraero.domain.transaction.dto.response.CategoryExpenseSummaryResponse;
+import org.jejuro.miraero.domain.transaction.dto.response.CategoryThreeMonthAverageItemResponse;
+import org.jejuro.miraero.domain.transaction.dto.response.CategoryThreeMonthAverageResponse;
+import org.jejuro.miraero.domain.transaction.dto.response.CategoryMonthChangeResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.ExpenseDashboardResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.RecentTransactionResponse;
 import org.jejuro.miraero.domain.transaction.mapper.ExpenseAnalysisMapper;
@@ -24,8 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
 
     private static final int MIN_YEAR = 2000;
-    private static final int RATIO_SCALE = 2;
-    private static final BigDecimal HUNDRED = BigDecimal.valueOf(100);
+    private static final long THREE_MONTHS = 3L;
 
     private final ExpenseAnalysisMapper expenseAnalysisMapper;
 
@@ -33,16 +32,30 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
     @Transactional(readOnly = true)
     public ExpenseDashboardResponse getDashboard(Long userId, Integer year, Integer month) {
         validate(userId, year, month);
-        ExpenseAnalysisSearchCondition condition = createCondition(year, month);
-        long totalExpense = expenseAnalysisMapper.sumTotalExpenses(userId, condition);
+        ExpenseAnalysisSearchCondition recentTransactionCondition = createCondition(year, month);
+        YearMonth referenceMonth = YearMonth.of(year, month);
+        YearMonth startMonth = referenceMonth.minusMonths(THREE_MONTHS);
+        ExpenseAnalysisSearchCondition threeMonthCondition = createCondition(startMonth, referenceMonth);
+        YearMonth previousMonth = referenceMonth.minusMonths(1);
 
         return new ExpenseDashboardResponse(
                 year,
                 month,
-                toRecentTransactions(expenseAnalysisMapper.findRecentExpenses(userId, condition)),
-                new CategoryExpenseSummaryResponse(
-                        totalExpense,
-                        toCategoryExpenses(expenseAnalysisMapper.findCategoryExpenses(userId, condition), totalExpense)
+                toRecentTransactions(expenseAnalysisMapper.findRecentExpenses(userId, recentTransactionCondition)),
+                new CategoryThreeMonthAverageResponse(
+                        startMonth.toString(),
+                        referenceMonth.minusMonths(1).toString(),
+                        toCategoryThreeMonthAverages(
+                                expenseAnalysisMapper.findCategoryThreeMonthExpenses(userId, threeMonthCondition)
+                        )
+                ),
+                toCategoryMonthChanges(
+                        expenseAnalysisMapper.findCategoryMonthExpenses(
+                                userId,
+                                previousMonth.atDay(1).atStartOfDay(),
+                                referenceMonth.atDay(1).atStartOfDay(),
+                                referenceMonth.plusMonths(1).atDay(1).atStartOfDay()
+                        )
                 )
         );
     }
@@ -57,7 +70,20 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
     private ExpenseAnalysisSearchCondition createCondition(Integer year, Integer month) {
         YearMonth yearMonth = YearMonth.of(year, month);
         ExpenseAnalysisSearchCondition condition = new ExpenseAnalysisSearchCondition(year, month);
-        condition.setDateRange(yearMonth.atDay(1).atStartOfDay(), yearMonth.plusMonths(1).atDay(1).atStartOfDay());
+        return createCondition(yearMonth, yearMonth.plusMonths(1), condition);
+    }
+
+    private ExpenseAnalysisSearchCondition createCondition(YearMonth startMonth, YearMonth endMonth) {
+        ExpenseAnalysisSearchCondition condition = new ExpenseAnalysisSearchCondition(startMonth.getYear(), startMonth.getMonthValue());
+        return createCondition(startMonth, endMonth, condition);
+    }
+
+    private ExpenseAnalysisSearchCondition createCondition(
+            YearMonth startMonth,
+            YearMonth endMonth,
+            ExpenseAnalysisSearchCondition condition
+    ) {
+        condition.setDateRange(startMonth.atDay(1).atStartOfDay(), endMonth.atDay(1).atStartOfDay());
         return condition;
     }
 
@@ -65,14 +91,32 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
         return results.stream().map(result -> new RecentTransactionResponse(result.getTransactionId(), result.getTransactionName(), result.getCategoryId(), result.getCategoryName(), result.getAmount(), result.getTransactedAt())).collect(Collectors.toList());
     }
 
-    private List<CategoryExpenseItemResponse> toCategoryExpenses(List<CategoryExpenseQueryResult> results, long totalExpense) {
-        return results.stream().map(result -> new CategoryExpenseItemResponse(result.getCategoryId(), result.getCategoryName(), result.getAmount(), calculateRatio(result.getAmount(), totalExpense))).collect(Collectors.toList());
+    private List<CategoryThreeMonthAverageItemResponse> toCategoryThreeMonthAverages(
+            List<CategoryThreeMonthExpenseQueryResult> results
+    ) {
+        return results.stream()
+                .map(result -> new CategoryThreeMonthAverageItemResponse(
+                        result.getCategoryId(),
+                        result.getCategoryName(),
+                        result.getTotalAmount() / THREE_MONTHS
+                ))
+                .collect(Collectors.toList());
     }
 
-    private BigDecimal calculateRatio(Long amount, long totalExpense) {
-        if (totalExpense == 0) {
-            return BigDecimal.ZERO.setScale(RATIO_SCALE);
-        }
-        return BigDecimal.valueOf(amount).multiply(HUNDRED).divide(BigDecimal.valueOf(totalExpense), RATIO_SCALE, RoundingMode.HALF_UP);
+    private List<CategoryMonthChangeResponse> toCategoryMonthChanges(
+            List<CategoryMonthExpenseQueryResult> results
+    ) {
+        return results.stream()
+                .map(result -> new CategoryMonthChangeResponse(
+                        result.getCategoryId(),
+                        result.getCategoryName(),
+                        result.getPreviousMonthAmount(),
+                        result.getCurrentMonthAmount(),
+                        Math.subtractExact(
+                                result.getCurrentMonthAmount(),
+                                result.getPreviousMonthAmount()
+                        )
+                ))
+                .collect(Collectors.toList());
     }
 }
