@@ -16,6 +16,7 @@ services:
 
     volumes:
       - mysql-data:/var/lib/mysql
+      - ./miraero_schema.sql:/docker-entrypoint-initdb.d/miraero_schema.sql
 
     command:
       - --character-set-server=utf8mb4

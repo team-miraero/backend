@@ -6,7 +6,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class CategoryExpenseSummaryResponse {
-    private Long totalExpense;
-    private List<CategoryExpenseItemResponse> categories;
+public class ExpenseCategoryTargetListResponse {
+
+    private List<ExpenseCategoryTargetResponse> targets;
 }

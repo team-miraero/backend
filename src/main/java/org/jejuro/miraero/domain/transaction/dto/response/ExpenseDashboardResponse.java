@@ -10,5 +10,15 @@ public class ExpenseDashboardResponse {
     private Integer year;
     private Integer month;
     private List<RecentTransactionResponse> recentTransactions;
-    private CategoryExpenseSummaryResponse categoryExpenseSummary;
+    private CategoryThreeMonthAverageResponse categoryThreeMonthAverages;
+    private List<CategoryMonthChangeResponse> categoryMonthChanges;
+
+    public ExpenseDashboardResponse(
+            Integer year,
+            Integer month,
+            List<RecentTransactionResponse> recentTransactions,
+            CategoryThreeMonthAverageResponse categoryThreeMonthAverages
+    ) {
+        this(year, month, recentTransactions, categoryThreeMonthAverages, java.util.Collections.emptyList());
+    }
 }

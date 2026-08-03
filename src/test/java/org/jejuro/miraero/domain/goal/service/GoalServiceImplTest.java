@@ -1,28 +1,49 @@
 package org.jejuro.miraero.domain.goal.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+import org.jejuro.miraero.domain.goal.domain.*;
+import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
+import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
+import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
+import org.jejuro.miraero.domain.goal.dto.response.GoalCreateResponse;
+import org.jejuro.miraero.domain.goal.dto.response.GoalDetailResponse;
+import org.jejuro.miraero.domain.goal.dto.response.GoalListResponse;
 import org.jejuro.miraero.domain.goal.dto.response.GoalPossibilityResponse;
+import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
+import org.jejuro.miraero.global.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
+import java.util.List;
+
+
+@ExtendWith(MockitoExtension.class)
 class GoalServiceImplTest {
 
-    private GoalService goalService;
+    @Mock
+    private GoalMapper goalMapper;
 
-    @BeforeEach
-    void setUp() {
-        goalService = new GoalServiceImpl();
-    }
+    @Mock
+    private GoalAssetService goalAssetService;
+
+    @InjectMocks
+    private GoalServiceImpl goalService;
 
     private GoalPossibilityRequest createRequest(
-            long goalAmount,
-            int goalMonths,
-            long startAmount
+            Long goalAmount,
+            Integer goalMonths,
+            Long startAmount
     ) {
         return GoalPossibilityRequest.builder()
                 .goalAmount(goalAmount)
@@ -80,4 +101,232 @@ class GoalServiceImplTest {
         assertEquals(80_000L, response.getRequiredMonthly());
         assertTrue(response.isPossible());
     }
+
+    @Test
+    @DisplayName("목표 생성 성공 시 생성된 goalId를 반환한다.")
+    void createGoal_success() {
+        // given
+        Long userId = 1L;
+
+        GoalCreateRequest request =
+                GoalCreateRequest.builder()
+                        .goalType(GoalType.WEDDING)
+                        .goalName("결혼 자금")
+                        .goalAmount(20_000_000L)
+                        .goalMonths(24)
+                        .startAmount(1_000_000L)
+                        .assets(List.of(
+                                GoalAssetRequest.builder()
+                                        .assetType(AssetType.ACCOUNT)
+                                        .assetId(1L)
+                                        .build(),
+                                GoalAssetRequest.builder()
+                                        .assetType(AssetType.MONEY_BOX)
+                                        .assetId(2L)
+                                        .build()
+                        ))
+                        .build();
+
+
+        // goalMapper.save() 실행 시 goalId 주입
+        doAnswer(invocation -> {
+
+            Goal goal = invocation.getArgument(0);
+            goal.setGoalId(1L);
+
+            return null;
+
+        }).when(goalMapper).save(any(Goal.class));
+
+
+        // when
+        GoalCreateResponse response =
+                goalService.createGoal(userId, request);
+
+
+        // then
+        assertEquals(1L, response.getGoalId());
+
+
+        verify(goalMapper)
+                .save(any(Goal.class));
+
+
+        verify(goalAssetService)
+                .saveGoalAssets(
+                        eq(1L),
+                        eq(request.getAssets())
+                );
+    }
+
+    @Test
+    @DisplayName("사용자의 목표 목록을 조회하여 반환한다.")
+    void getGoalsByUserId_success() {
+        // given
+        Long userId = 1L;
+
+        Goal goal1 = Goal.builder()
+                .goalId(1L)
+                .goalName("결혼 자금")
+                .goalType(GoalType.WEDDING)
+                .goalAmount(2_000_000L)
+                .startAmount(500_000L)
+                .goalStatus(GoalStatus.ACTIVE)
+                .build();
+
+        Goal goal2 = Goal.builder()
+                .goalId(2L)
+                .goalName("독립 자금")
+                .goalType(GoalType.INDEPENDENCE)
+                .goalAmount(10_000_000L)
+                .startAmount(200_000L)
+                .goalStatus(GoalStatus.ACTIVE)
+                .build();
+
+        when(goalMapper.findGoalsByUserId(userId)).thenReturn(List.of(goal1,goal2));
+
+
+        // 연결 자산에서 계산된 현재 금액 Mock
+        when(goalAssetService.calculateCurrentAmount(1L)).thenReturn(500_000L);
+        when(goalAssetService.calculateCurrentAmount(2L)).thenReturn(200_000L);
+
+        // when
+        List<GoalListResponse> result =
+                goalService.getGoalsByUserId(userId);
+
+        // then
+        assertEquals(2, result.size());
+
+        assertEquals(1L, result.get(0).getGoalId());
+        assertEquals("결혼 자금", result.get(0).getGoalName());
+        assertEquals(25, result.get(0).getProgressRate());
+
+        assertEquals(2L, result.get(1).getGoalId());
+        assertEquals("독립 자금", result.get(1).getGoalName());
+        assertEquals(2, result.get(1).getProgressRate());
+
+        verify(goalMapper).findGoalsByUserId(userId);
+        verify(goalAssetService)
+                .calculateCurrentAmount(1L);
+
+        verify(goalAssetService)
+                .calculateCurrentAmount(2L);
+    }
+
+    @Test
+    @DisplayName("목표 상세 조회 성공")
+    void getGoalDetail_success() {
+
+        // given
+        Long userId = 1L;
+        Long goalId = 1L;
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .goalName("결혼 자금")
+                .goalType(GoalType.WEDDING)
+                .goalAmount(20_000_000L)
+                .startAmount(1_000_000L)
+                .startDate(LocalDate.now())
+                .goalDate(LocalDate.now().plusMonths(24))
+                .goalStatus(GoalStatus.ACTIVE)
+                .build();
+
+
+        when(goalMapper.findByIdAndUserId(userId, goalId))
+                .thenReturn(goal);
+
+        when(goalAssetService.calculateCurrentAmount(goalId))
+                .thenReturn(5_000_000L);
+
+
+        // when
+        GoalDetailResponse response =
+                goalService.getGoalDetail(userId, goalId);
+
+
+        // then
+        assertEquals("결혼 자금", response.getGoalName());
+        assertEquals(5_000_000L, response.getCurrentAmount());
+        assertEquals(25, response.getProgressRate());
+
+        verify(goalMapper)
+                .findByIdAndUserId(userId, goalId);
+
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 목표 조회 시 예외 발생")
+    void getGoalDetail_notFound() {
+
+        // given
+        Long userId = 1L;
+        Long goalId = 999L;
+
+        when(goalMapper.findByIdAndUserId(userId, goalId))
+                .thenReturn(null);
+
+
+        // then
+        assertThrows(
+                BusinessException.class,
+                () -> goalService.getGoalDetail(userId, goalId)
+        );
+    }
+
+    @Test
+    @DisplayName("목표 수정 성공")
+    void updateGoal_success() {
+        // given
+        Long userId = 1L;
+        Long goalId = 1L;
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .userId(userId)
+                .goalName("결혼 자금")
+                .goalAmount(20000000L)
+                .build();
+
+        GoalUpdateRequest request = GoalUpdateRequest.builder()
+                .goalName("수정된 목표")
+                .goalAmount(30000000L)
+                .goalMonths(24)
+                .build();
+
+        when(goalMapper.findByIdAndUserId(userId, goalId))
+                .thenReturn(goal);
+
+        // when
+        goalService.updateGoal(userId, goalId, request);
+
+        // then
+        verify(goalMapper).update(any(Goal.class));
+    }
+
+    @Test
+    @DisplayName("목표 삭제 성공")
+    void deleteGoal_success() {
+        // given
+        Long userId = 1L;
+        Long goalId = 10L;
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .userId(userId)
+                .goalName("여행")
+                .goalAmount(1000000L)
+                .build();
+
+        when(goalMapper.findByIdAndUserId(userId, goalId))
+                .thenReturn(goal);
+
+        // when
+        goalService.deleteGoal(userId, goalId);
+
+        // then
+        verify(goalMapper, times(1))
+                .delete(goalId);
+    }
+
 }
