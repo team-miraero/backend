@@ -94,4 +94,44 @@
             ON option_term.deposit_product_id = dp.deposit_product_id
         ORDER BY option_rate.max_interest_rate DESC, dp.deposit_product_id ASC, option_term.save_term ASC
     </select>
+
+    <select id="findDepositProductDetailById"
+            resultType="org.jejuro.miraero.domain.product.domain.DepositProductDetailQueryResult">
+        SELECT
+            dp.deposit_product_id AS depositProductId,
+            fi.financial_institution_name AS financialInstitutionName,
+            dp.product_name AS productName,
+            dp.join_method AS joinMethod,
+            dp.join_target AS joinTarget,
+            dp.join_restriction AS joinRestriction,
+            CASE
+                WHEN dp.join_restriction IN ('2', '3') THEN TRUE
+                ELSE FALSE
+            END AS hasJoinRestriction,
+            dp.special_condition AS specialCondition,
+            dp.maturity_interest AS maturityInterest,
+            dp.max_limit AS maxLimit,
+            dp.notice AS notice,
+            dp.disclosure_month AS disclosureMonth,
+            dp.disclosure_start_date AS disclosureStartDate,
+            dp.disclosure_end_date AS disclosureEndDate
+        FROM deposit_product dp
+        INNER JOIN financial_institution fi
+            ON fi.financial_institution_id = dp.financial_institution_id
+        WHERE dp.deposit_product_id = #{depositProductId}
+    </select>
+
+    <select id="findDepositOptionsByDepositProductId"
+            resultType="org.jejuro.miraero.domain.product.domain.DepositOption">
+        SELECT
+            deposit_option_id AS depositOptionId,
+            deposit_product_id AS depositProductId,
+            interest_rate_type AS interestRateType,
+            save_term AS saveTerm,
+            base_interest_rate AS baseInterestRate,
+            max_interest_rate AS maxInterestRate
+        FROM deposit_option
+        WHERE deposit_product_id = #{depositProductId}
+        ORDER BY save_term ASC, interest_rate_type ASC
+    </select>
 </mapper>
