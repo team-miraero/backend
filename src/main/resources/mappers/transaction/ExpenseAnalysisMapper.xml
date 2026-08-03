@@ -14,11 +14,6 @@
           AND t.transacted_at <![CDATA[>=]]> #{condition.startDateTime}
           AND t.transacted_at <![CDATA[<]]> #{condition.endDateTime}
     </sql>
-    <select id="findRecentExpenses" resultType="org.jejuro.miraero.domain.transaction.domain.RecentTransactionQueryResult">
-        SELECT t.transaction_id AS transactionId, t.merchant_name AS transactionName, ec.expense_category_id AS categoryId, ec.category_name AS categoryName, t.amount, t.transacted_at AS transactedAt
-        FROM `transaction` t LEFT JOIN expense_category ec ON t.expense_category_id = ec.expense_category_id
-        <include refid="expenseCondition"/> ORDER BY t.transacted_at DESC, t.transaction_id DESC LIMIT 5
-    </select>
     <select id="findCategoryThreeMonthExpenses" resultType="org.jejuro.miraero.domain.transaction.domain.CategoryThreeMonthExpenseQueryResult">
         SELECT t.expense_category_id AS categoryId, ec.category_name AS categoryName, SUM(t.amount) AS totalAmount
         FROM `transaction` t LEFT JOIN expense_category ec ON t.expense_category_id = ec.expense_category_id
