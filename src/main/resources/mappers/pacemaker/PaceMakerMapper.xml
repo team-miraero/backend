@@ -4,7 +4,6 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="org.jejuro.miraero.domain.pacemaker.mapper.PaceMakerMapper">
-
   <select id="findByUserId"
     parameterType="long"
     resultType="org.jejuro.miraero.domain.pacemaker.domain.AutoSaving">
@@ -17,5 +16,12 @@
     FROM auto_saving
     WHERE user_id = #{userId}
   </select>
+
+  <update id="updateStatus">
+    UPDATE auto_saving
+    SET auto_saving_status = #{status}
+    WHERE auto_saving_id = #{autoSavingId}
+      AND user_id = #{userId}
+  </update>
 
 </mapper>

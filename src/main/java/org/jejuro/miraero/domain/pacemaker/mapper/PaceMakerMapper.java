@@ -8,4 +8,9 @@ import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
 public interface PaceMakerMapper {
 
   AutoSaving findByUserId(@Param("userId") Long userId);
+
+  int updateStatus(
+      @Param("userId") Long userId,
+      @Param("autoSavingId") Long autoSavingId,
+      @Param("status") String status);
 }
