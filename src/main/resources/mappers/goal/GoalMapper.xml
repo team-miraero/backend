@@ -97,7 +97,7 @@
     </update>
 
 
-    <select id="findCollectionGoalsByUserId"
+    <select id="findGoalCollectionsByUserId"
             resultType="org.jejuro.miraero.domain.goal.domain.Goal">
 
         SELECT
