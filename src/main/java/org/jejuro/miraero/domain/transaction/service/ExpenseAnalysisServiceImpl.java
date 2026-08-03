@@ -4,11 +4,13 @@ import java.time.YearMonth;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.transaction.domain.CategoryMonthExpenseQueryResult;
 import org.jejuro.miraero.domain.transaction.domain.CategoryThreeMonthExpenseQueryResult;
 import org.jejuro.miraero.domain.transaction.domain.RecentTransactionQueryResult;
 import org.jejuro.miraero.domain.transaction.dto.request.ExpenseAnalysisSearchCondition;
 import org.jejuro.miraero.domain.transaction.dto.response.CategoryThreeMonthAverageItemResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.CategoryThreeMonthAverageResponse;
+import org.jejuro.miraero.domain.transaction.dto.response.CategoryMonthChangeResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.ExpenseDashboardResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.RecentTransactionResponse;
 import org.jejuro.miraero.domain.transaction.mapper.ExpenseAnalysisMapper;
@@ -34,6 +36,7 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
         YearMonth referenceMonth = YearMonth.of(year, month);
         YearMonth startMonth = referenceMonth.minusMonths(THREE_MONTHS);
         ExpenseAnalysisSearchCondition threeMonthCondition = createCondition(startMonth, referenceMonth);
+        YearMonth previousMonth = referenceMonth.minusMonths(1);
 
         return new ExpenseDashboardResponse(
                 year,
@@ -44,6 +47,14 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
                         referenceMonth.minusMonths(1).toString(),
                         toCategoryThreeMonthAverages(
                                 expenseAnalysisMapper.findCategoryThreeMonthExpenses(userId, threeMonthCondition)
+                        )
+                ),
+                toCategoryMonthChanges(
+                        expenseAnalysisMapper.findCategoryMonthExpenses(
+                                userId,
+                                previousMonth.atDay(1).atStartOfDay(),
+                                referenceMonth.atDay(1).atStartOfDay(),
+                                referenceMonth.plusMonths(1).atDay(1).atStartOfDay()
                         )
                 )
         );
@@ -88,6 +99,23 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
                         result.getCategoryId(),
                         result.getCategoryName(),
                         result.getTotalAmount() / THREE_MONTHS
+                ))
+                .collect(Collectors.toList());
+    }
+
+    private List<CategoryMonthChangeResponse> toCategoryMonthChanges(
+            List<CategoryMonthExpenseQueryResult> results
+    ) {
+        return results.stream()
+                .map(result -> new CategoryMonthChangeResponse(
+                        result.getCategoryId(),
+                        result.getCategoryName(),
+                        result.getPreviousMonthAmount(),
+                        result.getCurrentMonthAmount(),
+                        Math.subtractExact(
+                                result.getCurrentMonthAmount(),
+                                result.getPreviousMonthAmount()
+                        )
                 ))
                 .collect(Collectors.toList());
     }

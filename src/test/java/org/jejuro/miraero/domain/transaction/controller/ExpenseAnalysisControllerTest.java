@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Collections;
+import org.jejuro.miraero.domain.transaction.dto.response.CategoryMonthChangeResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.CategoryThreeMonthAverageResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.ExpenseDashboardResponse;
 import org.jejuro.miraero.domain.transaction.service.ExpenseAnalysisService;
@@ -48,6 +49,24 @@ class ExpenseAnalysisControllerTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.data.recentTransactions").isEmpty())
                 .andExpect(jsonPath("$.data.categoryThreeMonthAverages.startMonth").value("2026-04"));
         verify(service).getDashboard(USER_ID, 2026, 7);
+    }
+
+    @Test
+    void getDashboard_returnsCategoryMonthChanges() throws Exception {
+        given(service.getDashboard(USER_ID, 2026, 7)).willReturn(new ExpenseDashboardResponse(
+                2026,
+                7,
+                Collections.emptyList(),
+                new CategoryThreeMonthAverageResponse("2026-04", "2026-06", Collections.emptyList()),
+                Collections.singletonList(new CategoryMonthChangeResponse(1L, "food", 250000L, 280000L, 30000L))
+        ));
+
+        mockMvc.perform(get("/api/expense-analysis/dashboard").param("year", "2026").param("month", "7"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.categoryMonthChanges[0].categoryId").value(1))
+                .andExpect(jsonPath("$.data.categoryMonthChanges[0].previousMonthAmount").value(250000))
+                .andExpect(jsonPath("$.data.categoryMonthChanges[0].currentMonthAmount").value(280000))
+                .andExpect(jsonPath("$.data.categoryMonthChanges[0].changeAmount").value(30000));
     }
 
     @Test
