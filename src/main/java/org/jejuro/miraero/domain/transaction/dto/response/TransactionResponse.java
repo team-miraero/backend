@@ -10,6 +10,7 @@ public class TransactionResponse {
 
     private Long transactionId;
     private String transactionType;
+    private String merchantName;
     private Long amount;
     private Long balanceAfter;
     private LocalDateTime transactedAt;
@@ -18,6 +19,7 @@ public class TransactionResponse {
     public static TransactionResponse of(
             Long transactionId,
             String transactionType,
+            String merchantName,
             Long amount,
             Long balanceAfter,
             LocalDateTime transactedAt,
@@ -26,6 +28,7 @@ public class TransactionResponse {
         return new TransactionResponse(
                 transactionId,
                 transactionType,
+                merchantName,
                 amount,
                 balanceAfter,
                 transactedAt,

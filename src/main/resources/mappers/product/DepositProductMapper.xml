@@ -55,4 +55,43 @@
             disclosure_end_date = new.disclosure_end_date,
             submitted_at = new.submitted_at
     </insert>
+
+    <select id="findDepositProductList"
+            resultType="org.jejuro.miraero.domain.product.domain.DepositProductListQueryResult">
+        SELECT
+            dp.deposit_product_id AS depositProductId,
+            fi.financial_institution_name AS financialInstitutionName,
+            dp.product_name AS productName,
+            option_rate.max_interest_rate AS maxInterestRate,
+            option_term.save_term AS saveTerm,
+            dp.max_limit AS maxLimit,
+            dp.join_method AS joinMethod,
+            CASE
+                WHEN dp.join_restriction IS NOT NULL AND dp.join_restriction <![CDATA[<>]]> '1' THEN TRUE
+                ELSE FALSE
+            END AS hasJoinRestriction,
+            CASE
+                WHEN dp.special_condition IS NOT NULL AND TRIM(dp.special_condition) <![CDATA[<>]]> '' THEN TRUE
+                ELSE FALSE
+            END AS hasSpecialCondition
+        FROM deposit_product dp
+        INNER JOIN financial_institution fi
+            ON fi.financial_institution_id = dp.financial_institution_id
+        INNER JOIN (
+            SELECT
+                deposit_product_id,
+                MAX(max_interest_rate) AS max_interest_rate
+            FROM deposit_option
+            GROUP BY deposit_product_id
+        ) option_rate
+            ON option_rate.deposit_product_id = dp.deposit_product_id
+        INNER JOIN (
+            SELECT DISTINCT
+                deposit_product_id,
+                save_term
+            FROM deposit_option
+        ) option_term
+            ON option_term.deposit_product_id = dp.deposit_product_id
+        ORDER BY option_rate.max_interest_rate DESC, dp.deposit_product_id ASC, option_term.save_term ASC
+    </select>
 </mapper>

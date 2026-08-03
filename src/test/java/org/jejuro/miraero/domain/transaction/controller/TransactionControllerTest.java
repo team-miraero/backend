@@ -65,6 +65,7 @@ class TransactionControllerTest {
                 List.of(TransactionResponse.of(
                         1L,
                         "PAYMENT",
+                        "Miraero Cafe",
                         15_000L,
                         1_200_000L,
                         LocalDateTime.of(2026, 7, 30, 12, 30),
@@ -84,6 +85,7 @@ class TransactionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.transactions[0].transactionId").value(1))
+                .andExpect(jsonPath("$.data.transactions[0].merchantName").value("Miraero Cafe"))
                 .andExpect(jsonPath("$.data.transactions[0].category.categoryName").value("식비"))
                 .andExpect(jsonPath("$.data.pagination.totalElements").value(1));
 

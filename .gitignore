@@ -124,3 +124,6 @@ $RECYCLE.BIN/
 .Spotlight-V100
 .Trashes
 *.icloud
+
+# 문서파일
+/docs

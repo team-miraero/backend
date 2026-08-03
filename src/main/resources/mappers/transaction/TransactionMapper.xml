@@ -8,6 +8,7 @@
                type="org.jejuro.miraero.domain.transaction.domain.TransactionQueryResult">
         <id property="transactionId" column="transaction_id"/>
         <result property="transactionType" column="transaction_type"/>
+        <result property="merchantName" column="merchant_name"/>
         <result property="amount" column="amount"/>
         <result property="balanceAfter" column="balance_after"/>
         <result property="transactedAt" column="transacted_at"/>
@@ -28,6 +29,7 @@
         SELECT
             t.transaction_id,
             t.transaction_type,
+            t.merchant_name,
             t.amount,
             t.balance_after,
             t.transacted_at,
