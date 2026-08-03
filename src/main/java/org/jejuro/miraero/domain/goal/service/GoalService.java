@@ -3,10 +3,7 @@ package org.jejuro.miraero.domain.goal.service;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
-import org.jejuro.miraero.domain.goal.dto.response.GoalCreateResponse;
-import org.jejuro.miraero.domain.goal.dto.response.GoalDetailResponse;
-import org.jejuro.miraero.domain.goal.dto.response.GoalListResponse;
-import org.jejuro.miraero.domain.goal.dto.response.GoalPossibilityResponse;
+import org.jejuro.miraero.domain.goal.dto.response.*;
 
 import java.util.List;
 
@@ -30,4 +27,6 @@ public interface GoalService {
 
     void deleteGoal(Long userId, Long goalId);
     void saveCollection(Long userId, Long goalId);
+
+    List<GoalCollectionResponse> getGoalCollections(Long userId);
 }

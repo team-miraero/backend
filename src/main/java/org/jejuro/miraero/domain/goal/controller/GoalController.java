@@ -5,10 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
-import org.jejuro.miraero.domain.goal.dto.response.GoalCreateResponse;
-import org.jejuro.miraero.domain.goal.dto.response.GoalDetailResponse;
-import org.jejuro.miraero.domain.goal.dto.response.GoalListResponse;
-import org.jejuro.miraero.domain.goal.dto.response.GoalPossibilityResponse;
+import org.jejuro.miraero.domain.goal.dto.response.*;
 import org.jejuro.miraero.domain.goal.service.GoalService;
 import org.jejuro.miraero.domain.user.service.UserService;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -85,6 +82,18 @@ public class GoalController {
         );
     }
 
+    @GetMapping("/collection")
+    public ResponseEntity<ApiResponse<List<GoalCollectionResponse>>> getCollection(
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        List<GoalCollectionResponse> responses =
+                goalService.getGoalCollections(user.getUserId());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(responses)
+        );
+    }
+
     /**
      * 목표 상세 조회
      */
@@ -110,7 +119,7 @@ public class GoalController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    @DeleteMapping("/{goalId")
+    @DeleteMapping("/{goalId}")
     public ResponseEntity<ApiResponse<Void>> deleteGoal(
             @PathVariable Long goalId
     ){

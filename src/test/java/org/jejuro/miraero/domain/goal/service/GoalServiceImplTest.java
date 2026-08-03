@@ -11,10 +11,7 @@ import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
-import org.jejuro.miraero.domain.goal.dto.response.GoalCreateResponse;
-import org.jejuro.miraero.domain.goal.dto.response.GoalDetailResponse;
-import org.jejuro.miraero.domain.goal.dto.response.GoalListResponse;
-import org.jejuro.miraero.domain.goal.dto.response.GoalPossibilityResponse;
+import org.jejuro.miraero.domain.goal.dto.response.*;
 import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -395,4 +392,44 @@ class GoalServiceImplTest {
                 response.getStatus()
         );
     }
+    @Test
+    @DisplayName("컬렉션 목표 조회 성공")
+    void getGoalCollections_success() {
+
+        // given
+        Long userId = 1L;
+
+        Goal goal = Goal.builder()
+                .goalId(10L)
+                .userId(userId)
+                .goalName("제주도 여행")
+                .goalAmount(3000000L)
+                .goalType(GoalType.EMERGENCY)
+                .startDate(LocalDate.of(2026, 1, 1))
+                .goalDate(LocalDate.of(2026, 12, 31))
+                .build();
+
+        given(goalMapper.findGoalCollectionsByUserId(userId))
+                .willReturn(List.of(goal));
+
+
+        // when
+        List<GoalCollectionResponse> response =
+                goalService.getGoalCollections(userId);
+
+
+        // then
+        assertEquals(1, response.size());
+
+        GoalCollectionResponse result = response.get(0);
+
+        assertEquals(10L, result.getGoalId());
+        assertEquals("제주도 여행", result.getGoalName());
+        assertEquals(3000000L, result.getGoalAmount());
+        assertEquals(GoalType.EMERGENCY, result.getGoalType());
+
+        verify(goalMapper)
+                .findGoalCollectionsByUserId(userId);
+    }
+
 }

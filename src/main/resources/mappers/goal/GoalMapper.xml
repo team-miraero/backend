@@ -97,4 +97,20 @@
     </update>
 
 
+    <select id="findCollectionGoalsByUserId"
+            resultType="org.jejuro.miraero.domain.goal.domain.Goal">
+
+        SELECT
+            goal_id,
+            goal_type,
+            goal_name,
+            goal_amount,
+            is_collected
+        FROM goal
+        WHERE user_id = #{userId}
+          AND is_collected = true
+        ORDER BY completed_date DESC
+
+    </select>
+
 </mapper>
