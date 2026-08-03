@@ -11,6 +11,8 @@ import java.util.Collections;
 import org.jejuro.miraero.domain.transaction.dto.response.CategoryMonthChangeResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.CategoryThreeMonthAverageResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.ExpenseDashboardResponse;
+import org.jejuro.miraero.domain.transaction.dto.response.PeerAverageCategoryResponse;
+import org.jejuro.miraero.domain.transaction.dto.response.PeerAverageResponse;
 import org.jejuro.miraero.domain.transaction.service.ExpenseAnalysisService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
@@ -44,10 +46,20 @@ class ExpenseAnalysisControllerTest {
 
     @Test
     void getDashboard_successAndEmptyData() throws Exception {
-        given(service.getDashboard(USER_ID, 2026, 7)).willReturn(new ExpenseDashboardResponse(2026, 7, Collections.emptyList(), new CategoryThreeMonthAverageResponse("2026-04", "2026-06", Collections.emptyList())));
+        given(service.getDashboard(USER_ID, 2026, 7)).willReturn(new ExpenseDashboardResponse(
+                2026,
+                7,
+                new CategoryThreeMonthAverageResponse("2026-04", "2026-06", Collections.emptyList()),
+                new PeerAverageResponse(Collections.singletonList(
+                        new PeerAverageCategoryResponse(1L, "Food", 285_000L)
+                )),
+                Collections.emptyList()
+        ));
         mockMvc.perform(get("/api/expense-analysis/dashboard").param("year", "2026").param("month", "7"))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.data.recentTransactions").isEmpty())
-                .andExpect(jsonPath("$.data.categoryThreeMonthAverages.startMonth").value("2026-04"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.data.recentTransactions").doesNotExist())
+                .andExpect(jsonPath("$.data.categoryThreeMonthAverages.startMonth").value("2026-04"))
+                .andExpect(jsonPath("$.data.peerCategoryAverages.categories[0].categoryId").value(1))
+                .andExpect(jsonPath("$.data.peerCategoryAverages.categories[0].peerAverageAmount").value(285000));
         verify(service).getDashboard(USER_ID, 2026, 7);
     }
 
@@ -56,8 +68,8 @@ class ExpenseAnalysisControllerTest {
         given(service.getDashboard(USER_ID, 2026, 7)).willReturn(new ExpenseDashboardResponse(
                 2026,
                 7,
-                Collections.emptyList(),
                 new CategoryThreeMonthAverageResponse("2026-04", "2026-06", Collections.emptyList()),
+                new PeerAverageResponse(Collections.emptyList()),
                 Collections.singletonList(new CategoryMonthChangeResponse(1L, "food", 250000L, 280000L, 30000L))
         ));
 

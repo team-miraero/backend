@@ -6,13 +6,11 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.transaction.domain.CategoryMonthExpenseQueryResult;
 import org.jejuro.miraero.domain.transaction.domain.CategoryThreeMonthExpenseQueryResult;
-import org.jejuro.miraero.domain.transaction.domain.RecentTransactionQueryResult;
 import org.jejuro.miraero.domain.transaction.dto.request.ExpenseAnalysisSearchCondition;
 import org.jejuro.miraero.domain.transaction.dto.response.CategoryThreeMonthAverageItemResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.CategoryThreeMonthAverageResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.CategoryMonthChangeResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.ExpenseDashboardResponse;
-import org.jejuro.miraero.domain.transaction.dto.response.RecentTransactionResponse;
 import org.jejuro.miraero.domain.transaction.mapper.ExpenseAnalysisMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
@@ -27,12 +25,12 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
     private static final long THREE_MONTHS = 3L;
 
     private final ExpenseAnalysisMapper expenseAnalysisMapper;
+    private final PeerAverageService peerAverageService;
 
     @Override
     @Transactional(readOnly = true)
     public ExpenseDashboardResponse getDashboard(Long userId, Integer year, Integer month) {
         validate(userId, year, month);
-        ExpenseAnalysisSearchCondition recentTransactionCondition = createCondition(year, month);
         YearMonth referenceMonth = YearMonth.of(year, month);
         YearMonth startMonth = referenceMonth.minusMonths(THREE_MONTHS);
         ExpenseAnalysisSearchCondition threeMonthCondition = createCondition(startMonth, referenceMonth);
@@ -41,7 +39,6 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
         return new ExpenseDashboardResponse(
                 year,
                 month,
-                toRecentTransactions(expenseAnalysisMapper.findRecentExpenses(userId, recentTransactionCondition)),
                 new CategoryThreeMonthAverageResponse(
                         startMonth.toString(),
                         referenceMonth.minusMonths(1).toString(),
@@ -49,6 +46,7 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
                                 expenseAnalysisMapper.findCategoryThreeMonthExpenses(userId, threeMonthCondition)
                         )
                 ),
+                peerAverageService.getPeerAverages(userId, year, month),
                 toCategoryMonthChanges(
                         expenseAnalysisMapper.findCategoryMonthExpenses(
                                 userId,
@@ -67,12 +65,6 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
         }
     }
 
-    private ExpenseAnalysisSearchCondition createCondition(Integer year, Integer month) {
-        YearMonth yearMonth = YearMonth.of(year, month);
-        ExpenseAnalysisSearchCondition condition = new ExpenseAnalysisSearchCondition(year, month);
-        return createCondition(yearMonth, yearMonth.plusMonths(1), condition);
-    }
-
     private ExpenseAnalysisSearchCondition createCondition(YearMonth startMonth, YearMonth endMonth) {
         ExpenseAnalysisSearchCondition condition = new ExpenseAnalysisSearchCondition(startMonth.getYear(), startMonth.getMonthValue());
         return createCondition(startMonth, endMonth, condition);
@@ -85,10 +77,6 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
     ) {
         condition.setDateRange(startMonth.atDay(1).atStartOfDay(), endMonth.atDay(1).atStartOfDay());
         return condition;
-    }
-
-    private List<RecentTransactionResponse> toRecentTransactions(List<RecentTransactionQueryResult> results) {
-        return results.stream().map(result -> new RecentTransactionResponse(result.getTransactionId(), result.getTransactionName(), result.getCategoryId(), result.getCategoryName(), result.getAmount(), result.getTransactedAt())).collect(Collectors.toList());
     }
 
     private List<CategoryThreeMonthAverageItemResponse> toCategoryThreeMonthAverages(
