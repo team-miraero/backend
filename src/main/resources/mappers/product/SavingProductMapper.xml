@@ -97,4 +97,45 @@
         ORDER BY option_rate.max_interest_rate DESC, sp.saving_product_id ASC,
                  option_data.save_term ASC, option_data.reserve_type ASC
     </select>
+
+    <select id="findSavingProductDetailById"
+            resultType="org.jejuro.miraero.domain.product.domain.SavingProductDetailQueryResult">
+        SELECT
+            sp.saving_product_id AS savingProductId,
+            fi.financial_institution_name AS financialInstitutionName,
+            sp.product_name AS productName,
+            sp.join_method AS joinMethod,
+            sp.join_target AS joinTarget,
+            sp.join_restriction AS joinRestriction,
+            CASE
+                WHEN sp.join_restriction IN ('2', '3') THEN TRUE
+                ELSE FALSE
+            END AS hasJoinRestriction,
+            sp.special_condition AS specialCondition,
+            sp.maturity_interest AS maturityInterest,
+            sp.max_limit AS maxLimit,
+            sp.notice AS notice,
+            sp.disclosure_month AS disclosureMonth,
+            sp.disclosure_start_date AS disclosureStartDate,
+            sp.disclosure_end_date AS disclosureEndDate
+        FROM saving_product sp
+        INNER JOIN financial_institution fi
+            ON fi.financial_institution_id = sp.financial_institution_id
+        WHERE sp.saving_product_id = #{savingProductId}
+    </select>
+
+    <select id="findSavingOptionsBySavingProductId"
+            resultType="org.jejuro.miraero.domain.product.domain.SavingOption">
+        SELECT
+            saving_option_id AS savingOptionId,
+            saving_product_id AS savingProductId,
+            interest_rate_type AS interestRateType,
+            reserve_type AS reserveType,
+            save_term AS saveTerm,
+            base_interest_rate AS baseInterestRate,
+            max_interest_rate AS maxInterestRate
+        FROM saving_option
+        WHERE saving_product_id = #{savingProductId}
+        ORDER BY save_term ASC, reserve_type ASC, interest_rate_type ASC
+    </select>
 </mapper>
