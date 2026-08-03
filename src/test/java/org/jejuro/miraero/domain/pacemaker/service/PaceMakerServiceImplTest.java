@@ -46,6 +46,7 @@ class PaceMakerServiceImplTest {
         PaceMakerResponse response = paceMakerService.getPaceMaker(USER_ID);
 
         assertEquals(21L, response.getAutoSavingId());
+        assertTrue(response.isRegistered());
         assertEquals("ACTIVE", response.getStatus());
         assertTrue(response.isEnabled());
         verify(paceMakerMapper).findByUserId(USER_ID);
@@ -60,6 +61,7 @@ class PaceMakerServiceImplTest {
         PaceMakerResponse response = paceMakerService.getPaceMaker(USER_ID);
 
         assertEquals(22L, response.getAutoSavingId());
+        assertTrue(response.isRegistered());
         assertEquals("PAUSED", response.getStatus());
         assertFalse(response.isEnabled());
         verify(paceMakerMapper).findByUserId(USER_ID);
@@ -73,6 +75,7 @@ class PaceMakerServiceImplTest {
         PaceMakerResponse response = paceMakerService.getPaceMaker(USER_ID);
 
         assertNull(response.getAutoSavingId());
+        assertFalse(response.isRegistered());
         assertNull(response.getStatus());
         assertFalse(response.isEnabled());
         verify(paceMakerMapper).findByUserId(USER_ID);
@@ -89,6 +92,7 @@ class PaceMakerServiceImplTest {
         PaceMakerResponse response = paceMakerService.updateStatus(USER_ID, autoSavingId, "PAUSED");
 
         assertEquals(autoSavingId, response.getAutoSavingId());
+        assertTrue(response.isRegistered());
         assertEquals("PAUSED", response.getStatus());
         assertFalse(response.isEnabled());
         verify(paceMakerMapper).updateStatus(USER_ID, autoSavingId, "PAUSED");

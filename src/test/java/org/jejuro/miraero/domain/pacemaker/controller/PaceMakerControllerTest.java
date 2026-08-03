@@ -60,6 +60,7 @@ class PaceMakerControllerTest {
     void getPaceMaker_active() throws Exception {
         PaceMakerResponse response = PaceMakerResponse.builder()
                 .autoSavingId(21L)
+                .registered(true)
                 .status("ACTIVE")
                 .enabled(true)
                 .build();
@@ -69,6 +70,7 @@ class PaceMakerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.autoSavingId").value(21L))
+                .andExpect(jsonPath("$.data.registered").value(true))
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.data.enabled").value(true));
 
@@ -80,6 +82,7 @@ class PaceMakerControllerTest {
     void getPaceMaker_notCreated() throws Exception {
         PaceMakerResponse response = PaceMakerResponse.builder()
                 .autoSavingId(null)
+                .registered(false)
                 .status(null)
                 .enabled(false)
                 .build();
@@ -89,6 +92,7 @@ class PaceMakerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.autoSavingId").doesNotExist())
+                .andExpect(jsonPath("$.data.registered").value(false))
                 .andExpect(jsonPath("$.data.status").doesNotExist())
                 .andExpect(jsonPath("$.data.enabled").value(false));
 
@@ -100,6 +104,7 @@ class PaceMakerControllerTest {
     void updatePaceMaker_success() throws Exception {
         PaceMakerResponse response = PaceMakerResponse.builder()
                 .autoSavingId(21L)
+                .registered(true)
                 .status("PAUSED")
                 .enabled(false)
                 .build();
@@ -111,6 +116,7 @@ class PaceMakerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.autoSavingId").value(21L))
+                .andExpect(jsonPath("$.data.registered").value(true))
                 .andExpect(jsonPath("$.data.status").value("PAUSED"))
                 .andExpect(jsonPath("$.data.enabled").value(false));
 
