@@ -165,7 +165,7 @@ public class GoalServiceImpl implements GoalService{
     }
 
     /**
-     * 목표 진행률 계산 반올림처리
+     * 목표 진행률 계산 소수점 버림 처리
      */
     private Integer calculateProgressRate(Long currentAmount, Long goalAmount) {
         if (goalAmount == null || goalAmount == 0) {
@@ -176,9 +176,9 @@ public class GoalServiceImpl implements GoalService{
             return 0;
         }
 
-        return Math.min(100,(int) Math.round(
-                currentAmount * 100.0 / goalAmount
-        ));
+        return Math.min(100,
+                (int) (currentAmount * 100.0 / goalAmount)
+        );
     }
 
     /**
@@ -192,7 +192,7 @@ public class GoalServiceImpl implements GoalService{
      * @return 목표 상세 정보
      */
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public GoalDetailResponse getGoalDetail(Long userId, Long goalId) {
 
         // 목표 기본 정보 조회
@@ -212,6 +212,14 @@ public class GoalServiceImpl implements GoalService{
                 currentAmount,
                 goal.getGoalAmount()
         );
+
+        // 목표 완료 처리
+        if (progressRate == 100
+                && goal.getGoalStatus() != GoalStatus.COMPLETED) {
+
+            goalMapper.updateCompleteStatus(goal.getGoalId());
+            goal.changeStatus(GoalStatus.COMPLETED);
+        }
 
         // 기간 정보 생성
         GoalPeriodResponse period = GoalPeriodResponse.builder()
@@ -447,6 +455,5 @@ public class GoalServiceImpl implements GoalService{
 
         goalMapper.updateCollection(userId,goalId);
     }
-
 
 }

@@ -90,4 +90,11 @@
         AND user_id =#{userId}
     </update>
 
+    <update id="updateCompleteStatus">
+        UPDATE goal
+        SET goal_status = 'COMPLETED'
+        WHERE goal_id = #{goalId}
+    </update>
+
+
 </mapper>

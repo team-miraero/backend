@@ -22,4 +22,8 @@ public interface GoalMapper {
             @Param("userId") Long userId,
             @Param("goalId") Long goalId
     );
+
+    void updateCompleteStatus(
+            @Param("goalId") Long goalId
+    );
 }
