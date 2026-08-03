@@ -14,6 +14,7 @@ public class TransactionQueryResult {
 
     private Long transactionId;
     private String transactionType;
+    private String merchantName;
     private Long amount;
     private Long balanceAfter;
     private LocalDateTime transactedAt;
@@ -24,6 +25,7 @@ public class TransactionQueryResult {
         return TransactionResponse.of(
                 transactionId,
                 transactionType,
+                merchantName,
                 amount,
                 balanceAfter,
                 transactedAt,

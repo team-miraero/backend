@@ -132,6 +132,7 @@ class TransactionServiceImplTest {
         return new TransactionQueryResult(
                 transactionId,
                 "PAYMENT",
+                "Miraero Cafe",
                 15_000L,
                 1_200_000L,
                 transactedAt,
