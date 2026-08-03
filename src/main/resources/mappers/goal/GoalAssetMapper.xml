@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper">
+
+    <!-- 목표 연결 자산 저장 -->
+    <insert id="saveAll">
+
+        INSERT INTO goal_asset (
+            goal_id,
+            asset_type,
+            asset_id
+        )
+        VALUES
+
+        <foreach collection="assets" item="asset" separator=",">
+            (
+            #{asset.goalId},
+            #{asset.assetType},
+            #{asset.assetId}
+            )
+        </foreach>
+
+    </insert>
+
+
+
+    <select id="findByGoalId" resultType="org.jejuro.miraero.domain.goal.domain.GoalAsset">
+        SELECT asset_id,asset_type FROM goal_asset WHERE goal_id = #{goalId}
+    </select>
+
+</mapper>
