@@ -456,4 +456,23 @@ public class GoalServiceImpl implements GoalService{
         goalMapper.updateCollection(userId,goalId);
     }
 
+
+    /**
+     * 목표 컬렉션 조회
+     *
+     * 사용자가 컬렉션에 저장한 완료 목표 목록을 조회한다.
+     *
+     * @param userId 사용자 ID
+     * @return 컬렉션 목표 목록
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<GoalCollectionResponse> getGoalCollections(Long userId) {
+
+        List<Goal> goals = goalMapper.findGoalCollectionsByUserId(userId);
+
+        return goals.stream()
+                .map(GoalCollectionResponse::from)
+                .toList();
+    }
 }
