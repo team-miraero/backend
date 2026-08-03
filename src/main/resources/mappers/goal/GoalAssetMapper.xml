@@ -30,4 +30,14 @@
         SELECT asset_id,asset_type FROM goal_asset WHERE goal_id = #{goalId}
     </select>
 
+    <select id="existsByGoalIdAndAssetId" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM goal_asset
+            WHERE goal_id = #{goalId}
+              AND asset_type = #{assetType}
+              AND asset_id = #{assetId}
+        )
+    </select>
+
 </mapper>

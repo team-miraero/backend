@@ -4,6 +4,7 @@ import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
+import org.jejuro.miraero.global.exception.BusinessException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,9 +15,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class GoalAssetServiceImplTest {
@@ -52,7 +54,7 @@ class GoalAssetServiceImplTest {
 
         // then
         verify(goalAssetMapper)
-                .saveAll(goalId,anyList());
+                .saveAll(goalId, assets);
     }
 
     @Test
@@ -83,6 +85,41 @@ class GoalAssetServiceImplTest {
         // then
         assertEquals(0L, result);
     }
+
+    @Test
+    @DisplayName("이미 연결된 자산이면 예외 발생")
+    void saveGoalAssets_duplicate_fail() {
+
+        // given
+        Long goalId = 1L;
+
+        List<GoalAssetRequest> assets = List.of(
+                GoalAssetRequest.builder()
+                        .assetId(10L)
+                        .assetType(AssetType.ACCOUNT)
+                        .build()
+        );
+
+
+        when(goalAssetMapper.existsByGoalIdAndAssetId(
+                goalId,
+                AssetType.ACCOUNT,
+                10L
+        )).thenReturn(true);
+
+
+        // when & then
+        assertThrows(
+                BusinessException.class,
+                () -> goalAssetService.saveGoalAssets(goalId, assets)
+        );
+
+
+        verify(goalAssetMapper, never())
+                .saveAll(anyLong(), anyList());
+    }
+
+
 
 
 }

@@ -92,12 +92,13 @@
 
     <update id="updateCompleteStatus">
         UPDATE goal
-        SET goal_status = 'COMPLETED'
+        SET goal_status = 'COMPLETED',
+            completed_date = NOW()
         WHERE goal_id = #{goalId}
     </update>
 
 
-    <select id="findCollectionGoalsByUserId"
+    <select id="findGoalCollectionsByUserId"
             resultType="org.jejuro.miraero.domain.goal.domain.Goal">
 
         SELECT

@@ -2,6 +2,7 @@ package org.jejuro.miraero.domain.goal.controller;
 
 
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
@@ -139,6 +140,19 @@ public class GoalController {
         Long userId = user.getUserId();
 
         goalService.saveCollection(userId,goalId);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
+
+    @PostMapping("/{goalId}/assets")
+    public ResponseEntity<ApiResponse<Void>> addGoalAssets(
+            @PathVariable Long goalId,
+            @Valid @RequestBody List<GoalAssetRequest> request,
+            @AuthenticationPrincipal AuthenticatedUser user
+    ){
+        Long userId = user.getUserId();
+
+        goalService.addGoalAssets(userId, goalId, request);
+
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 }

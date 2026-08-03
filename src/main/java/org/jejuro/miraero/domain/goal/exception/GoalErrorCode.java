@@ -20,7 +20,14 @@ public enum GoalErrorCode implements ErrorCode {
             HttpStatus.BAD_REQUEST,
             "GOAL_002",
             "완료된 목표만 컬렉션에 저장할 수 있습니다."
+    ),
+
+    GOAL_ASSET_ALREADY_CONNECTED(
+            HttpStatus.CONFLICT,
+            "G003",
+                    "이미 연결된 자산입니다."
     );
+
 
     private final HttpStatus status;
     private final String Code;

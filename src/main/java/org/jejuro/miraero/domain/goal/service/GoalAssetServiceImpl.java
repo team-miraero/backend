@@ -4,6 +4,7 @@ package org.jejuro.miraero.domain.goal.service;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
+import org.jejuro.miraero.domain.goal.exception.GoalErrorCode;
 import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
@@ -34,8 +35,29 @@ public class GoalAssetServiceImpl implements GoalAssetService {
 
         validateAssets(assets);
 
+        validateDuplicateAssets(goalId, assets);
+
         goalAssetMapper.saveAll(goalId, assets);
     }
+
+    private void validateDuplicateAssets(
+            Long goalId,
+            List<GoalAssetRequest> assets
+    ) {
+        for (GoalAssetRequest asset : assets) {
+            if (goalAssetMapper.existsByGoalIdAndAssetId(
+                    goalId,
+                    asset.getAssetType(),
+                    asset.getAssetId()
+            )) {
+                throw new BusinessException(
+                        GoalErrorCode.GOAL_ASSET_ALREADY_CONNECTED
+                );
+            }
+        }
+    }
+
+
 
     private void validateAssets(List<GoalAssetRequest> assets) {
         for (GoalAssetRequest asset : assets) {

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.GoalStatus;
 import org.jejuro.miraero.domain.goal.domain.PaceStatus;
+import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
@@ -475,4 +476,31 @@ public class GoalServiceImpl implements GoalService{
                 .map(GoalCollectionResponse::from)
                 .toList();
     }
+
+    /**
+     * 목표 자산 연결
+     *
+     * 사용자의 목표에 자산을 추가로 연결한다.
+     *
+     * @param userId 사용자 ID
+     * @param goalId 목표 ID
+     * @param assets 연결할 자산 목록
+     */
+    @Override
+    @Transactional
+    public void addGoalAssets(
+            Long userId,
+            Long goalId,
+            List<GoalAssetRequest> assets
+    ) {
+
+        Goal goal = goalMapper.findByIdAndUserId(userId, goalId);
+
+        if (goal == null) {
+            throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        }
+
+        goalAssetService.saveGoalAssets(goalId, assets);
+    }
+
 }
