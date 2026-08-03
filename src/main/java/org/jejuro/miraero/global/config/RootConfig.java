@@ -28,7 +28,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
     DataSourceConfig.class,
     MyBatisConfig.class,
     SecurityConfig.class,
-    RedisConfig.class
+    RedisConfig.class,
+    FlywayConfig.class
 })
 public class RootConfig {
 

@@ -16,6 +16,8 @@ DROP TABLE IF EXISTS `auto_saving_constant_history`;
 DROP TABLE IF EXISTS `auto_saving_history`;
 DROP TABLE IF EXISTS `auto_saving`;
 DROP TABLE IF EXISTS `auto_transfer`;
+DROP TABLE IF EXISTS `expense_category_target`;
+DROP TABLE IF EXISTS `category`;
 DROP TABLE IF EXISTS `transaction`;
 DROP TABLE IF EXISTS `goal_asset`;
 DROP TABLE IF EXISTS `money_box`;
@@ -33,6 +35,7 @@ DROP TABLE IF EXISTS `deposit_option`;
 DROP TABLE IF EXISTS `deposit_product`;
 DROP TABLE IF EXISTS `financial_institution`;
 DROP TABLE IF EXISTS `miraero_user`;
+
 
 SET FOREIGN_KEY_CHECKS = 1;
 

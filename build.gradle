@@ -69,6 +69,10 @@ dependencies {
     implementation 'org.springframework.data:spring-data-redis:2.7.18'
     implementation 'io.lettuce:lettuce-core:6.2.6.RELEASE'
 
+    // Flyway
+    implementation 'org.flywaydb:flyway-core:12.3.0'
+    implementation 'org.flywaydb:flyway-mysql:12.3.0'
+
     // Connection Pool
     implementation 'com.zaxxer:HikariCP:5.1.0'
 
