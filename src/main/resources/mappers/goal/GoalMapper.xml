@@ -92,7 +92,8 @@
 
     <update id="updateCompleteStatus">
         UPDATE goal
-        SET goal_status = 'COMPLETED'
+        SET goal_status = 'COMPLETED',
+            completed_date = NOW()
         WHERE goal_id = #{goalId}
     </update>
 
