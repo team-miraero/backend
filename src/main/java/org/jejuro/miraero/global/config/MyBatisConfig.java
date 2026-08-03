@@ -28,6 +28,10 @@ public class MyBatisConfig {
     factoryBean.setMapperLocations(
         new PathMatchingResourcePatternResolver().getResources("classpath*:mappers/**/*.xml"));
     factoryBean.setTypeAliasesPackage("org.jejuro.miraero.domain");
+    org.apache.ibatis.session.Configuration configuration =
+            new org.apache.ibatis.session.Configuration();
+    configuration.setMapUnderscoreToCamelCase(true);
+    factoryBean.setConfiguration(configuration);
     return factoryBean.getObject();
   }
 }
