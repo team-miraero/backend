@@ -83,4 +83,11 @@
         WHERE goal_id = #{goalId}
     </delete>
 
+    <update id="updateCollection">
+        UPDATE goal
+        SET is_collected = TRUE
+        WHERE goal_id = #{goalId}
+        AND user_id =#{userId}
+    </update>
+
 </mapper>

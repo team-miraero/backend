@@ -4,6 +4,7 @@ package org.jejuro.miraero.domain.goal.mapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.goal.domain.Goal;
+import org.springframework.security.core.parameters.P;
 
 import java.util.List;
 
@@ -17,4 +18,8 @@ public interface GoalMapper {
     );
     int update(@Param("goal") Goal goal);
     void delete(@Param("goalId") Long goalId);
+    void updateCollection(
+            @Param("userId") Long userId,
+            @Param("goalId") Long goalId
+    );
 }

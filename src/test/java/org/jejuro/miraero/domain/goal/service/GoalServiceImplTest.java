@@ -329,4 +329,27 @@ class GoalServiceImplTest {
                 .delete(goalId);
     }
 
+    @Test
+    @DisplayName("완료된 목표는 컬렉션 저장 성공")
+    void saveCollection_success() {
+
+        Long userId = 1L;
+        Long goalId = 10L;
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .userId(userId)
+                .goalStatus(GoalStatus.COMPLETED)
+                .build();
+
+        when(goalMapper.findByIdAndUserId(userId, goalId))
+                .thenReturn(goal);
+
+
+        goalService.saveCollection(userId, goalId);
+
+
+        verify(goalMapper)
+                .updateCollection(userId, goalId);
+    }
 }

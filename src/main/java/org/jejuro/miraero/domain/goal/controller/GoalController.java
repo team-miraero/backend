@@ -14,8 +14,10 @@ import org.jejuro.miraero.domain.user.service.UserService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.response.ApiResponse;
+import org.jejuro.miraero.global.security.AuthenticatedUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -120,6 +122,14 @@ public class GoalController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
+    @PatchMapping("/{goalId}/collection")
+    public ResponseEntity<ApiResponse<Void>> saveCollection(
+            @PathVariable Long goalId,
+            @AuthenticationPrincipal AuthenticatedUser user
+            ){
+        Long userId = user.getUserId();
 
-
+        goalService.saveCollection(userId,goalId);
+        return ResponseEntity.ok(ApiResponse.success(null));
+    }
 }
