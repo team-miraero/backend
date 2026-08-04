@@ -17,6 +17,30 @@
     WHERE user_id = #{userId}
   </select>
 
+  <select id="findDashboardByUserId"
+    parameterType="long"
+    resultType="org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse">
+    SELECT
+      a.auto_saving_id,
+      a.auto_saving_status AS status,
+      a.max_amount,
+      m.money_box_id,
+      m.balance,
+      m.masked_account_number,
+      CASE
+        WHEN h.auto_saving_history_id IS NULL THEN FALSE
+        ELSE TRUE
+        END AS todaySaved,
+      h.amount AS todaySavingAmount
+    FROM auto_saving a
+           INNER JOIN money_box m
+                      ON a.money_box_id = m.money_box_id
+           LEFT JOIN auto_saving_history h
+                     ON a.auto_saving_id = h.auto_saving_id
+                       AND h.transacted_at = CURDATE()
+    WHERE a.user_id = #{userId}
+  </select>
+
   <update id="updateStatus">
     UPDATE auto_saving
     SET auto_saving_status = #{status}
