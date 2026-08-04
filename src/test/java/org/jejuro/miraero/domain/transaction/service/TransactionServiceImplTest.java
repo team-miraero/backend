@@ -13,10 +13,10 @@ import java.util.Collections;
 import java.util.List;
 import org.jejuro.miraero.domain.transaction.domain.TransactionQueryResult;
 import org.jejuro.miraero.domain.transaction.dto.request.TransactionSearchCondition;
-import org.jejuro.miraero.domain.transaction.dto.response.TransactionPageResponse;
 import org.jejuro.miraero.domain.transaction.mapper.TransactionMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
+import org.jejuro.miraero.global.response.PageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,13 +48,14 @@ class TransactionServiceImplTest {
                 .thenReturn(List.of(transaction(2L, LocalDateTime.of(2026, 7, 30, 12, 30))));
         when(transactionMapper.countTransactions(eq(USER_ID), eq(condition))).thenReturn(35L);
 
-        TransactionPageResponse response = transactionService.getTransactions(USER_ID, condition);
+        PageResponse<?> response = transactionService.getTransactions(USER_ID, condition);
 
-        assertEquals(2, response.getPagination().getPage());
-        assertEquals(10, response.getPagination().getSize());
-        assertEquals(35L, response.getPagination().getTotalElements());
-        assertEquals(4, response.getPagination().getTotalPages());
-        assertTrue(response.getPagination().isHasNext());
+        assertEquals(1, response.getPage());
+        assertEquals(10, response.getSize());
+        assertEquals(35L, response.getTotalElements());
+        assertEquals(4, response.getTotalPages());
+        assertFalse(response.isFirst());
+        assertFalse(response.isLast());
         assertEquals(LocalDateTime.of(2026, 7, 1, 0, 0), condition.getStartDateTime());
         assertEquals(LocalDateTime.of(2026, 8, 1, 0, 0), condition.getEndDateTime());
         assertEquals(10, condition.getOffset());
@@ -83,12 +84,27 @@ class TransactionServiceImplTest {
         when(transactionMapper.findTransactions(USER_ID, condition)).thenReturn(Collections.emptyList());
         when(transactionMapper.countTransactions(USER_ID, condition)).thenReturn(0L);
 
-        TransactionPageResponse response = transactionService.getTransactions(USER_ID, condition);
+        PageResponse<?> response = transactionService.getTransactions(USER_ID, condition);
 
-        assertEquals(0, response.getTransactions().size());
-        assertEquals(0L, response.getPagination().getTotalElements());
-        assertEquals(0, response.getPagination().getTotalPages());
-        assertFalse(response.getPagination().isHasNext());
+        assertEquals(0, response.getContent().size());
+        assertEquals(0, response.getPage());
+        assertEquals(0L, response.getTotalElements());
+        assertEquals(0, response.getTotalPages());
+        assertTrue(response.isFirst());
+        assertTrue(response.isLast());
+    }
+
+    @Test
+    @DisplayName("마지막 페이지 조회 시 공통 페이지 응답의 last 값이 true다")
+    void getTransactions_marksLastPage() {
+        TransactionSearchCondition condition = createCondition(null, 4, 10);
+        when(transactionMapper.findTransactions(USER_ID, condition)).thenReturn(Collections.emptyList());
+        when(transactionMapper.countTransactions(USER_ID, condition)).thenReturn(35L);
+
+        PageResponse<?> response = transactionService.getTransactions(USER_ID, condition);
+
+        assertEquals(3, response.getPage());
+        assertTrue(response.isLast());
     }
 
     @Test
