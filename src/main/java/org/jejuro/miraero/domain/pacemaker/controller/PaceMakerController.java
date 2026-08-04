@@ -3,6 +3,7 @@ package org.jejuro.miraero.domain.pacemaker.controller;
 import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerStatusUpdateRequest;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
 import org.jejuro.miraero.domain.pacemaker.service.PaceMakerService;
 import org.jejuro.miraero.global.response.ApiResponse;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -44,6 +46,16 @@ public class PaceMakerController {
         request.getStatus()
     );
 
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  @GetMapping("/dashboard")
+  public ResponseEntity<ApiResponse<PaceMakerDashboardResponse>> getDashboard(
+      @AuthenticationPrincipal AuthenticatedUser user,
+      @RequestParam(defaultValue = "false") boolean includeStreak
+  ) {
+    PaceMakerDashboardResponse response =
+        paceMakerService.getDashboard(user.getUserId(), includeStreak);
     return ResponseEntity.ok(ApiResponse.success(response));
   }
 
