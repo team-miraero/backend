@@ -26,6 +26,12 @@ public enum GoalErrorCode implements ErrorCode {
             HttpStatus.CONFLICT,
             "G003",
                     "이미 연결된 자산입니다."
+    ),
+
+    GOAL_ASSET_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "GOAL_004",
+            "연결된 목표 자산을 찾을 수 없습니다."
     );
 
 

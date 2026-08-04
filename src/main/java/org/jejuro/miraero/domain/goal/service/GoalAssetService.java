@@ -1,5 +1,6 @@
 package org.jejuro.miraero.domain.goal.service;
 
+import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetListResponse;
 
@@ -18,4 +19,16 @@ public interface GoalAssetService {
     Long calculateCurrentAmount(Long goalId);
 
     GoalAssetListResponse getGoalAssets(Long goalId);
+
+    /**
+     * 목표 자산 연결 해제
+     *
+     * 목표와 연결된 자산을 제거한다.
+     *
+     * @param userId 사용자 ID
+     * @param goalId 목표 ID
+     * @param assetType 자산 타입
+     * @param assetId 자산 ID
+     */
+    void deleteGoalAsset(Long userId, Long goalId, AssetType assetType, Long assetId);
 }

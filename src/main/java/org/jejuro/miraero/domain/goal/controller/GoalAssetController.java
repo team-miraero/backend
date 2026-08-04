@@ -1,6 +1,7 @@
 package org.jejuro.miraero.domain.goal.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetListResponse;
 import org.jejuro.miraero.domain.goal.service.GoalAssetService;
@@ -50,4 +51,26 @@ public class GoalAssetController {
                 )
         );
     }
+
+    @DeleteMapping("/{goalId}/assets/{assetType}/{assetId}")
+    public ResponseEntity<ApiResponse<Void>> deleteGoalAsset(
+            @PathVariable Long goalId,
+            @PathVariable AssetType assetType,
+            @PathVariable Long assetId,
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+
+        goalAssetService.deleteGoalAsset(
+                user.getUserId(),
+                goalId,
+                assetType,
+                assetId
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(null)
+        );
+    }
+
+
 }

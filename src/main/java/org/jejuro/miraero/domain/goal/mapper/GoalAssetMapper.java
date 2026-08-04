@@ -17,5 +17,6 @@ public interface GoalAssetMapper {
             AssetType assetType,
             Long assetId
     );
-
+    void delete(Long goalId,AssetType assetType, Long assetId);
+    boolean existsByGoalIdAndAsset(Long goalId, AssetType assetType, Long assetId);
 }

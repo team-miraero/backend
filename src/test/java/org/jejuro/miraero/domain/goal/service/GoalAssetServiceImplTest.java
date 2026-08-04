@@ -1,9 +1,11 @@
 package org.jejuro.miraero.domain.goal.service;
 
 import org.jejuro.miraero.domain.goal.domain.AssetType;
+import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
+import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -25,6 +28,9 @@ class GoalAssetServiceImplTest {
 
     @Mock
     private GoalAssetMapper goalAssetMapper;
+
+    @Mock
+    private GoalMapper goalMapper;
 
     @InjectMocks
     private GoalAssetServiceImpl goalAssetService;
@@ -119,6 +125,58 @@ class GoalAssetServiceImplTest {
 
         verify(goalAssetMapper, never())
                 .saveAll(anyLong(), anyList());
+    }
+
+    @Test
+    @DisplayName("목표 자산 연결 해제 성공")
+    void deleteGoalAsset_success() {
+
+        // given
+        Long userId = 1L;
+        Long goalId = 1L;
+        Long assetId = 10L;
+
+        AssetType assetType = AssetType.ACCOUNT;
+
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .userId(userId)
+                .build();
+
+
+        given(goalMapper.findByIdAndUserId(
+                userId,
+                goalId
+        ))
+                .willReturn(goal);
+
+
+        given(goalAssetMapper.existsByGoalIdAndAsset(
+                goalId,
+                assetType,
+                assetId
+        ))
+                .willReturn(true);
+
+
+
+        // when
+        goalAssetService.deleteGoalAsset(
+                userId,
+                goalId,
+                assetType,
+                assetId
+        );
+
+
+        // then
+        verify(goalAssetMapper)
+                .delete(
+                        goalId,
+                        assetType,
+                        assetId
+                );
     }
 
 
