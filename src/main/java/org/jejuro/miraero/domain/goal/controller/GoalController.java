@@ -8,7 +8,6 @@ import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
 import org.jejuro.miraero.domain.goal.dto.response.*;
 import org.jejuro.miraero.domain.goal.service.GoalService;
-import org.jejuro.miraero.domain.user.service.UserService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.response.ApiResponse;
@@ -27,7 +26,6 @@ import java.util.List;
 public class GoalController {
 
     private final GoalService goalService;
-    private final UserService userService;
 
     /**
      * 목표 실현 가능성 조회
@@ -143,16 +141,5 @@ public class GoalController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    @PostMapping("/{goalId}/assets")
-    public ResponseEntity<ApiResponse<Void>> addGoalAssets(
-            @PathVariable Long goalId,
-            @Valid @RequestBody List<GoalAssetRequest> request,
-            @AuthenticationPrincipal AuthenticatedUser user
-    ){
-        Long userId = user.getUserId();
 
-        goalService.addGoalAssets(userId, goalId, request);
-
-        return ResponseEntity.ok(ApiResponse.success(null));
-    }
 }

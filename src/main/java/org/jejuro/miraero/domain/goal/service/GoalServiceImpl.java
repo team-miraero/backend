@@ -121,6 +121,7 @@ public class GoalServiceImpl implements GoalService{
 
         //2. 목표 자산 연결
         goalAssetService.saveGoalAssets(
+                userId,
                 goal.getGoalId(),
                 request.getAssets()
         );
@@ -477,30 +478,5 @@ public class GoalServiceImpl implements GoalService{
                 .toList();
     }
 
-    /**
-     * 목표 자산 연결
-     *
-     * 사용자의 목표에 자산을 추가로 연결한다.
-     *
-     * @param userId 사용자 ID
-     * @param goalId 목표 ID
-     * @param assets 연결할 자산 목록
-     */
-    @Override
-    @Transactional
-    public void addGoalAssets(
-            Long userId,
-            Long goalId,
-            List<GoalAssetRequest> assets
-    ) {
-
-        Goal goal = goalMapper.findByIdAndUserId(userId, goalId);
-
-        if (goal == null) {
-            throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
-        }
-
-        goalAssetService.saveGoalAssets(goalId, assets);
-    }
 
 }

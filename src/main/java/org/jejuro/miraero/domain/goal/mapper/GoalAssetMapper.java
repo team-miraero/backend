@@ -13,8 +13,7 @@ public interface GoalAssetMapper {
     void saveAll(@Param("goalId") Long goalId,
             @Param("assets") List<GoalAssetRequest> assets);
     List<GoalAsset> findByGoalId(@Param("goalId") Long goalId);
-    boolean existsByGoalIdAndAssetId(
-            Long goalId,
+    boolean existsByAsset(
             AssetType assetType,
             Long assetId
     );

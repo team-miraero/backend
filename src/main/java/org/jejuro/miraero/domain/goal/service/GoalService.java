@@ -30,6 +30,4 @@ public interface GoalService {
     void saveCollection(Long userId, Long goalId);
 
     List<GoalCollectionResponse> getGoalCollections(Long userId);
-
-    void addGoalAssets(Long userId, Long goalId, List<GoalAssetRequest> assets);
 }
