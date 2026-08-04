@@ -2,10 +2,7 @@ package org.jejuro.miraero.domain.goal.controller;
 
 
 import lombok.RequiredArgsConstructor;
-import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
-import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
-import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
-import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
+import org.jejuro.miraero.domain.goal.dto.request.*;
 import org.jejuro.miraero.domain.goal.dto.response.*;
 import org.jejuro.miraero.domain.goal.service.GoalService;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -140,6 +137,26 @@ public class GoalController {
         goalService.saveCollection(userId,goalId);
         return ResponseEntity.ok(ApiResponse.success(null));
     }
+
+    @PatchMapping("/{goalId}/status")
+    public ResponseEntity<ApiResponse<Void>> updateGoalStatus(
+            @PathVariable Long goalId,
+            @Valid @RequestBody GoalStatusUpdateRequest request
+    ) {
+
+        Long userId = 1L; // TODO 인증 적용
+
+        goalService.updateGoalStatus(
+                userId,
+                goalId,
+                request.getStatus()
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(null)
+        );
+    }
+
 
 
 }

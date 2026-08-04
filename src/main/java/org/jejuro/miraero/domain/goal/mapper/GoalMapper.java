@@ -4,6 +4,7 @@ package org.jejuro.miraero.domain.goal.mapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.goal.domain.Goal;
+import org.jejuro.miraero.domain.goal.domain.GoalStatus;
 
 import java.util.List;
 
@@ -27,5 +28,10 @@ public interface GoalMapper {
     );
     List<Goal> findGoalCollectionsByUserId(
             @Param("userId") Long userId
+    );
+
+    void updateStatus(
+            Long goalId,
+            GoalStatus status
     );
 }

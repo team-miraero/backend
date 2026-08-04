@@ -287,7 +287,7 @@ public class GoalServiceImpl implements GoalService{
 
 
         long differenceAmount =
-                (currentAmount == null ? 0L : currentAmount)- expectedAmount;
+                Math.abs((currentAmount == null ? 0L : currentAmount) - expectedAmount);
 
 
         PaceStatus status;
@@ -478,5 +478,25 @@ public class GoalServiceImpl implements GoalService{
                 .toList();
     }
 
+    @Override
+    @Transactional
+    public void updateGoalStatus(Long userId, Long goalId, GoalStatus status) {
+        Goal goal = goalMapper.findByIdAndUserId(userId,goalId);
 
+        if(goal == null){
+            throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        }
+
+        if(goal.getGoalStatus() == GoalStatus.COMPLETED){
+            throw new BusinessException(GoalErrorCode.GOAL_COMPLETED);
+        }
+
+        if(status == GoalStatus.COMPLETED){
+            throw new BusinessException(
+                    GoalErrorCode.INVALID_STATUS_CHANGE
+            );
+        }
+
+        goalMapper.updateStatus(goalId,status);
+    }
 }

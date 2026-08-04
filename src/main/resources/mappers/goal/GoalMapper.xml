@@ -96,6 +96,11 @@
             completed_date = NOW()
         WHERE goal_id = #{goalId}
     </update>
+    <update id="updateStatus">
+        UPDATE goal
+        SET goal_status = #{status}
+        WHERE goal_id = #{goalId}
+    </update>
 
 
     <select id="findGoalCollectionsByUserId"
