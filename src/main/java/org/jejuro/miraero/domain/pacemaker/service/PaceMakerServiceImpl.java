@@ -12,7 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class PaceMakerImpl implements PaceMakerService {
+public class PaceMakerServiceImpl implements PaceMakerService {
 
   private final PaceMakerMapper paceMakerMapper;
 
@@ -34,4 +34,5 @@ public class PaceMakerImpl implements PaceMakerService {
     AutoSaving autoSaving = paceMakerMapper.findByUserId(userId);
     return PaceMakerResponse.from(autoSaving);
   }
+
 }
