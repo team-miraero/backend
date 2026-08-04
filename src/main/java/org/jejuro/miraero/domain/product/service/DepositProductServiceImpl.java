@@ -81,6 +81,7 @@ public class DepositProductServiceImpl implements DepositProductService {
                 product.getDisclosureMonth(),
                 product.getDisclosureStartDate(),
                 product.getDisclosureEndDate(),
+                product.getProductPageUrl(),
                 toDepositOptionResponses(options)
         );
     }

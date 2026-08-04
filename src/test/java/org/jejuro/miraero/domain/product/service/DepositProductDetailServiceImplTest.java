@@ -47,6 +47,7 @@ class DepositProductDetailServiceImplTest {
         DepositProductDetailResponse response = depositProductService.getDepositProductDetail(1L);
 
         assertEquals("Bank A", response.getFinancialInstitutionName());
+        assertEquals("https://bank.example.com/deposit-a", response.getProductPageUrl());
         assertEquals("2", response.getJoinRestriction());
         assertEquals(true, response.getHasJoinRestriction());
         assertEquals(3, response.getOptions().size());
@@ -103,7 +104,8 @@ class DepositProductDetailServiceImplTest {
                 "Notice",
                 "202607",
                 LocalDate.of(2026, 7, 1),
-                null
+                null,
+                "https://bank.example.com/deposit-a"
         );
     }
 

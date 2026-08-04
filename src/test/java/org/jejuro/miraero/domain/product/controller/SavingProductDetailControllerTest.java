@@ -47,6 +47,7 @@ class SavingProductDetailControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.joinRestriction").value("2"))
                 .andExpect(jsonPath("$.data.hasJoinRestriction").value(true))
+                .andExpect(jsonPath("$.data.productPageUrl").value("https://bank.example.com/saving-a"))
                 .andExpect(jsonPath("$.data.options[0].saveTerm").value(12))
                 .andExpect(jsonPath("$.data.options[0].interestRateType").value("단리"))
                 .andExpect(jsonPath("$.data.options[0].reserveType").value("정액적립식"));
@@ -80,6 +81,7 @@ class SavingProductDetailControllerTest {
                 1L, "Bank A", "Saving A", "Internet", "Individual", "2", true,
                 "Special condition", "Maturity interest", 500_000L, "Notice", "202607",
                 LocalDate.of(2026, 7, 1), null,
+                "https://bank.example.com/saving-a",
                 List.of(new SavingOptionResponse(1L, "단리", "정액적립식", 12,
                         new BigDecimal("2.80"), new BigDecimal("3.10")))
         );

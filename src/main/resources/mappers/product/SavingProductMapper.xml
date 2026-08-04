@@ -117,10 +117,16 @@
             sp.notice AS notice,
             sp.disclosure_month AS disclosureMonth,
             sp.disclosure_start_date AS disclosureStartDate,
-            sp.disclosure_end_date AS disclosureEndDate
+            sp.disclosure_end_date AS disclosureEndDate,
+            fpl.product_page_url AS productPageUrl
         FROM saving_product sp
         INNER JOIN financial_institution fi
             ON fi.financial_institution_id = sp.financial_institution_id
+        LEFT JOIN financial_product_link fpl
+            ON fpl.financial_institution_id = sp.financial_institution_id
+            AND fpl.product_type = 'SAVING'
+            AND fpl.product_code = sp.product_code
+            AND fpl.link_status = 'ACTIVE'
         WHERE sp.saving_product_id = #{savingProductId}
     </select>
 

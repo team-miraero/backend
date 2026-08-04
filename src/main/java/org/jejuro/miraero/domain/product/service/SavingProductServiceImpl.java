@@ -99,6 +99,7 @@ public class SavingProductServiceImpl implements SavingProductService {
                 product.getDisclosureMonth(),
                 product.getDisclosureStartDate(),
                 product.getDisclosureEndDate(),
+                product.getProductPageUrl(),
                 toSavingOptionResponses(options)
         );
     }

@@ -114,10 +114,16 @@
             dp.notice AS notice,
             dp.disclosure_month AS disclosureMonth,
             dp.disclosure_start_date AS disclosureStartDate,
-            dp.disclosure_end_date AS disclosureEndDate
+            dp.disclosure_end_date AS disclosureEndDate,
+            fpl.product_page_url AS productPageUrl
         FROM deposit_product dp
         INNER JOIN financial_institution fi
             ON fi.financial_institution_id = dp.financial_institution_id
+        LEFT JOIN financial_product_link fpl
+            ON fpl.financial_institution_id = dp.financial_institution_id
+            AND fpl.product_type = 'DEPOSIT'
+            AND fpl.product_code = dp.product_code
+            AND fpl.link_status = 'ACTIVE'
         WHERE dp.deposit_product_id = #{depositProductId}
     </select>
 

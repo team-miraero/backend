@@ -47,6 +47,7 @@ class SavingProductDetailServiceImplTest {
         SavingProductDetailResponse response = savingProductService.getSavingProductDetail(1L);
 
         assertEquals("Bank A", response.getFinancialInstitutionName());
+        assertEquals("https://bank.example.com/saving-a", response.getProductPageUrl());
         assertEquals("2", response.getJoinRestriction());
         assertEquals(true, response.getHasJoinRestriction());
         assertEquals(3, response.getOptions().size());
@@ -94,7 +95,7 @@ class SavingProductDetailServiceImplTest {
         return new SavingProductDetailQueryResult(
                 1L, "Bank A", "Saving A", "Internet", "Individual", "2", true,
                 "Special condition", "Maturity interest", 500_000L, "Notice", "202607",
-                LocalDate.of(2026, 7, 1), null
+                LocalDate.of(2026, 7, 1), null, "https://bank.example.com/saving-a"
         );
     }
 
