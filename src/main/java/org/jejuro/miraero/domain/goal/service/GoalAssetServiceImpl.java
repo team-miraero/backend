@@ -2,6 +2,7 @@ package org.jejuro.miraero.domain.goal.service;
 
 
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
@@ -267,5 +268,34 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                 .assetType(goalAsset.getAssetType())
                 .assetId(goalAsset.getAssetId())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void deleteGoalAsset(Long userId, Long goalId, AssetType assetType, Long assetId) {
+
+        //목표 소유권 검증
+        Goal goal = goalMapper.findByIdAndUserId(
+                userId,goalId
+        );
+
+        if(goal == null){
+            throw  new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        }
+
+        //연결된 자산인지 검증
+        boolean exists = goalAssetMapper.existsByGoalIdAndAsset(goalId,assetType,assetId);
+
+        if(!exists){
+            throw new BusinessException(GoalErrorCode.GOAL_ASSET_NOT_FOUND);
+        }
+
+        goalAssetMapper.delete(
+                goalId,
+                assetType,
+                assetId
+        );
+
+
     }
 }

@@ -39,4 +39,21 @@
         )
     </select>
 
+    <delete id="delete">
+        DELETE FROM goal_asset
+        WHERE goal_id = #{goalId}
+        AND asset_type = #{assetType}
+        AND asset_id = #{assetId}
+    </delete>
+
+    <select id="existsByGoalIdAndAsset" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM goal_asset
+            WHERE goal_id = #{goalId}
+              AND asset_type = #{assetType}
+              AND asset_id = #{assetId}
+        )
+    </select>
+
 </mapper>
