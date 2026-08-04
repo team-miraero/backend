@@ -15,6 +15,7 @@ import java.util.List;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWeeklyStreakResponse;
 import org.jejuro.miraero.domain.pacemaker.mapper.PaceMakerMapper;
@@ -119,6 +120,37 @@ class PaceMakerServiceImplTest {
         assertEquals(CommonErrorCode.RESOURCE_NOT_FOUND, exception.getErrorCode());
         verify(paceMakerMapper).updateStatus(USER_ID, autoSavingId, "ACTIVE");
         verify(paceMakerMapper, never()).findByUserId(USER_ID);
+    }
+
+    @Test
+    @DisplayName("자동저축 상한액 변경에 성공하면 변경된 상한액을 반환한다")
+    void updateMaxAmount_success() {
+        Long autoSavingId = 21L;
+        Long maxAmount = 500_000L;
+        when(paceMakerMapper.updateMaxAmount(USER_ID, autoSavingId, maxAmount)).thenReturn(1);
+
+        PaceMakerMaxAmountUpdateResponse response =
+                paceMakerService.updateMaxAmount(USER_ID, autoSavingId, maxAmount);
+
+        assertEquals(autoSavingId, response.getAutoSavingId());
+        assertEquals(maxAmount, response.getMaxAmount());
+        verify(paceMakerMapper).updateMaxAmount(USER_ID, autoSavingId, maxAmount);
+    }
+
+    @Test
+    @DisplayName("상한액을 변경할 자동저축이 없으면 리소스 없음 예외를 발생시킨다")
+    void updateMaxAmount_notFound() {
+        Long autoSavingId = 99L;
+        Long maxAmount = 500_000L;
+        when(paceMakerMapper.updateMaxAmount(USER_ID, autoSavingId, maxAmount)).thenReturn(0);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> paceMakerService.updateMaxAmount(USER_ID, autoSavingId, maxAmount)
+        );
+
+        assertEquals(CommonErrorCode.RESOURCE_NOT_FOUND, exception.getErrorCode());
+        verify(paceMakerMapper).updateMaxAmount(USER_ID, autoSavingId, maxAmount);
     }
 
     @Test
