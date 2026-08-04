@@ -18,6 +18,12 @@ public interface PaceMakerMapper {
       @Param("autoSavingId") Long autoSavingId,
       @Param("status") String status);
 
+  int updateMaxAmount(
+      @Param("userId") Long userId,
+      @Param("autoSavingId") Long autoSavingId,
+      @Param("maxAmount") Long maxAmount
+  );
+
   PaceMakerDashboardSummaryResponse findDashboardByUserId(@Param("userId") Long userId);
 
   Integer countMonthlySuccess(@Param("autoSavingId") Long autoSavingId);
@@ -25,4 +31,6 @@ public interface PaceMakerMapper {
   List<PaceMakerWeeklyStreakResponse> findWeeklyStreak(@Param("autoSavingId") Long autoSavingId);
 
   List<LocalDate> findRecentSavingDates(@Param("autoSavingId") Long autoSavingId);
+
+
 }
