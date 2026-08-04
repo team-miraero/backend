@@ -24,4 +24,5 @@ public class SavingProductDetailQueryResult {
     private String disclosureMonth;
     private LocalDate disclosureStartDate;
     private LocalDate disclosureEndDate;
+    private String productPageUrl;
 }

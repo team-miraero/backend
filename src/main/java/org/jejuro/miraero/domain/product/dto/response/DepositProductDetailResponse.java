@@ -23,5 +23,6 @@ public class DepositProductDetailResponse {
     private String disclosureMonth;
     private LocalDate disclosureStartDate;
     private LocalDate disclosureEndDate;
+    private String productPageUrl;
     private List<DepositOptionResponse> options;
 }

@@ -47,6 +47,7 @@ class DepositProductDetailControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.joinRestriction").value("2"))
                 .andExpect(jsonPath("$.data.hasJoinRestriction").value(true))
+                .andExpect(jsonPath("$.data.productPageUrl").value("https://bank.example.com/deposit-a"))
                 .andExpect(jsonPath("$.data.options[0].saveTerm").value(12))
                 .andExpect(jsonPath("$.data.options[0].interestRateType").value("단리"));
 
@@ -90,6 +91,7 @@ class DepositProductDetailControllerTest {
                 "202607",
                 LocalDate.of(2026, 7, 1),
                 null,
+                "https://bank.example.com/deposit-a",
                 List.of(new DepositOptionResponse(
                         1L,
                         "단리",
