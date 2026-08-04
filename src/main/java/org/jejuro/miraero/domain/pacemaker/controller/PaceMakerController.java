@@ -2,8 +2,10 @@ package org.jejuro.miraero.domain.pacemaker.controller;
 
 import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerMaxAmountUpdateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerStatusUpdateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
 import org.jejuro.miraero.domain.pacemaker.service.PaceMakerService;
 import org.jejuro.miraero.global.response.ApiResponse;
@@ -56,6 +58,21 @@ public class PaceMakerController {
   ) {
     PaceMakerDashboardResponse response =
         paceMakerService.getDashboard(user.getUserId(), includeStreak);
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  @PatchMapping("/{autoSavingId}/max-amount")
+  public ResponseEntity<ApiResponse<PaceMakerMaxAmountUpdateResponse>> updateMaxAmount(
+      @PathVariable Long autoSavingId,
+      @Valid @RequestBody PaceMakerMaxAmountUpdateRequest request,
+      @AuthenticationPrincipal AuthenticatedUser user
+  ) {
+    PaceMakerMaxAmountUpdateResponse response = paceMakerService.updateMaxAmount(
+        user.getUserId(),
+        autoSavingId,
+        request.getMaxAmount()
+    );
+
     return ResponseEntity.ok(ApiResponse.success(response));
   }
 

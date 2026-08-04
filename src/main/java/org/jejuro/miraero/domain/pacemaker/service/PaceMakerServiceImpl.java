@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMoneyBoxResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerTodaySavingResponse;
@@ -81,6 +82,22 @@ public class PaceMakerServiceImpl implements PaceMakerService {
         .currentStreak(currentStreak)
         .weeklyStreak(weeklyStreak)
         .monthlySuccessCount(monthlySuccessCount)
+        .build();
+  }
+
+  @Override
+  @Transactional
+  public PaceMakerMaxAmountUpdateResponse updateMaxAmount(Long userId, Long autoSavingId,
+      Long maxAmount) {
+    int updateCount = paceMakerMapper.updateMaxAmount(userId, autoSavingId, maxAmount);
+
+    if (updateCount == 0) {
+      throw new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND);
+    }
+
+    return PaceMakerMaxAmountUpdateResponse.builder()
+        .autoSavingId(autoSavingId)
+        .maxAmount(maxAmount)
         .build();
   }
 

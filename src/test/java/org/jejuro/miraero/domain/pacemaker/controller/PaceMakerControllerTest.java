@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
 import org.jejuro.miraero.domain.pacemaker.service.PaceMakerService;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -148,5 +149,52 @@ class PaceMakerControllerTest {
                 .andExpect(jsonPath("$.error.code").value("COMMON_004"));
 
         verify(paceMakerService).updateStatus(USER_ID, 99L, "ACTIVE");
+    }
+
+    @Test
+    @DisplayName("페이스메이커 상한액 변경 요청은 200 응답과 변경된 상한액을 반환한다")
+    void updateMaxAmount_success() throws Exception {
+        PaceMakerMaxAmountUpdateResponse response = PaceMakerMaxAmountUpdateResponse.builder()
+                .autoSavingId(21L)
+                .maxAmount(500_000L)
+                .build();
+        given(paceMakerService.updateMaxAmount(USER_ID, 21L, 500_000L)).willReturn(response);
+
+        mockMvc.perform(patch("/api/pace-maker/{autoSavingId}/max-amount", 21L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"maxAmount\":500000}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.autoSavingId").value(21L))
+                .andExpect(jsonPath("$.data.maxAmount").value(500_000L));
+
+        verify(paceMakerService).updateMaxAmount(USER_ID, 21L, 500_000L);
+    }
+
+    @Test
+    @DisplayName("페이스메이커 상한액이 0 이하이면 400 응답을 반환한다")
+    void updateMaxAmount_invalidAmount() throws Exception {
+        mockMvc.perform(patch("/api/pace-maker/{autoSavingId}/max-amount", 21L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"maxAmount\":0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_002"));
+    }
+
+    @Test
+    @DisplayName("상한액을 변경할 자동저축이 없으면 404 응답을 반환한다")
+    void updateMaxAmount_notFound() throws Exception {
+        given(paceMakerService.updateMaxAmount(USER_ID, 99L, 500_000L))
+                .willThrow(new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
+
+        mockMvc.perform(patch("/api/pace-maker/{autoSavingId}/max-amount", 99L)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"maxAmount\":500000}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_004"));
+
+        verify(paceMakerService).updateMaxAmount(USER_ID, 99L, 500_000L);
     }
 }
