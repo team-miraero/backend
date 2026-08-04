@@ -2,6 +2,7 @@ package org.jejuro.miraero.domain.user.mapper;
 
 import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.user.domain.User;
+import org.jejuro.miraero.domain.user.dto.response.ProfileResponse;
 
 public interface UserMapper {
 
@@ -13,4 +14,6 @@ public interface UserMapper {
   User findByEmail(@Param("email") String email);
 
   User findById(@Param("userId") Long userId);
+
+  ProfileResponse findProfileById(@Param("userId") Long userId);
 }
