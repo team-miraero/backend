@@ -141,18 +141,5 @@ public class GoalController {
         return ResponseEntity.ok(ApiResponse.success(null));
     }
 
-    //목표와 자산 연결
-    @PostMapping("/{goalId}/assets")
-    public ResponseEntity<ApiResponse<Void>> addGoalAssets(
-            @PathVariable Long goalId,
-            @Valid @RequestBody List<GoalAssetRequest> request,
-            @AuthenticationPrincipal AuthenticatedUser user
-    ){
-        Long userId = user.getUserId();
-
-        goalService.addGoalAssets(userId, goalId, request);
-
-        return ResponseEntity.ok(ApiResponse.success(null));
-    }
 
 }

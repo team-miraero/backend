@@ -2,6 +2,7 @@ package org.jejuro.miraero.domain.goal.service;
 
 
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.response.asset.AssetDetailResponse;
@@ -10,6 +11,7 @@ import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetListResponse;
 import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetResponse;
 import org.jejuro.miraero.domain.goal.exception.GoalErrorCode;
 import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
+import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.springframework.stereotype.Service;
@@ -22,16 +24,26 @@ import java.util.List;
 public class GoalAssetServiceImpl implements GoalAssetService {
 
     private final GoalAssetMapper goalAssetMapper;
-    // private final AccountMapper accountMapper;
-    // private final MoneyBoxMapper moneyBoxMapper;
-    // private final LoanMapper loanMapper;
-
+    private final GoalMapper goalMapper;
 
 
 
     @Override
     @Transactional
-    public void saveGoalAssets(Long goalId, List<GoalAssetRequest> assets) {
+    public void saveGoalAssets(Long userId, Long goalId, List<GoalAssetRequest> assets) {
+
+
+        Goal goal = goalMapper.findByIdAndUserId(
+                userId,
+                goalId
+        );
+
+
+        if(goal == null){
+            throw new BusinessException(
+                    GoalErrorCode.GOAL_NOT_FOUND
+            );
+        }
 
         if(assets == null || assets.isEmpty()){
             return;

@@ -36,6 +36,7 @@ class GoalAssetServiceImplTest {
 
         // given
         Long goalId = 1L;
+        Long userId = 1L;
 
         List<GoalAssetRequest> assets = List.of(
                 GoalAssetRequest.builder()
@@ -47,6 +48,7 @@ class GoalAssetServiceImplTest {
 
         // when
         goalAssetService.saveGoalAssets(
+                userId,
                 goalId,
                 assets
         );
@@ -92,6 +94,7 @@ class GoalAssetServiceImplTest {
 
         // given
         Long goalId = 1L;
+        Long userId = 1L;
 
         List<GoalAssetRequest> assets = List.of(
                 GoalAssetRequest.builder()
@@ -101,8 +104,7 @@ class GoalAssetServiceImplTest {
         );
 
 
-        when(goalAssetMapper.existsByGoalIdAndAssetId(
-                goalId,
+        when(goalAssetMapper.existsByAsset(
                 AssetType.ACCOUNT,
                 10L
         )).thenReturn(true);
@@ -111,7 +113,7 @@ class GoalAssetServiceImplTest {
         // when & then
         assertThrows(
                 BusinessException.class,
-                () -> goalAssetService.saveGoalAssets(goalId, assets)
+                () -> goalAssetService.saveGoalAssets(userId,goalId, assets)
         );
 
 

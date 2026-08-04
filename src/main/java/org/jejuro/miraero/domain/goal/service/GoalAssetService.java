@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface GoalAssetService {
 
-    void saveGoalAssets(Long goalId, List<GoalAssetRequest> assets);
+    void saveGoalAssets(Long userId, Long goalId, List<GoalAssetRequest> assets);
 
     /**
      * 목표에 연결된 자산의 현재 금액을 계산한다

@@ -153,6 +153,7 @@ class GoalServiceImplTest {
         verify(goalAssetService)
                 .saveGoalAssets(
                         eq(1L),
+                        eq(1L),
                         eq(request.getAssets())
                 );
     }
