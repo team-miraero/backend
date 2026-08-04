@@ -21,6 +21,7 @@ import org.jejuro.miraero.global.config.MyBatisConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -40,6 +41,9 @@ class ProductSyncServiceIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Value("${fss.api.financial-company-code}")
+    private String financialCompanyCode;
 
     @Test
     void shouldSyncAllProductsToDockerMySqlAndMatchRepresentativeApiData() {
@@ -238,6 +242,7 @@ class ProductSyncServiceIntegrationTest {
         assertNotNull(response);
         assertNotNull(response.getResult());
         return response.getResult().getBaseList().stream()
+                .filter(product -> financialCompanyCode.equals(product.getFinancialCompanyCode()))
                 .filter(this::hasRequiredDepositProductFields)
                 .filter(product -> response.getResult().getOptionList().stream()
                         .anyMatch(option -> isMatchingDepositOption(option, product)))
@@ -256,6 +261,7 @@ class ProductSyncServiceIntegrationTest {
         assertNotNull(response);
         assertNotNull(response.getResult());
         return response.getResult().getBaseList().stream()
+                .filter(product -> financialCompanyCode.equals(product.getFinancialCompanyCode()))
                 .filter(this::hasRequiredSavingProductFields)
                 .filter(product -> response.getResult().getOptionList().stream()
                         .anyMatch(option -> isMatchingSavingOption(option, product)))
