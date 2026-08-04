@@ -12,6 +12,7 @@ import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
 import org.jejuro.miraero.domain.goal.dto.response.*;
+import org.jejuro.miraero.domain.goal.exception.GoalErrorCode;
 import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -431,6 +432,87 @@ class GoalServiceImplTest {
 
         verify(goalMapper)
                 .findGoalCollectionsByUserId(userId);
+    }
+
+    @Test
+    @DisplayName("목표 일시정지 성공")
+    void updateGoalStatus_pause_success() {
+
+        // given
+        Long userId = 1L;
+        Long goalId = 1L;
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .userId(userId)
+                .goalStatus(GoalStatus.ACTIVE)
+                .build();
+
+
+        given(goalMapper.findByIdAndUserId(
+                userId,
+                goalId
+        ))
+                .willReturn(goal);
+
+
+        // when
+        goalService.updateGoalStatus(
+                userId,
+                goalId,
+                GoalStatus.PAUSED
+        );
+
+
+        // then
+        verify(goalMapper)
+                .updateStatus(
+                        goalId,
+                        GoalStatus.PAUSED
+                );
+    }
+
+    @Test
+    @DisplayName("완료된 목표는 상태 변경 불가")
+    void updateGoalStatus_completed_fail() {
+
+        Long userId = 1L;
+        Long goalId = 1L;
+
+
+        Goal goal = Goal.builder()
+                .goalId(goalId)
+                .goalStatus(GoalStatus.COMPLETED)
+                .build();
+
+
+        given(goalMapper.findByIdAndUserId(
+                userId,
+                goalId
+        ))
+                .willReturn(goal);
+
+
+
+        BusinessException exception =
+                assertThrows(
+                        BusinessException.class,
+                        () -> goalService.updateGoalStatus(
+                                userId,
+                                goalId,
+                                GoalStatus.ACTIVE
+                        )
+                );
+
+
+        assertEquals(
+                GoalErrorCode.GOAL_COMPLETED,
+                exception.getErrorCode()
+        );
+
+
+        verify(goalMapper, never())
+                .updateStatus(any(), any());
     }
 
 }

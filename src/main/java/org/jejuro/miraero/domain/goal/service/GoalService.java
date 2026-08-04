@@ -1,5 +1,6 @@
 package org.jejuro.miraero.domain.goal.service;
 
+import org.jejuro.miraero.domain.goal.domain.GoalStatus;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
@@ -30,4 +31,6 @@ public interface GoalService {
     void saveCollection(Long userId, Long goalId);
 
     List<GoalCollectionResponse> getGoalCollections(Long userId);
+
+    void updateGoalStatus(Long userId, Long goalId, GoalStatus status);
 }

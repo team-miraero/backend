@@ -32,7 +32,22 @@ public enum GoalErrorCode implements ErrorCode {
             HttpStatus.NOT_FOUND,
             "GOAL_004",
             "연결된 목표 자산을 찾을 수 없습니다."
+    ),
+
+    GOAL_COMPLETED(
+            HttpStatus.BAD_REQUEST,
+        "GOAL_005",
+        "완료된 목표는 상태를 변경할 수 없습니다."
+    ),
+
+    INVALID_STATUS_CHANGE(
+            HttpStatus.BAD_REQUEST,
+        "GOAL_006",
+        "변경할 수 없는 목표 상태입니다."
     );
+
+
+
 
 
     private final HttpStatus status;
