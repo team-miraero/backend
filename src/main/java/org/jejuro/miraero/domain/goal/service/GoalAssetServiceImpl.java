@@ -4,6 +4,10 @@ package org.jejuro.miraero.domain.goal.service;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
+import org.jejuro.miraero.domain.goal.dto.response.asset.AssetDetailResponse;
+import org.jejuro.miraero.domain.goal.dto.response.asset.AutoTransferResponse;
+import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetListResponse;
+import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetResponse;
 import org.jejuro.miraero.domain.goal.exception.GoalErrorCode;
 import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -35,18 +39,16 @@ public class GoalAssetServiceImpl implements GoalAssetService {
 
         validateAssets(assets);
 
-        validateDuplicateAssets(goalId, assets);
+        validateDuplicateAssets(assets);
 
         goalAssetMapper.saveAll(goalId, assets);
     }
 
     private void validateDuplicateAssets(
-            Long goalId,
             List<GoalAssetRequest> assets
     ) {
         for (GoalAssetRequest asset : assets) {
-            if (goalAssetMapper.existsByGoalIdAndAssetId(
-                    goalId,
+            if (goalAssetMapper.existsByAsset(
                     asset.getAssetType(),
                     asset.getAssetId()
             )) {
@@ -96,5 +98,162 @@ public class GoalAssetServiceImpl implements GoalAssetService {
             totalAmount += (amount == null ? 0L : amount);
         }
         return totalAmount;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public GoalAssetListResponse getGoalAssets(Long goalId) {
+        List<GoalAsset> goalAssets =
+                goalAssetMapper.findByGoalId(goalId);
+
+        List<GoalAssetResponse> assets
+                = goalAssets.stream()
+                .map(this::convertResponse)
+                .toList();
+
+        return GoalAssetListResponse.builder()
+                .assets(assets)
+                .build();
+    }
+
+    //TODO 자산 서비스 완성되면 연결
+    private GoalAssetResponse convertResponse(
+            GoalAsset goalAsset
+    ){
+
+//        GoalAssetResponse response;
+//
+//        switch (goalAsset.getAssetType()) {
+//
+//
+//            case ACCOUNT -> {
+//
+//                AccountResponse account =
+//                        accountService.findById(
+//                                goalAsset.getAssetId()
+//                        );
+//
+//
+//                response =
+//                        GoalAssetResponse.builder()
+//                                .assetType(
+//                                        goalAsset.getAssetType()
+//                                )
+//                                .assetId(
+//                                        account.getAccountId()
+//                                )
+//                                .assetName(
+//                                        account.getAccountName()
+//                                )
+//                                .bankName(
+//                                        account.getBankName()
+//                                )
+//                                .accountNumberMasked(
+//                                        account.getAccountNumberMasked()
+//                                )
+//                                .balance(
+//                                        account.getBalance()
+//                                )
+//                                .assetDetail(
+//                                        AssetDetailResponse.builder()
+//                                                .interestRate(
+//                                                        account.getInterestRate()
+//                                                )
+//                                                .maturityDate(
+//                                                        account.getMaturityDate()
+//                                                )
+//                                                .build()
+//                                )
+//                                .build();
+//            }
+//
+//
+//            case MONEY_BOX -> {
+//
+//                MoneyBoxResponse moneyBox =
+//                        moneyBoxService.findById(
+//                                goalAsset.getAssetId()
+//                        );
+//
+//
+//                response =
+//                        GoalAssetResponse.builder()
+//                                .assetType(
+//                                        goalAsset.getAssetType()
+//                                )
+//                                .assetId(
+//                                        moneyBox.getMoneyBoxId()
+//                                )
+//                                .assetName(
+//                                        moneyBox.getName()
+//                                )
+//                                .bankName(
+//                                        moneyBox.getBankName()
+//                                )
+//                                .accountNumberMasked(
+//                                        moneyBox.getAccountNumberMasked()
+//                                )
+//                                .balance(
+//                                        moneyBox.getBalance()
+//                                )
+//                                .build();
+//
+//            }
+//
+//
+//            case LOAN -> {
+//
+//                LoanResponse loan =
+//                        loanService.findById(
+//                                goalAsset.getAssetId()
+//                        );
+//
+//
+//                response =
+//                        GoalAssetResponse.builder()
+//                                .assetType(
+//                                        goalAsset.getAssetType()
+//                                )
+//                                .assetId(
+//                                        loan.getLoanId()
+//                                )
+//                                .assetName(
+//                                        loan.getLoanName()
+//                                )
+//                                .bankName(
+//                                        loan.getBankName()
+//                                )
+//                                .balance(
+//                                        loan.getBalance()
+//                                )
+//                                .build();
+//
+//            }
+//
+//
+//            default -> throw new IllegalArgumentException();
+//        }
+//
+//        AutoTransferResponse autoTransfer =
+//                autoTransferService.getByAsset(
+//                        goalAsset.getAssetType(),
+//                        goalAsset.getAssetId()
+//                );
+//
+//        return GoalAssetResponse.builder()
+//                .assetType(response.getAssetType())
+//                .assetId(response.getAssetId())
+//                .assetName(response.getAssetName())
+//                .bankName(response.getBankName())
+//                .accountNumberMasked(response.getAccountNumberMasked())
+//                .balance(response.getBalance())
+//                .assetDetail(response.getAssetDetail())
+//                .autoTransfer(autoTransfer)
+//                .build();
+
+        return GoalAssetResponse.builder()
+                .assetType(goalAsset.getAssetType())
+                .assetId(goalAsset.getAssetId())
+                .build();
     }
 }
