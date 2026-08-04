@@ -69,4 +69,20 @@
     FROM miraero_user
     WHERE user_id = #{userId}
   </select>
+  <select id="findProfileById"
+    parameterType="long"
+    resultType="org.jejuro.miraero.domain.user.dto.response.ProfileResponse">
+    SELECT user_id,
+    name,
+    email,
+    DATE_FORMAT(birth_date, '%Y-%m-%d') AS birthDate,
+    company_name AS company,
+    monthly_income,
+    CASE
+    WHEN kb_pay_id IS NOT NULL THEN true
+    ELSE false
+    END AS kbpayLinked
+    FROM miraero_user
+    WHERE user_id = #{userId}
+  </select>
 </mapper>
