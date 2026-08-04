@@ -380,11 +380,15 @@ public class ProductSyncServiceImpl implements ProductSyncService {
     }
 
     private boolean isTargetFinancialCompany(FssDepositProduct source) {
-        return source != null && financialCompanyCode.equals(source.getFinancialCompanyCode());
+        return source != null
+                && financialCompanyCode.equals(source.getFinancialCompanyCode())
+                && isFssProductCode(source.getFinancialProductCode());
     }
 
     private boolean isTargetFinancialCompany(FssSavingProduct source) {
-        return source != null && financialCompanyCode.equals(source.getFinancialCompanyCode());
+        return source != null
+                && financialCompanyCode.equals(source.getFinancialCompanyCode())
+                && isFssProductCode(source.getFinancialProductCode());
     }
 
     private boolean isTargetFinancialCompany(FssDepositOption source) {
@@ -402,6 +406,20 @@ public class ProductSyncServiceImpl implements ProductSyncService {
                 && !isBlank(source.getFinancialProductCode())
                 && !isBlank(source.getFinancialProductName())
                 && !isBlank(source.getDisclosureMonth());
+    }
+
+    private boolean isFssProductCode(String productCode) {
+        if (isBlank(productCode)) {
+            return false;
+        }
+
+        for (int index = 0; index < productCode.length(); index++) {
+            char character = productCode.charAt(index);
+            if (character < '0' || character > '9') {
+                return false;
+            }
+        }
+        return true;
     }
 
     private LocalDate parseDate(String value) {
