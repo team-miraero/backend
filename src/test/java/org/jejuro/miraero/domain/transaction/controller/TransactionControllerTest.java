@@ -13,13 +13,12 @@ import java.util.Collections;
 import java.util.List;
 import org.jejuro.miraero.domain.transaction.dto.request.TransactionSearchCondition;
 import org.jejuro.miraero.domain.transaction.dto.response.ExpenseCategoryResponse;
-import org.jejuro.miraero.domain.transaction.dto.response.PaginationResponse;
-import org.jejuro.miraero.domain.transaction.dto.response.TransactionPageResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.TransactionResponse;
 import org.jejuro.miraero.domain.transaction.service.TransactionService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.exception.GlobalExceptionHandler;
+import org.jejuro.miraero.global.response.PageResponse;
 import org.jejuro.miraero.global.security.AuthenticatedUser;
 import org.jejuro.miraero.global.security.JwtAuthenticationToken;
 import org.junit.jupiter.api.BeforeEach;
@@ -61,7 +60,7 @@ class TransactionControllerTest {
     @Test
     @DisplayName("거래내역 조회 요청은 200 응답과 ApiResponse 형식을 반환한다")
     void getTransactions_success() throws Exception {
-        TransactionPageResponse response = TransactionPageResponse.of(
+        PageResponse<TransactionResponse> response = PageResponse.of(
                 List.of(TransactionResponse.of(
                         1L,
                         "PAYMENT",
@@ -71,7 +70,9 @@ class TransactionControllerTest {
                         LocalDateTime.of(2026, 7, 30, 12, 30),
                         ExpenseCategoryResponse.of(1L, "식비")
                 )),
-                PaginationResponse.of(1, 10, 1L)
+                0,
+                10,
+                1L
         );
         given(transactionService.getTransactions(eq(USER_ID), any(TransactionSearchCondition.class)))
                 .willReturn(response);
@@ -84,10 +85,10 @@ class TransactionControllerTest {
                         .param("size", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.transactions[0].transactionId").value(1))
-                .andExpect(jsonPath("$.data.transactions[0].merchantName").value("Miraero Cafe"))
-                .andExpect(jsonPath("$.data.transactions[0].category.categoryName").value("식비"))
-                .andExpect(jsonPath("$.data.pagination.totalElements").value(1));
+                .andExpect(jsonPath("$.data.content[0].transactionId").value(1))
+                .andExpect(jsonPath("$.data.content[0].merchantName").value("Miraero Cafe"))
+                .andExpect(jsonPath("$.data.content[0].category.categoryName").value("식비"))
+                .andExpect(jsonPath("$.data.totalElements").value(1));
 
         ArgumentCaptor<TransactionSearchCondition> conditionCaptor =
                 ArgumentCaptor.forClass(TransactionSearchCondition.class);
@@ -103,9 +104,11 @@ class TransactionControllerTest {
     @Test
     @DisplayName("거래내역이 비어 있어도 정상 응답을 반환한다")
     void getTransactions_emptyList() throws Exception {
-        TransactionPageResponse response = TransactionPageResponse.of(
+        PageResponse<TransactionResponse> response = PageResponse.of(
                 Collections.emptyList(),
-                PaginationResponse.of(1, 10, 0L)
+                0,
+                10,
+                0L
         );
         given(transactionService.getTransactions(eq(USER_ID), any(TransactionSearchCondition.class)))
                 .willReturn(response);
@@ -117,8 +120,8 @@ class TransactionControllerTest {
                         .param("size", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.transactions").isEmpty())
-                .andExpect(jsonPath("$.data.pagination.totalElements").value(0));
+                .andExpect(jsonPath("$.data.content").isEmpty())
+                .andExpect(jsonPath("$.data.totalElements").value(0));
 
         verify(transactionService).getTransactions(eq(USER_ID), any(TransactionSearchCondition.class));
     }

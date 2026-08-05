@@ -21,6 +21,7 @@ import org.jejuro.miraero.global.config.MyBatisConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -40,6 +41,9 @@ class ProductSyncServiceIntegrationTest {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Value("${fss.api.financial-company-code}")
+    private String financialCompanyCode;
 
     @Test
     void shouldSyncAllProductsToDockerMySqlAndMatchRepresentativeApiData() {
@@ -238,6 +242,8 @@ class ProductSyncServiceIntegrationTest {
         assertNotNull(response);
         assertNotNull(response.getResult());
         return response.getResult().getBaseList().stream()
+                .filter(product -> financialCompanyCode.equals(product.getFinancialCompanyCode()))
+                .filter(product -> isFssProductCode(product.getFinancialProductCode()))
                 .filter(this::hasRequiredDepositProductFields)
                 .filter(product -> response.getResult().getOptionList().stream()
                         .anyMatch(option -> isMatchingDepositOption(option, product)))
@@ -256,6 +262,8 @@ class ProductSyncServiceIntegrationTest {
         assertNotNull(response);
         assertNotNull(response.getResult());
         return response.getResult().getBaseList().stream()
+                .filter(product -> financialCompanyCode.equals(product.getFinancialCompanyCode()))
+                .filter(product -> isFssProductCode(product.getFinancialProductCode()))
                 .filter(this::hasRequiredSavingProductFields)
                 .filter(product -> response.getResult().getOptionList().stream()
                         .anyMatch(option -> isMatchingSavingOption(option, product)))
@@ -332,6 +340,20 @@ class ProductSyncServiceIntegrationTest {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private boolean isFssProductCode(String productCode) {
+        if (isBlank(productCode)) {
+            return false;
+        }
+
+        for (int index = 0; index < productCode.length(); index++) {
+            char character = productCode.charAt(index);
+            if (character < '0' || character > '9') {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Configuration

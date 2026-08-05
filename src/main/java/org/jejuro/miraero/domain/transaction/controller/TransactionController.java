@@ -2,9 +2,10 @@ package org.jejuro.miraero.domain.transaction.controller;
 
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.transaction.dto.request.TransactionSearchCondition;
-import org.jejuro.miraero.domain.transaction.dto.response.TransactionPageResponse;
+import org.jejuro.miraero.domain.transaction.dto.response.TransactionResponse;
 import org.jejuro.miraero.domain.transaction.service.TransactionService;
 import org.jejuro.miraero.global.response.ApiResponse;
+import org.jejuro.miraero.global.response.PageResponse;
 import org.jejuro.miraero.global.security.AuthenticatedUser;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,11 +21,11 @@ public class TransactionController {
     private final TransactionService transactionService;
 
     @GetMapping
-    public ResponseEntity<ApiResponse<TransactionPageResponse>> getTransactions(
+    public ResponseEntity<ApiResponse<PageResponse<TransactionResponse>>> getTransactions(
             @ModelAttribute TransactionSearchCondition condition,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        TransactionPageResponse response = transactionService.getTransactions(user.getUserId(), condition);
+        PageResponse<TransactionResponse> response = transactionService.getTransactions(user.getUserId(), condition);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }

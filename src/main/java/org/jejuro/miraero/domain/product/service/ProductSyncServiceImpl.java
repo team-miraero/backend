@@ -9,7 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.product.client.FssProductApiClient;
 import org.jejuro.miraero.domain.product.domain.DepositOption;
 import org.jejuro.miraero.domain.product.domain.DepositProduct;
@@ -33,11 +32,12 @@ import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-@RequiredArgsConstructor
 public class ProductSyncServiceImpl implements ProductSyncService {
 
     private static final Logger log = LoggerFactory.getLogger(ProductSyncServiceImpl.class);
@@ -51,6 +51,26 @@ public class ProductSyncServiceImpl implements ProductSyncService {
     private final DepositOptionMapper depositOptionMapper;
     private final SavingProductMapper savingProductMapper;
     private final SavingOptionMapper savingOptionMapper;
+    private final String financialCompanyCode;
+
+    @Autowired
+    public ProductSyncServiceImpl(
+            FssProductApiClient fssProductApiClient,
+            FinancialInstitutionMapper financialInstitutionMapper,
+            DepositProductMapper depositProductMapper,
+            DepositOptionMapper depositOptionMapper,
+            SavingProductMapper savingProductMapper,
+            SavingOptionMapper savingOptionMapper,
+            @Value("${fss.api.financial-company-code}") String financialCompanyCode
+    ) {
+        this.fssProductApiClient = fssProductApiClient;
+        this.financialInstitutionMapper = financialInstitutionMapper;
+        this.depositProductMapper = depositProductMapper;
+        this.depositOptionMapper = depositOptionMapper;
+        this.savingProductMapper = savingProductMapper;
+        this.savingOptionMapper = savingOptionMapper;
+        this.financialCompanyCode = financialCompanyCode;
+    }
 
     @Override
     @Transactional
@@ -162,6 +182,10 @@ public class ProductSyncServiceImpl implements ProductSyncService {
             Map<String, List<FssDepositOption>> optionsByProductCode,
             SyncCount count
     ) {
+        if (!isTargetFinancialCompany(source)) {
+            return;
+        }
+
         if (!hasRequiredDepositProductFields(source)) {
             log.warn("필수값이 없는 예금상품 데이터를 건너뜁니다.");
             return;
@@ -179,6 +203,9 @@ public class ProductSyncServiceImpl implements ProductSyncService {
 
             for (FssDepositOption option : optionsByProductCode.getOrDefault(
                     source.getFinancialProductCode(), List.of())) {
+                if (!isTargetFinancialCompany(option)) {
+                    continue;
+                }
                 if (upsertDepositOption(option, depositProduct.getDepositProductId())) {
                     count.optionCount++;
                 }
@@ -194,6 +221,10 @@ public class ProductSyncServiceImpl implements ProductSyncService {
             Map<String, List<FssSavingOption>> optionsByProductCode,
             SyncCount count
     ) {
+        if (!isTargetFinancialCompany(source)) {
+            return;
+        }
+
         if (!hasRequiredSavingProductFields(source)) {
             log.warn("필수값이 없는 적금상품 데이터를 건너뜁니다.");
             return;
@@ -211,6 +242,9 @@ public class ProductSyncServiceImpl implements ProductSyncService {
 
             for (FssSavingOption option : optionsByProductCode.getOrDefault(
                     source.getFinancialProductCode(), List.of())) {
+                if (!isTargetFinancialCompany(option)) {
+                    continue;
+                }
                 if (upsertSavingOption(option, savingProduct.getSavingProductId())) {
                     count.optionCount++;
                 }
@@ -345,6 +379,26 @@ public class ProductSyncServiceImpl implements ProductSyncService {
                 && !isBlank(source.getDisclosureMonth());
     }
 
+    private boolean isTargetFinancialCompany(FssDepositProduct source) {
+        return source != null
+                && financialCompanyCode.equals(source.getFinancialCompanyCode())
+                && isFssProductCode(source.getFinancialProductCode());
+    }
+
+    private boolean isTargetFinancialCompany(FssSavingProduct source) {
+        return source != null
+                && financialCompanyCode.equals(source.getFinancialCompanyCode())
+                && isFssProductCode(source.getFinancialProductCode());
+    }
+
+    private boolean isTargetFinancialCompany(FssDepositOption source) {
+        return source != null && financialCompanyCode.equals(source.getFinancialCompanyCode());
+    }
+
+    private boolean isTargetFinancialCompany(FssSavingOption source) {
+        return source != null && financialCompanyCode.equals(source.getFinancialCompanyCode());
+    }
+
     private boolean hasRequiredSavingProductFields(FssSavingProduct source) {
         return source != null
                 && !isBlank(source.getFinancialCompanyCode())
@@ -352,6 +406,20 @@ public class ProductSyncServiceImpl implements ProductSyncService {
                 && !isBlank(source.getFinancialProductCode())
                 && !isBlank(source.getFinancialProductName())
                 && !isBlank(source.getDisclosureMonth());
+    }
+
+    private boolean isFssProductCode(String productCode) {
+        if (isBlank(productCode)) {
+            return false;
+        }
+
+        for (int index = 0; index < productCode.length(); index++) {
+            char character = productCode.charAt(index);
+            if (character < '0' || character > '9') {
+                return false;
+            }
+        }
+        return true;
     }
 
     private LocalDate parseDate(String value) {

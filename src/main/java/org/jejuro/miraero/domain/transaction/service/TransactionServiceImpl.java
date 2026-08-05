@@ -7,12 +7,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.transaction.dto.request.TransactionSearchCondition;
-import org.jejuro.miraero.domain.transaction.dto.response.PaginationResponse;
-import org.jejuro.miraero.domain.transaction.dto.response.TransactionPageResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.TransactionResponse;
 import org.jejuro.miraero.domain.transaction.mapper.TransactionMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
+import org.jejuro.miraero.global.response.PageResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +26,7 @@ public class TransactionServiceImpl implements TransactionService {
 
     @Override
     @Transactional(readOnly = true)
-    public TransactionPageResponse getTransactions(Long userId, TransactionSearchCondition condition) {
+    public PageResponse<TransactionResponse> getTransactions(Long userId, TransactionSearchCondition condition) {
         validateUserId(userId);
         validateCondition(condition);
         setQueryRange(condition);
@@ -38,9 +37,11 @@ public class TransactionServiceImpl implements TransactionService {
                 .collect(Collectors.toList());
         long totalElements = transactionMapper.countTransactions(userId, condition);
 
-        return TransactionPageResponse.of(
+        return PageResponse.of(
                 transactions,
-                PaginationResponse.of(condition.getPage(), condition.getSize(), totalElements)
+                condition.getPage() - 1,
+                condition.getSize(),
+                totalElements
         );
     }
 
