@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.jejuro.miraero.domain.autotransfer.mapper.AutoTransferMapper">
+
+    <insert id="save"
+            parameterType="org.jejuro.miraero.domain.autotransfer.domain.AutoTransfer"
+            useGeneratedKeys="true"
+            keyProperty="autoTransferId">
+
+        INSERT INTO auto_transfer
+        (
+            withdrawal_account_id,
+            deposit_account_id,
+            money_box_id,
+            deposit_institution_name,
+            masked_deposit_account,
+            transfer_amount,
+            transfer_day,
+            start_date,
+            end_date,
+            auto_transfer_status
+        )
+        VALUES
+        (
+            #{withdrawalAccountId},
+            #{depositAccountId},
+            #{moneyBoxId},
+            #{depositInstitutionName},
+            #{maskedDepositAccount},
+            #{transferAmount},
+            #{transferDay},
+            #{startDate},
+            #{endDate},
+            #{autoTransferStatus}
+        )
+
+    </insert>
+
+    <select id="findByAsset"
+            resultType="org.jejuro.miraero.domain.autotransfer.domain.AutoTransfer">
+
+        SELECT
+            auto_transfer_id,
+            withdrawal_account_id,
+            deposit_account_id,
+            money_box_id,
+            deposit_institution_name,
+            masked_deposit_account,
+            transfer_amount,
+            transfer_day,
+            start_date,
+            end_date,
+            auto_transfer_status,
+            synced_at
+        FROM auto_transfer
+        WHERE
+            ( #{assetType} = 'MONEY_BOX'
+            AND money_box_id = #{assetId} )
+        OR
+        ( #{assetType} = 'ACCOUNT'
+            AND deposit_account_id = #{assetId} )
+
+    </select>
+
+
+
+</mapper>

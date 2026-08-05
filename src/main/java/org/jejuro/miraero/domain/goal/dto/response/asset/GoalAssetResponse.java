@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.jejuro.miraero.domain.autotransfer.dto.response.AutoTransferResponse;
 import org.jejuro.miraero.domain.goal.domain.AssetType;
 
 @Getter

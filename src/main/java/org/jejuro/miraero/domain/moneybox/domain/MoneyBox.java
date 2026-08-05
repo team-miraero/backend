@@ -4,6 +4,8 @@ package org.jejuro.miraero.domain.moneybox.domain;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Builder
 public class MoneyBox {
@@ -14,4 +16,6 @@ public class MoneyBox {
     private byte[] accountNumber;
     private String maskedAccountNumber;
     private MoneyBoxType moneyBoxType;
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }
