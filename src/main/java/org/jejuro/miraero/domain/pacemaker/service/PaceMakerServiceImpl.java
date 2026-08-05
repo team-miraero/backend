@@ -1,11 +1,14 @@
 package org.jejuro.miraero.domain.pacemaker.service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
+import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMoneyBoxResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
@@ -14,6 +17,7 @@ import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWeeklyStreakRes
 import org.jejuro.miraero.domain.pacemaker.mapper.PaceMakerMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
+import org.jejuro.miraero.global.response.PageResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -99,6 +103,42 @@ public class PaceMakerServiceImpl implements PaceMakerService {
         .autoSavingId(autoSavingId)
         .maxAmount(maxAmount)
         .build();
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public PageResponse<PaceMakerHistoryResponse> getHistories(
+      Long userId,
+      PaceMakerHistorySearchCondition condition
+  ) {
+    condition.validate();
+
+    LocalDateTime startDateTime = LocalDate.now()
+        .withDayOfMonth(1)
+        .atStartOfDay();
+
+    LocalDateTime endDateTime = startDateTime.plusMonths(1);
+
+    List<PaceMakerHistoryResponse> histories = paceMakerMapper.findHistories(
+        userId,
+        startDateTime,
+        endDateTime,
+        condition.getOffset(),
+        condition.getSize()
+    );
+
+    long totalElements = paceMakerMapper.countHistories(
+        userId,
+        startDateTime,
+        endDateTime
+    );
+
+    return PageResponse.of(
+        histories,
+        condition.getPage(),
+        condition.getSize(),
+        totalElements
+    );
   }
 
   private int calculateCurrentStreak(List<LocalDate> savingDates) {
