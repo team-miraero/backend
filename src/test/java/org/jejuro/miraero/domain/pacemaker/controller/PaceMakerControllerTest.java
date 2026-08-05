@@ -1,18 +1,24 @@
 package org.jejuro.miraero.domain.pacemaker.controller;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.util.List;
+import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
 import org.jejuro.miraero.domain.pacemaker.service.PaceMakerService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.exception.GlobalExceptionHandler;
+import org.jejuro.miraero.global.response.PageResponse;
 import org.jejuro.miraero.global.security.AuthenticatedUser;
 import org.jejuro.miraero.global.security.JwtAuthenticationToken;
 import org.junit.jupiter.api.BeforeEach;
@@ -196,5 +202,64 @@ class PaceMakerControllerTest {
                 .andExpect(jsonPath("$.error.code").value("COMMON_004"));
 
         verify(paceMakerService).updateMaxAmount(USER_ID, 99L, 500_000L);
+    }
+
+    @Test
+    @DisplayName("페이스메이커 자동저축 내역 조회 요청은 200 응답과 페이지 정보를 반환한다")
+    void getHistories_success() throws Exception {
+        PaceMakerHistoryResponse history = PaceMakerHistoryResponse.builder()
+                .date("2026-08-05")
+                .status("SAVED")
+                .amount(10_000L)
+                .description(null)
+                .build();
+        PageResponse<PaceMakerHistoryResponse> response =
+                PageResponse.of(List.of(history), 0, 20, 1L);
+        given(paceMakerService.getHistories(
+                eq(USER_ID),
+                any(PaceMakerHistorySearchCondition.class)
+        )).willReturn(response);
+
+        mockMvc.perform(get("/api/pace-maker/histories")
+                        .param("page", "0")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.content[0].date").value("2026-08-05"))
+                .andExpect(jsonPath("$.data.content[0].status").value("SAVED"))
+                .andExpect(jsonPath("$.data.content[0].amount").value(10_000L))
+                .andExpect(jsonPath("$.data.content[0].description").doesNotExist())
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(20))
+                .andExpect(jsonPath("$.data.totalElements").value(1L))
+                .andExpect(jsonPath("$.data.totalPages").value(1))
+                .andExpect(jsonPath("$.data.first").value(true))
+                .andExpect(jsonPath("$.data.last").value(true));
+
+        verify(paceMakerService).getHistories(
+                eq(USER_ID),
+                any(PaceMakerHistorySearchCondition.class)
+        );
+    }
+
+    @Test
+    @DisplayName("자동저축 내역 조회 파라미터가 잘못되면 400 응답을 반환한다")
+    void getHistories_invalidCondition() throws Exception {
+        given(paceMakerService.getHistories(
+                eq(USER_ID),
+                any(PaceMakerHistorySearchCondition.class)
+        )).willThrow(new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE));
+
+        mockMvc.perform(get("/api/pace-maker/histories")
+                        .param("page", "-1")
+                        .param("size", "20"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_002"));
+
+        verify(paceMakerService).getHistories(
+                eq(USER_ID),
+                any(PaceMakerHistorySearchCondition.class)
+        );
     }
 }
