@@ -30,23 +30,20 @@ public class MoneyBoxServiceImpl implements MoneyBoxService {
                         .userId(userId)
                         .balance(0L)
                         .moneyBoxType(request.getMoneyBoxType())
-
-                        .accountNumber(
-                                accountNumberCrypto.encrypt(accountNumber)
-                        )
-
-                        .accountNumberHash(
-                                accountNumberCrypto.hashForMoneyBox(accountNumber)
-                        )
-
-                        .maskedAccountNumber(
-                                accountNumberCrypto.mask(accountNumber)
-                        )
-
+                        .accountNumber(accountNumberCrypto.encrypt(accountNumber))
+                        .accountNumberHash(accountNumberCrypto.hashForMoneyBox(accountNumber))
+                        .maskedAccountNumber(accountNumberCrypto.mask(accountNumber))
                         .build();
 
         moneyBoxMapper.insert(moneyBox);
 
+//        if (request.getAutoTransfer() != null) {
+//            autoTransferService.create(
+//                    moneyBox.getMoneyBoxId(),
+//                    userId,
+//                    request.getAutoTransfer()
+//            );
+//        }
 
         return MoneyBoxCreateResponse.builder()
                 .moneyBoxId(moneyBox.getMoneyBoxId())
@@ -57,15 +54,9 @@ public class MoneyBoxServiceImpl implements MoneyBoxService {
     private String generateUniqueAccountNumber() {
 
         while (true) {
+            String accountNumber = moneyBoxAccountNumberGenerator.generate();
 
-            String accountNumber =
-                    moneyBoxAccountNumberGenerator.generate();
-
-
-            String hash =
-                    accountNumberCrypto.hashForMoneyBox(accountNumber);
-
-
+            String hash = accountNumberCrypto.hashForMoneyBox(accountNumber);
 
             if (!moneyBoxMapper.existsByAccountNumberHash(hash)) {
                 return accountNumber;

@@ -9,4 +9,6 @@ import org.jejuro.miraero.domain.moneybox.domain.MoneyBoxType;
 @NoArgsConstructor
 public class MoneyBoxCreateRequest {
     private MoneyBoxType moneyBoxType;
+
+    //private AutoTransferRequest autoTransfer;
 }
