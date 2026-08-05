@@ -95,6 +95,32 @@
     ORDER BY transacted_at DESC
     LIMIT 60
   </select>
+  <select id="findHistories"
+    resultType="org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse">
+    SELECT DATE_FORMAT(h.transacted_at, '%Y-%m-%d') AS date,
+           'SAVED'                                  AS status,
+           h.amount                                 AS amount,
+           NULL                                     AS description
+    FROM auto_saving_history h
+           JOIN auto_saving a
+                ON h.auto_saving_id = a.auto_saving_id
+    WHERE a.user_id = #{userId}
+      AND h.transacted_at <![CDATA[>=]]> #{startDateTime}
+      AND h.transacted_at <![CDATA[<]]> #{endDateTime}
+    ORDER BY h.transacted_at DESC
+    LIMIT #{size} OFFSET #{offset}
+  </select>
+  
+  <select id="countHistories"
+    resultType="long">
+    SELECT COUNT(*)
+    FROM auto_saving_history h
+           JOIN auto_saving a
+                ON h.auto_saving_id = a.auto_saving_id
+    WHERE a.user_id = #{userId}
+      AND h.transacted_at <![CDATA[>=]]> #{startDateTime}
+      AND h.transacted_at <![CDATA[<]]> #{endDateTime}
+  </select>
 
   <update id="updateMaxAmount">
     UPDATE auto_saving

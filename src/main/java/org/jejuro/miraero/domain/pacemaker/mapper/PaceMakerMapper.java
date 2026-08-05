@@ -1,11 +1,13 @@
 package org.jejuro.miraero.domain.pacemaker.mapper;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWeeklyStreakResponse;
 
 @Mapper
@@ -32,5 +34,17 @@ public interface PaceMakerMapper {
 
   List<LocalDate> findRecentSavingDates(@Param("autoSavingId") Long autoSavingId);
 
+  List<PaceMakerHistoryResponse> findHistories(
+      @Param("userId") Long userId,
+      @Param("startDateTime") LocalDateTime startDateTime,
+      @Param("endDateTime") LocalDateTime endDateTime,
+      @Param("offset") Long offset,
+      @Param("size") Integer size
+  );
 
+  long countHistories(
+      @Param("userId") Long userId,
+      @Param("startDateTime") LocalDateTime startDateTime,
+      @Param("endDateTime") LocalDateTime endDateTime
+  );
 }
