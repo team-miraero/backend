@@ -24,7 +24,7 @@ public enum GoalErrorCode implements ErrorCode {
 
     GOAL_ASSET_ALREADY_CONNECTED(
             HttpStatus.CONFLICT,
-            "G003",
+            "GOAL_003",
                     "이미 연결된 자산입니다."
     ),
 

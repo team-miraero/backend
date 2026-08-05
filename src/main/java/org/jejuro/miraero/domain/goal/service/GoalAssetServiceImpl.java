@@ -7,7 +7,6 @@ import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.response.asset.AssetDetailResponse;
-import org.jejuro.miraero.domain.goal.dto.response.asset.AutoTransferResponse;
 import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetListResponse;
 import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetResponse;
 import org.jejuro.miraero.domain.goal.exception.GoalErrorCode;

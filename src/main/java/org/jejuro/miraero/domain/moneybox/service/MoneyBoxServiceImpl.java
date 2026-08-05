@@ -1,6 +1,7 @@
 package org.jejuro.miraero.domain.moneybox.service;
 
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.autotransfer.service.AutoTransferService;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
 import org.jejuro.miraero.domain.moneybox.dto.request.MoneyBoxCreateRequest;
 import org.jejuro.miraero.domain.moneybox.dto.response.MoneyBoxCreateResponse;
@@ -17,6 +18,7 @@ public class MoneyBoxServiceImpl implements MoneyBoxService {
     private final MoneyBoxMapper moneyBoxMapper;
     private final MoneyBoxAccountNumberGenerator moneyBoxAccountNumberGenerator;
     private final AccountNumberCrypto accountNumberCrypto;
+    private final AutoTransferService autoTransferService;
 
     @Override
     @Transactional
@@ -37,13 +39,14 @@ public class MoneyBoxServiceImpl implements MoneyBoxService {
 
         moneyBoxMapper.insert(moneyBox);
 
-//        if (request.getAutoTransfer() != null) {
-//            autoTransferService.create(
-//                    moneyBox.getMoneyBoxId(),
-//                    userId,
-//                    request.getAutoTransfer()
-//            );
-//        }
+        if (request.getAutoTransfer() != null) {
+            autoTransferService.createMoneyBoxAutoTransfer(
+                    userId,
+                    moneyBox.getMoneyBoxId(),
+                    moneyBox.getMaskedAccountNumber(),
+                    request.getAutoTransfer()
+            );
+        }
 
         return MoneyBoxCreateResponse.builder()
                 .moneyBoxId(moneyBox.getMoneyBoxId())

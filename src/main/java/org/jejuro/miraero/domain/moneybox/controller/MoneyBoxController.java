@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/money-boxes")
@@ -23,7 +25,7 @@ public class MoneyBoxController {
     @PostMapping
     public ResponseEntity<ApiResponse<MoneyBoxCreateResponse>> createMoneyBox(
             @AuthenticationPrincipal AuthenticatedUser user,
-            @RequestBody MoneyBoxCreateRequest request
+            @Valid @RequestBody MoneyBoxCreateRequest request
             ){
 
         Long userId = user.getUserId();

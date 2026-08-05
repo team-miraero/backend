@@ -19,8 +19,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class GoalCreateRequest {
-
-    @NotBlank
+    @NotNull
     private GoalType goalType;
 
     @NotBlank
