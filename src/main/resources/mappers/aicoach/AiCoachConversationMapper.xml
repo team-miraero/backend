@@ -6,16 +6,26 @@
 
 <mapper namespace="org.jejuro.miraero.domain.aicoach.mapper.AiCoachConversationMapper">
 
+    <resultMap id="aiCoachConversationResultMap"
+               type="org.jejuro.miraero.domain.aicoach.domain.AiCoachConversation">
+        <id property="aiCoachConversationId" column="ai_coach_conversation_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="title" column="title"/>
+        <result property="lastMessageAt" column="last_message_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
     <sql id="conversationColumns">
-        ai_coach_conversation_id AS aiCoachConversationId,
-        user_id AS userId,
+        ai_coach_conversation_id,
+        user_id,
         title,
-        last_message_at AS lastMessageAt,
-        created_at AS createdAt,
-        updated_at AS updatedAt
+        last_message_at,
+        created_at,
+        updated_at
     </sql>
 
-    <select id="findLatestByUserId" resultType="map">
+    <select id="findLatestByUserId" resultMap="aiCoachConversationResultMap">
         SELECT
             <include refid="conversationColumns"/>
         FROM ai_coach_conversation
@@ -24,7 +34,7 @@
         LIMIT 1
     </select>
 
-    <select id="findAllByUserId" resultType="map">
+    <select id="findAllByUserId" resultMap="aiCoachConversationResultMap">
         SELECT
             <include refid="conversationColumns"/>
         FROM ai_coach_conversation
@@ -32,7 +42,11 @@
         ORDER BY last_message_at DESC, created_at DESC
     </select>
 
-    <insert id="save" parameterType="map" useGeneratedKeys="true" keyProperty="aiCoachConversationId">
+    <insert id="save"
+            parameterType="org.jejuro.miraero.domain.aicoach.domain.AiCoachConversation"
+            useGeneratedKeys="true"
+            keyProperty="aiCoachConversationId"
+            keyColumn="ai_coach_conversation_id">
         INSERT INTO ai_coach_conversation (
             user_id,
             title
@@ -43,7 +57,7 @@
         )
     </insert>
 
-    <select id="findByIdAndUserId" resultType="map">
+    <select id="findByIdAndUserId" resultMap="aiCoachConversationResultMap">
         SELECT
             <include refid="conversationColumns"/>
         FROM ai_coach_conversation

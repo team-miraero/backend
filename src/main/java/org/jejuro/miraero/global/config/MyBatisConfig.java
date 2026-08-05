@@ -15,10 +15,11 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
     "org.jejuro.miraero.domain.user.mapper",
     "org.jejuro.miraero.domain.mydata.mapper",
     "org.jejuro.miraero.domain.product.mapper",
-        "org.jejuro.miraero.domain.transaction.mapper",
-        "org.jejuro.miraero.domain.goal.mapper",
+    "org.jejuro.miraero.domain.transaction.mapper",
+    "org.jejuro.miraero.domain.goal.mapper",
     "org.jejuro.miraero.domain.pacemaker.mapper",
-        "org.jejuro.miraero.domain.moneybox.mapper"
+    "org.jejuro.miraero.domain.moneybox.mapper",
+    "org.jejuro.miraero.domain.aicoach.mapper"
 })
 public class MyBatisConfig {
 

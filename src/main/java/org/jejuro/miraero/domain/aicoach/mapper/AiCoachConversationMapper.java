@@ -2,20 +2,20 @@ package org.jejuro.miraero.domain.aicoach.mapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.jejuro.miraero.domain.aicoach.domain.AiCoachConversation;
 
 @Mapper
 public interface AiCoachConversationMapper {
 
-    Map<String, Object> findLatestByUserId(@Param("userId") Long userId);
+    AiCoachConversation findLatestByUserId(@Param("userId") Long userId);
 
-    List<Map<String, Object>> findAllByUserId(@Param("userId") Long userId);
+    List<AiCoachConversation> findAllByUserId(@Param("userId") Long userId);
 
-    int save(Map<String, Object> conversation);
+    int save(AiCoachConversation conversation);
 
-    Map<String, Object> findByIdAndUserId(
+    AiCoachConversation findByIdAndUserId(
             @Param("userId") Long userId,
             @Param("conversationId") Long conversationId
     );
