@@ -17,7 +17,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
     "org.jejuro.miraero.domain.product.mapper",
         "org.jejuro.miraero.domain.transaction.mapper",
         "org.jejuro.miraero.domain.goal.mapper",
-    "org.jejuro.miraero.domain.pacemaker.mapper"
+    "org.jejuro.miraero.domain.pacemaker.mapper",
+        "org.jejuro.miraero.domain.moneybox.mapper"
 })
 public class MyBatisConfig {
 

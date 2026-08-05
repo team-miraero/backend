@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper">
+
+    <insert id="insert"
+            parameterType="org.jejuro.miraero.domain.moneybox.domain.MoneyBox"
+            useGeneratedKeys="true"
+            keyProperty="moneyBoxId">
+
+        INSERT INTO money_box(
+        user_id,
+        balance,
+        account_number_hash,
+        account_number,
+        masked_account_number,
+        money_box_type
+        )
+        VALUES (
+        #{userId},
+        #{balance},
+        #{accountNumberHash},
+        #{accountNumber},
+        #{maskedAccountNumber},
+        #{moneyBoxType}
+        )
+
+    </insert>
+
+
+    <select id="existsByAccountNumberHash"
+            parameterType="string"
+            resultType="boolean">
+
+        SELECT EXISTS (
+        SELECT 1
+        FROM money_box
+        WHERE account_number_hash = #{accountNumberHash}
+        )
+
+    </select>
+
+</mapper>
