@@ -110,7 +110,7 @@
     ORDER BY h.transacted_at DESC
     LIMIT #{size} OFFSET #{offset}
   </select>
-  
+
   <select id="countHistories"
     resultType="long">
     SELECT COUNT(*)
@@ -120,6 +120,85 @@
     WHERE a.user_id = #{userId}
       AND h.transacted_at <![CDATA[>=]]> #{startDateTime}
       AND h.transacted_at <![CDATA[<]]> #{endDateTime}
+  </select>
+
+  <select id="findPaceMakerGoals"
+    resultType="org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalSummaryResponse">
+    SELECT g.goal_id,
+           g.goal_name,
+           g.goal_type,
+           g.goal_amount
+    FROM goal g
+    WHERE g.user_id = #{userId}
+      AND g.goal_status = 'ACTIVE'
+    ORDER BY g.created_at DESC
+  </select>
+
+  <select id="findPaceMakerGoalDepositAssets"
+    resultType="org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositAssetRowResponse">
+    SELECT ga.goal_id,
+           ga.asset_type,
+           ga.asset_id,
+           CASE
+             WHEN ga.asset_type = 'ACCOUNT' THEN fi.financial_institution_name
+             ELSE NULL
+             END AS financial_institution_name,
+           CASE
+             WHEN ga.asset_type = 'ACCOUNT' THEN a.masked_account_number
+             WHEN ga.asset_type = 'MONEY_BOX' THEN m.masked_account_number
+             ELSE NULL
+             END AS masked_account_number,
+           CASE
+             WHEN ga.asset_type = 'ACCOUNT' THEN a.balance
+             WHEN ga.asset_type = 'MONEY_BOX' THEN m.balance
+             ELSE 0
+             END AS balance
+    FROM goal g
+           INNER JOIN goal_asset ga
+                      ON g.goal_id = ga.goal_id
+           LEFT JOIN account a
+                     ON ga.asset_type = 'ACCOUNT'
+                       AND ga.asset_id = a.account_id
+           LEFT JOIN financial_institution fi
+                     ON a.financial_institution_id = fi.financial_institution_id
+           LEFT JOIN money_box m
+                     ON ga.asset_type = 'MONEY_BOX'
+                       AND ga.asset_id = m.money_box_id
+    WHERE g.user_id = #{userId}
+      AND g.goal_status = 'ACTIVE'
+      AND ga.asset_type IN ('ACCOUNT', 'MONEY_BOX')
+    ORDER BY ga.goal_id, ga.goal_asset_id
+  </select>
+
+  <select id="findPaceMakerGoalWithdrawalAccounts"
+    resultType="org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalWithdrawalAccountRowResponse">
+    SELECT DISTINCT ga.goal_id,
+                    wa.account_id,
+                    fi.financial_institution_name AS financial_institution_name,
+                    wa.masked_account_number,
+                    wa.balance
+    FROM goal g
+           INNER JOIN goal_asset ga
+                      ON g.goal_id = ga.goal_id
+           LEFT JOIN account da
+                     ON ga.asset_type = 'ACCOUNT'
+                       AND ga.asset_id = da.account_id
+           LEFT JOIN money_box dm
+                     ON ga.asset_type = 'MONEY_BOX'
+                       AND ga.asset_id = dm.money_box_id
+           INNER JOIN auto_transfer at
+                      ON (ga.asset_type = 'ACCOUNT'
+                        AND at.deposit_account_id = da.account_id)
+                        OR (ga.asset_type = 'MONEY_BOX'
+                          AND at.money_box_id = dm.money_box_id)
+           INNER JOIN account wa
+                      ON at.withdrawal_account_id = wa.account_id
+           LEFT JOIN financial_institution fi
+                     ON wa.financial_institution_id = fi.financial_institution_id
+    WHERE g.user_id = #{userId}
+      AND g.goal_status = 'ACTIVE'
+      AND ga.asset_type IN ('ACCOUNT', 'MONEY_BOX')
+    ORDER BY ga.goal_id, wa.account_id
   </select>
 
   <update id="updateMaxAmount">
@@ -135,5 +214,4 @@
     WHERE auto_saving_id = #{autoSavingId}
       AND user_id = #{userId}
   </update>
-
 </mapper>
