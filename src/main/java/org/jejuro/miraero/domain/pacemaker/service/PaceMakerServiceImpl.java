@@ -2,18 +2,29 @@ package org.jejuro.miraero.domain.pacemaker.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDepositAssetResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositAssetRowResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalListResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalSummaryResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalWithdrawalAccountRowResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMoneyBoxResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerTodaySavingResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWeeklyStreakResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWithdrawalAccountResponse;
+import org.jejuro.miraero.domain.pacemaker.exception.PaceMakerErrorCode;
 import org.jejuro.miraero.domain.pacemaker.mapper.PaceMakerMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
@@ -164,6 +175,81 @@ public class PaceMakerServiceImpl implements PaceMakerService {
     }
 
     return streak;
+  }
+
+  @Override
+  @Transactional(readOnly = true)
+  public PaceMakerGoalListResponse getPaceMakerGoals(Long userId) {
+    AutoSaving autoSaving = paceMakerMapper.findByUserId(userId);
+
+    if (autoSaving == null) {
+      throw new BusinessException(PaceMakerErrorCode.NOT_REGISTERED);
+    }
+
+    //목표, 입금, 출금계좌 조회
+    List<PaceMakerGoalSummaryResponse> goals = paceMakerMapper.findPaceMakerGoals(userId);
+    List<PaceMakerGoalDepositAssetRowResponse> depositAssetRows =
+        paceMakerMapper.findPaceMakerGoalDepositAssets(userId);
+    List<PaceMakerGoalWithdrawalAccountRowResponse> withdrawalAccountRows =
+        paceMakerMapper.findPaceMakerGoalWithdrawalAccounts(userId);
+
+    //goalId 기준으로 응답을 조립
+    Map<Long, List<PaceMakerGoalDepositAssetRowResponse>> depositAssetsByGoalId =
+        depositAssetRows.stream()
+            .collect(Collectors.groupingBy(PaceMakerGoalDepositAssetRowResponse::getGoalId));
+
+    Map<Long, List<PaceMakerGoalWithdrawalAccountRowResponse>> withdrawalAccountsByGoalId =
+        withdrawalAccountRows.stream()
+            .collect(Collectors.groupingBy(PaceMakerGoalWithdrawalAccountRowResponse::getGoalId));
+
+    //최종 응답 조립
+    List<PaceMakerGoalResponse> goalResponses = goals.stream()
+        .map(goal -> {
+          List<PaceMakerDepositAssetResponse> depositAssets =
+              depositAssetsByGoalId
+                  .getOrDefault(goal.getGoalId(), Collections.emptyList())
+                  .stream()
+                  .map(asset -> PaceMakerDepositAssetResponse.builder()
+                      .assetType(asset.getAssetType())
+                      .assetId(asset.getAssetId())
+                      .financialInstitutionName(asset.getFinancialInstitutionName())
+                      .maskedAccountNumber(asset.getMaskedAccountNumber())
+                      .balance(asset.getBalance())
+                      .build())
+                  .collect(Collectors.toList());
+
+          Long totalSavedAmount = depositAssets.stream()
+              .map(PaceMakerDepositAssetResponse::getBalance)
+              .filter(balance -> balance != null)
+              .reduce(0L, Long::sum);
+
+          List<PaceMakerWithdrawalAccountResponse> withdrawalAccounts =
+              withdrawalAccountsByGoalId
+                  .getOrDefault(goal.getGoalId(), Collections.emptyList())
+                  .stream()
+                  .map(account -> PaceMakerWithdrawalAccountResponse.builder()
+                      .accountId(account.getAccountId())
+                      .financialInstitutionName(account.getFinancialInstitutionName())
+                      .maskedAccountNumber(account.getMaskedAccountNumber())
+                      .balance(account.getBalance())
+                      .build())
+                  .collect(Collectors.toList());
+
+          return PaceMakerGoalResponse.builder()
+              .goalId(goal.getGoalId())
+              .goalName(goal.getGoalName())
+              .goalType(goal.getGoalType())
+              .goalAmount(goal.getGoalAmount())
+              .totalSavedAmount(totalSavedAmount)
+              .depositAssets(depositAssets)
+              .withdrawalAccounts(withdrawalAccounts)
+              .build();
+        })
+        .collect(Collectors.toList());
+
+    return PaceMakerGoalListResponse.builder()
+        .goals(goalResponses)
+        .build();
   }
 
 }

@@ -2,6 +2,7 @@ package org.jejuro.miraero.domain.pacemaker.service;
 
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalListResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
@@ -21,4 +22,6 @@ public interface PaceMakerService {
       Long userId,
       PaceMakerHistorySearchCondition condition
   );
+
+  PaceMakerGoalListResponse getPaceMakerGoals(Long userId);
 }

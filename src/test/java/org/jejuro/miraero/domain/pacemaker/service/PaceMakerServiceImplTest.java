@@ -18,10 +18,15 @@ import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositAssetRowResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalListResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalSummaryResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalWithdrawalAccountRowResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWeeklyStreakResponse;
+import org.jejuro.miraero.domain.pacemaker.exception.PaceMakerErrorCode;
 import org.jejuro.miraero.domain.pacemaker.mapper.PaceMakerMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
@@ -314,6 +319,77 @@ class PaceMakerServiceImplTest {
         verify(paceMakerMapper, never()).countHistories(anyLong(), any(), any());
     }
 
+    @Test
+    @DisplayName("페이스메이커 목표 목록 조회 성공")
+    void getPaceMakerGoals_success() {
+        when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(createAutoSaving(21L, "ACTIVE"));
+        when(paceMakerMapper.findPaceMakerGoals(USER_ID)).thenReturn(List.of(
+                createGoalSummary(1L, "유럽 여행", "TRAVEL", 3_000_000L),
+                createGoalSummary(2L, "비상금", "EMERGENCY", 1_000_000L)
+        ));
+        when(paceMakerMapper.findPaceMakerGoalDepositAssets(USER_ID)).thenReturn(List.of(
+                createDepositAssetRow(1L, "ACCOUNT", 3L, "KB국민은행", "123-***-789", 700_000L),
+                createDepositAssetRow(1L, "ACCOUNT", 4L, "신한은행", "456-***-111", 500_000L),
+                createDepositAssetRow(2L, "MONEY_BOX", 5L, null, "789-***-222", 100_000L)
+        ));
+        when(paceMakerMapper.findPaceMakerGoalWithdrawalAccounts(USER_ID)).thenReturn(List.of(
+                createWithdrawalAccountRow(1L, 8L, "KB국민은행", "987-***-123", 1_000_000L),
+                createWithdrawalAccountRow(2L, 9L, "하나은행", "555-***-777", 300_000L)
+        ));
+
+        PaceMakerGoalListResponse response = paceMakerService.getPaceMakerGoals(USER_ID);
+
+        assertEquals(2, response.getGoals().size());
+        assertEquals(1L, response.getGoals().get(0).getGoalId());
+        assertEquals("유럽 여행", response.getGoals().get(0).getGoalName());
+        assertEquals("TRAVEL", response.getGoals().get(0).getGoalType());
+        assertEquals(3_000_000L, response.getGoals().get(0).getGoalAmount());
+        assertEquals(1_200_000L, response.getGoals().get(0).getTotalSavedAmount());
+        assertEquals(2, response.getGoals().get(0).getDepositAssets().size());
+        assertEquals("KB국민은행", response.getGoals().get(0).getDepositAssets().get(0).getFinancialInstitutionName());
+        assertEquals(1, response.getGoals().get(0).getWithdrawalAccounts().size());
+        assertEquals(8L, response.getGoals().get(0).getWithdrawalAccounts().get(0).getAccountId());
+        assertEquals(100_000L, response.getGoals().get(1).getTotalSavedAmount());
+        assertEquals("MONEY_BOX", response.getGoals().get(1).getDepositAssets().get(0).getAssetType());
+        verify(paceMakerMapper).findByUserId(USER_ID);
+        verify(paceMakerMapper).findPaceMakerGoals(USER_ID);
+        verify(paceMakerMapper).findPaceMakerGoalDepositAssets(USER_ID);
+        verify(paceMakerMapper).findPaceMakerGoalWithdrawalAccounts(USER_ID);
+    }
+
+    @Test
+    @DisplayName("페이스메이커 목표 목록이 없으면 빈 목록을 반환한다")
+    void getPaceMakerGoals_empty() {
+        when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(createAutoSaving(21L, "ACTIVE"));
+        when(paceMakerMapper.findPaceMakerGoals(USER_ID)).thenReturn(List.of());
+        when(paceMakerMapper.findPaceMakerGoalDepositAssets(USER_ID)).thenReturn(List.of());
+        when(paceMakerMapper.findPaceMakerGoalWithdrawalAccounts(USER_ID)).thenReturn(List.of());
+
+        PaceMakerGoalListResponse response = paceMakerService.getPaceMakerGoals(USER_ID);
+
+        assertTrue(response.getGoals().isEmpty());
+        verify(paceMakerMapper).findByUserId(USER_ID);
+        verify(paceMakerMapper).findPaceMakerGoals(USER_ID);
+        verify(paceMakerMapper).findPaceMakerGoalDepositAssets(USER_ID);
+        verify(paceMakerMapper).findPaceMakerGoalWithdrawalAccounts(USER_ID);
+    }
+
+    @Test
+    @DisplayName("페이스메이커가 미개설이면 목표 목록 조회에 실패한다")
+    void getPaceMakerGoals_notRegistered() {
+        when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(null);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> paceMakerService.getPaceMakerGoals(USER_ID)
+        );
+
+        assertEquals(PaceMakerErrorCode.NOT_REGISTERED, exception.getErrorCode());
+        verify(paceMakerMapper).findByUserId(USER_ID);
+        verify(paceMakerMapper, never()).findPaceMakerGoals(anyLong());
+        verify(paceMakerMapper, never()).findPaceMakerGoalDepositAssets(anyLong());
+        verify(paceMakerMapper, never()).findPaceMakerGoalWithdrawalAccounts(anyLong());
+    }
     private AutoSaving createAutoSaving(Long autoSavingId, String status) {
         AutoSaving autoSaving = new AutoSaving();
         ReflectionTestUtils.setField(autoSaving, "autoSavingId", autoSavingId);
@@ -336,5 +412,52 @@ class PaceMakerServiceImplTest {
         ReflectionTestUtils.setField(summary, "todaySaved", true);
         ReflectionTestUtils.setField(summary, "todaySavingAmount", 5_000L);
         return summary;
+    }
+    private PaceMakerGoalSummaryResponse createGoalSummary(
+            Long goalId,
+            String goalName,
+            String goalType,
+            Long goalAmount
+    ) {
+        PaceMakerGoalSummaryResponse response = new PaceMakerGoalSummaryResponse();
+        ReflectionTestUtils.setField(response, "goalId", goalId);
+        ReflectionTestUtils.setField(response, "goalName", goalName);
+        ReflectionTestUtils.setField(response, "goalType", goalType);
+        ReflectionTestUtils.setField(response, "goalAmount", goalAmount);
+        return response;
+    }
+
+    private PaceMakerGoalDepositAssetRowResponse createDepositAssetRow(
+            Long goalId,
+            String assetType,
+            Long assetId,
+            String financialInstitutionName,
+            String maskedAccountNumber,
+            Long balance
+    ) {
+        PaceMakerGoalDepositAssetRowResponse response = new PaceMakerGoalDepositAssetRowResponse();
+        ReflectionTestUtils.setField(response, "goalId", goalId);
+        ReflectionTestUtils.setField(response, "assetType", assetType);
+        ReflectionTestUtils.setField(response, "assetId", assetId);
+        ReflectionTestUtils.setField(response, "financialInstitutionName", financialInstitutionName);
+        ReflectionTestUtils.setField(response, "maskedAccountNumber", maskedAccountNumber);
+        ReflectionTestUtils.setField(response, "balance", balance);
+        return response;
+    }
+
+    private PaceMakerGoalWithdrawalAccountRowResponse createWithdrawalAccountRow(
+            Long goalId,
+            Long accountId,
+            String financialInstitutionName,
+            String maskedAccountNumber,
+            Long balance
+    ) {
+        PaceMakerGoalWithdrawalAccountRowResponse response = new PaceMakerGoalWithdrawalAccountRowResponse();
+        ReflectionTestUtils.setField(response, "goalId", goalId);
+        ReflectionTestUtils.setField(response, "accountId", accountId);
+        ReflectionTestUtils.setField(response, "financialInstitutionName", financialInstitutionName);
+        ReflectionTestUtils.setField(response, "maskedAccountNumber", maskedAccountNumber);
+        ReflectionTestUtils.setField(response, "balance", balance);
+        return response;
     }
 }

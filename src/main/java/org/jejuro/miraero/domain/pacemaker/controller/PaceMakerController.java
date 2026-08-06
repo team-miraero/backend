@@ -6,6 +6,7 @@ import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCon
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerMaxAmountUpdateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerStatusUpdateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalListResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
@@ -89,6 +90,15 @@ public class PaceMakerController {
         user.getUserId(),
         condition
     );
+
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  @GetMapping("/goals")
+  public ResponseEntity<ApiResponse<PaceMakerGoalListResponse>> getPaceMakerGoals(
+      @AuthenticationPrincipal AuthenticatedUser user
+  ) {
+    PaceMakerGoalListResponse response = paceMakerService.getPaceMakerGoals(user.getUserId());
 
     return ResponseEntity.ok(ApiResponse.success(response));
   }

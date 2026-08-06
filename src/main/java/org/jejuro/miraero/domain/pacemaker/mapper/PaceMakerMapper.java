@@ -7,6 +7,9 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositAssetRowResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalSummaryResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalWithdrawalAccountRowResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWeeklyStreakResponse;
 
@@ -46,5 +49,15 @@ public interface PaceMakerMapper {
       @Param("userId") Long userId,
       @Param("startDateTime") LocalDateTime startDateTime,
       @Param("endDateTime") LocalDateTime endDateTime
+  );
+
+  List<PaceMakerGoalSummaryResponse> findPaceMakerGoals(@Param("userId") Long userId);
+
+  List<PaceMakerGoalDepositAssetRowResponse> findPaceMakerGoalDepositAssets(
+      @Param("userId") Long userId
+  );
+
+  List<PaceMakerGoalWithdrawalAccountRowResponse> findPaceMakerGoalWithdrawalAccounts(
+      @Param("userId") Long userId
   );
 }
