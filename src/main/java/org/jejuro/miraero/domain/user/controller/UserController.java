@@ -11,8 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -31,7 +31,7 @@ public class UserController {
     return ResponseEntity.ok(ApiResponse.success(response));
   }
 
-  @PatchMapping("/password")
+  @PatchMapping("/me/password")
   public ResponseEntity<ApiResponse<Void>> changePassword(
       @Valid @RequestBody PasswordChangeRequest request,
       @AuthenticationPrincipal AuthenticatedUser user
