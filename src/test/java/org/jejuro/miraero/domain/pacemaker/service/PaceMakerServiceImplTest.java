@@ -5,22 +5,27 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
+import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWeeklyStreakResponse;
 import org.jejuro.miraero.domain.pacemaker.mapper.PaceMakerMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
+import org.jejuro.miraero.global.response.PageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -225,6 +230,88 @@ class PaceMakerServiceImplTest {
         verify(paceMakerMapper, never()).findRecentSavingDates(anyLong());
         verify(paceMakerMapper, never()).findWeeklyStreak(anyLong());
         verify(paceMakerMapper, never()).countMonthlySuccess(anyLong());
+    }
+
+    @Test
+    @DisplayName("자동저축 내역 조회에 성공하면 이번 달 내역 페이지를 반환한다")
+    void getHistories_success() {
+        PaceMakerHistorySearchCondition condition = new PaceMakerHistorySearchCondition();
+        condition.setPage(1);
+        condition.setSize(2);
+        LocalDateTime startDateTime = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        LocalDateTime endDateTime = startDateTime.plusMonths(1);
+        List<PaceMakerHistoryResponse> histories = List.of(
+                PaceMakerHistoryResponse.builder()
+                        .date("2026-08-05")
+                        .status("SAVED")
+                        .amount(10_000L)
+                        .description(null)
+                        .build(),
+                PaceMakerHistoryResponse.builder()
+                        .date("2026-08-03")
+                        .status("SAVED")
+                        .amount(5_000L)
+                        .description(null)
+                        .build()
+        );
+        when(paceMakerMapper.findHistories(USER_ID, startDateTime, endDateTime, 2L, 2))
+                .thenReturn(histories);
+        when(paceMakerMapper.countHistories(USER_ID, startDateTime, endDateTime))
+                .thenReturn(5L);
+
+        PageResponse<PaceMakerHistoryResponse> response =
+                paceMakerService.getHistories(USER_ID, condition);
+
+        assertEquals(histories, response.getContent());
+        assertEquals(1, response.getPage());
+        assertEquals(2, response.getSize());
+        assertEquals(5L, response.getTotalElements());
+        assertEquals(3, response.getTotalPages());
+        assertFalse(response.isFirst());
+        assertFalse(response.isLast());
+        verify(paceMakerMapper).findHistories(USER_ID, startDateTime, endDateTime, 2L, 2);
+        verify(paceMakerMapper).countHistories(USER_ID, startDateTime, endDateTime);
+    }
+
+    @Test
+    @DisplayName("자동저축 내역 조회 결과가 없으면 빈 페이지를 반환한다")
+    void getHistories_empty() {
+        PaceMakerHistorySearchCondition condition = new PaceMakerHistorySearchCondition();
+        LocalDateTime startDateTime = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        LocalDateTime endDateTime = startDateTime.plusMonths(1);
+        when(paceMakerMapper.findHistories(USER_ID, startDateTime, endDateTime, 0L, 10))
+                .thenReturn(List.of());
+        when(paceMakerMapper.countHistories(USER_ID, startDateTime, endDateTime))
+                .thenReturn(0L);
+
+        PageResponse<PaceMakerHistoryResponse> response =
+                paceMakerService.getHistories(USER_ID, condition);
+
+        assertTrue(response.getContent().isEmpty());
+        assertEquals(0, response.getPage());
+        assertEquals(10, response.getSize());
+        assertEquals(0L, response.getTotalElements());
+        assertEquals(0, response.getTotalPages());
+        assertTrue(response.isFirst());
+        assertTrue(response.isLast());
+        verify(paceMakerMapper).findHistories(USER_ID, startDateTime, endDateTime, 0L, 10);
+        verify(paceMakerMapper).countHistories(USER_ID, startDateTime, endDateTime);
+    }
+
+    @Test
+    @DisplayName("자동저축 내역 조회 파라미터가 잘못되면 입력값 예외를 발생시킨다")
+    void getHistories_invalidCondition() {
+        PaceMakerHistorySearchCondition condition = new PaceMakerHistorySearchCondition();
+        condition.setPage(-1);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> paceMakerService.getHistories(USER_ID, condition)
+        );
+
+        assertEquals(CommonErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
+        verify(paceMakerMapper, never()).findHistories(anyLong(), any(), any(), any(), any());
+        verify(paceMakerMapper, never()).countHistories(anyLong(), any(), any());
     }
 
     private AutoSaving createAutoSaving(Long autoSavingId, String status) {
