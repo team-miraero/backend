@@ -11,9 +11,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDepositAssetResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalListResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWithdrawalAccountResponse;
+import org.jejuro.miraero.domain.pacemaker.exception.PaceMakerErrorCode;
 import org.jejuro.miraero.domain.pacemaker.service.PaceMakerService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
@@ -261,5 +266,68 @@ class PaceMakerControllerTest {
                 eq(USER_ID),
                 any(PaceMakerHistorySearchCondition.class)
         );
+    }
+    @Test
+    @DisplayName("페이스메이커 목표 목록 조회 요청은 200 응답과 목표 목록을 반환한다")
+    void getPaceMakerGoals_success() throws Exception {
+        PaceMakerGoalListResponse response = PaceMakerGoalListResponse.builder()
+                .goals(List.of(
+                        PaceMakerGoalResponse.builder()
+                                .goalId(1L)
+                                .goalName("유럽 여행")
+                                .goalType("TRAVEL")
+                                .goalAmount(3_000_000L)
+                                .totalSavedAmount(1_200_000L)
+                                .depositAssets(List.of(
+                                        PaceMakerDepositAssetResponse.builder()
+                                                .assetType("ACCOUNT")
+                                                .assetId(3L)
+                                                .financialInstitutionName("KB국민은행")
+                                                .maskedAccountNumber("123-***-789")
+                                                .balance(700_000L)
+                                                .build()
+                                ))
+                                .withdrawalAccounts(List.of(
+                                        PaceMakerWithdrawalAccountResponse.builder()
+                                                .accountId(8L)
+                                                .financialInstitutionName("KB국민은행")
+                                                .maskedAccountNumber("987-***-123")
+                                                .balance(1_000_000L)
+                                                .build()
+                                ))
+                                .build()
+                ))
+                .build();
+        given(paceMakerService.getPaceMakerGoals(USER_ID)).willReturn(response);
+
+        mockMvc.perform(get("/api/pace-maker/goals"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.goals[0].goalId").value(1L))
+                .andExpect(jsonPath("$.data.goals[0].goalName").value("유럽 여행"))
+                .andExpect(jsonPath("$.data.goals[0].goalType").value("TRAVEL"))
+                .andExpect(jsonPath("$.data.goals[0].goalAmount").value(3_000_000L))
+                .andExpect(jsonPath("$.data.goals[0].totalSavedAmount").value(1_200_000L))
+                .andExpect(jsonPath("$.data.goals[0].depositAssets[0].assetType").value("ACCOUNT"))
+                .andExpect(jsonPath("$.data.goals[0].depositAssets[0].financialInstitutionName").value("KB국민은행"))
+                .andExpect(jsonPath("$.data.goals[0].depositAssets[0].balance").value(700_000L))
+                .andExpect(jsonPath("$.data.goals[0].withdrawalAccounts[0].accountId").value(8L))
+                .andExpect(jsonPath("$.data.goals[0].withdrawalAccounts[0].balance").value(1_000_000L));
+
+        verify(paceMakerService).getPaceMakerGoals(USER_ID);
+    }
+
+    @Test
+    @DisplayName("페이스메이커 미개설 사용자의 목표 목록 조회 요청은 400 응답을 반환한다")
+    void getPaceMakerGoals_notRegistered() throws Exception {
+        given(paceMakerService.getPaceMakerGoals(USER_ID))
+                .willThrow(new BusinessException(PaceMakerErrorCode.NOT_REGISTERED));
+
+        mockMvc.perform(get("/api/pace-maker/goals"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("PACEMAKER_001"));
+
+        verify(paceMakerService).getPaceMakerGoals(USER_ID);
     }
 }
