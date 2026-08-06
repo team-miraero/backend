@@ -6,7 +6,7 @@ import org.jejuro.miraero.domain.user.dto.response.ProfileResponse;
 
 public interface UserMapper {
 
-  //이메일 중복 확인
+  //?대찓??以묐났 ?뺤씤
   boolean existsByEmail(@Param("email") String email);
 
   int save(User user);
@@ -16,4 +16,9 @@ public interface UserMapper {
   User findById(@Param("userId") Long userId);
 
   ProfileResponse findProfileById(@Param("userId") Long userId);
+  int updatePasswordHash(
+      @Param("userId") Long userId,
+      @Param("passwordHash") String passwordHash
+  );
 }
+

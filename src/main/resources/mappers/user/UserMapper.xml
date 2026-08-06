@@ -85,4 +85,10 @@
     FROM miraero_user
     WHERE user_id = #{userId}
   </select>
+  <update id="updatePasswordHash">
+    UPDATE miraero_user
+    SET password_hash = #{passwordHash}
+    WHERE user_id = #{userId}
+  </update>
 </mapper>
+

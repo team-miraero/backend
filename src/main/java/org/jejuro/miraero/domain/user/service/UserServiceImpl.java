@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.mydata.service.MyDataConsentService;
 import org.jejuro.miraero.domain.user.domain.User;
+import org.jejuro.miraero.domain.user.dto.request.PasswordChangeRequest;
 import org.jejuro.miraero.domain.user.dto.response.ProfileResponse;
 import org.jejuro.miraero.domain.user.exception.UserErrorCode;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
@@ -65,4 +66,26 @@ public class UserServiceImpl implements UserService {
 
     return response;
   }
+
+  @Override
+  @Transactional
+  public void changePassword(Long userId, PasswordChangeRequest request) {
+    User user = userMapper.findById(userId);
+
+    if (user == null) {
+      throw new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND);
+    }
+
+    if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPasswordHash())) {
+      throw new BusinessException(UserErrorCode.CURRENT_PASSWORD_MISMATCH);
+    }
+
+    if (!request.getNewPassword().equals(request.getNewPasswordConfirm())) {
+      throw new BusinessException(UserErrorCode.NEW_PASSWORD_CONFIRM_MISMATCH);
+    }
+
+    String passwordHash = passwordEncoder.encode(request.getNewPassword());
+    userMapper.updatePasswordHash(userId, passwordHash);
+  }
 }
+
