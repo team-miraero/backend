@@ -2,10 +2,12 @@ package org.jejuro.miraero.domain.pacemaker.controller;
 
 import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerGoalDepositRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerMaxAmountUpdateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerStatusUpdateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalListResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -103,4 +106,16 @@ public class PaceMakerController {
     return ResponseEntity.ok(ApiResponse.success(response));
   }
 
+  @PostMapping("/deposits")
+  public ResponseEntity<ApiResponse<PaceMakerGoalDepositResponse>> depositToGoal(
+      @Valid @RequestBody PaceMakerGoalDepositRequest request,
+      @AuthenticationPrincipal AuthenticatedUser user
+  ) {
+    PaceMakerGoalDepositResponse response = paceMakerService.depositToGoal(
+        user.getUserId(),
+        request
+    );
+
+    return ResponseEntity.ok(ApiResponse.success(response));
+  }
 }

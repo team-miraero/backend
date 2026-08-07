@@ -7,12 +7,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.account.mapper.AccountMapper;
+import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
+import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
+import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerGoalDepositRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDepositAssetResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositAssetRowResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalListResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalSummaryResponse;
@@ -38,6 +43,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class PaceMakerServiceImpl implements PaceMakerService {
 
   private final PaceMakerMapper paceMakerMapper;
+  private final MoneyBoxMapper moneyBoxMapper;
+  private final AccountMapper accountMapper;
 
   @Override
   public PaceMakerResponse getPaceMaker(Long userId) {
@@ -252,4 +259,55 @@ public class PaceMakerServiceImpl implements PaceMakerService {
         .build();
   }
 
+  @Override
+  @Transactional
+  public PaceMakerGoalDepositResponse depositToGoal(Long userId,
+      PaceMakerGoalDepositRequest request) {
+    if (request.getAmount() == null || request.getAmount() <= 0) {
+      throw new BusinessException(PaceMakerErrorCode.INVALID_DEPOSIT_AMOUNT);
+    }
+
+    MoneyBox savingMoneyBox = moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(
+        request.getMoneyBoxId(),
+        userId
+    );
+
+    if (savingMoneyBox == null) {
+      throw new BusinessException(PaceMakerErrorCode.NOT_REGISTERED);
+    }
+
+    boolean existsGoalDepositAccount =
+        paceMakerMapper.existsGoalDepositAccountByUserIdAndAccountId(
+            userId,
+            request.getAccountId()
+        );
+
+    if (!existsGoalDepositAccount) {
+      throw new BusinessException(PaceMakerErrorCode.FORBIDDEN_GOAL_ACCOUNT);
+    }
+
+    Long balance = savingMoneyBox.getBalance();
+
+    if (balance < request.getAmount()) {
+      throw new BusinessException(PaceMakerErrorCode.INSUFFICIENT_BALANCE);
+    }
+
+    moneyBoxMapper.decreaseBalance(
+        savingMoneyBox.getMoneyBoxId(),
+        userId,
+        request.getAmount()
+    );
+
+    accountMapper.increaseBalance(
+        request.getAccountId(),
+        userId,
+        request.getAmount()
+    );
+
+    return PaceMakerGoalDepositResponse.builder()
+        .accountId(request.getAccountId())
+        .depositedAmount(request.getAmount())
+        .remainingBalance(balance - request.getAmount())
+        .build();
+  }
 }
