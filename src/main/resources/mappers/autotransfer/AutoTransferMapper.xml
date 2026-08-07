@@ -66,6 +66,65 @@
 
     </select>
 
+    <!--
+        현재 목표 자동이체 금액
+        ACCOUNT + MONEY_BOX 모두 조회
+    -->
+    <select id="findTargetGoalAutoTransferAmount"
+            resultType="long">
+        SELECT COALESCE(SUM(amount), 0)
+        FROM (
+        <!-- ACCOUNT 연결 -->
+            SELECT at.transfer_amount AS amount
+            FROM goal_asset ga
+                JOIN auto_transfer at
+                    ON at.deposit_account_id = ga.asset_id
+            WHERE ga.goal_id = #{goalId}
+                AND ga.asset_type = 'ACCOUNT'
+                AND at.auto_transfer_status = 'ACTIVE'
+        UNION ALL
+        <!-- MONEY_BOX 연결 -->
+            SELECT at.transfer_amount AS amount
+            FROM goal_asset ga
+                JOIN auto_transfer at
+                    ON at.money_box_id = ga.asset_id
+            WHERE ga.goal_id = #{goalId}
+                AND ga.asset_type = 'MONEY_BOX'
+                AND at.auto_transfer_status = 'ACTIVE'
+        ) temp
+    </select>
 
+    <!--
+       다른 목표 자동이체 금액
+   -->
+    <select id="findOtherGoalAutoTransferAmount"
+            resultType="long">
+        SELECT COALESCE(SUM(amount), 0)
+        FROM (
+            <!-- ACCOUNT -->
+            SELECT at.transfer_amount AS amount
+            FROM goal_asset ga
+                JOIN goal g
+                    ON ga.goal_id = g.goal_id
+                JOIN auto_transfer at
+                    ON at.deposit_account_id = ga.asset_id
+            WHERE g.user_id = #{userId}
+                AND g.goal_id != #{goalId}
+                AND ga.asset_type = 'ACCOUNT'
+                AND at.auto_transfer_status = 'ACTIVE'
+        UNION ALL
+            <!-- MONEY_BOX -->
+            SELECT at.transfer_amount AS amount
+            FROM goal_asset ga
+                JOIN goal g
+                    ON ga.goal_id = g.goal_id
+                JOIN auto_transfer at
+                    ON at.money_box_id = ga.asset_id
+            WHERE g.user_id = #{userId}
+                AND g.goal_id != #{goalId}
+                AND ga.asset_type = 'MONEY_BOX'
+                AND at.auto_transfer_status = 'ACTIVE'
+        ) temp
+    </select>
 
 </mapper>
