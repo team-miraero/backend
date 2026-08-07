@@ -2,9 +2,12 @@ package org.jejuro.miraero.domain.aicoach.controller;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willThrow;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -16,6 +19,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.jejuro.miraero.domain.aicoach.domain.AiCoachMessageSenderType;
+import org.jejuro.miraero.domain.aicoach.dto.request.AiCoachMessageCreateRequest;
 import org.jejuro.miraero.domain.aicoach.dto.response.AiCoachMessageResponse;
 import org.jejuro.miraero.domain.aicoach.service.AiCoachMessageService;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -29,9 +33,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -131,6 +137,119 @@ class AiCoachMessageControllerTest {
                 .andExpect(jsonPath("$.error.code").value("COMMON_004"));
 
         verify(aiCoachMessageService).getMessages(USER_ID, CONVERSATION_ID);
+    }
+
+    @Test
+    @DisplayName("사용자 메시지를 저장하고 201과 메시지 응답을 반환한다")
+    void saveUserMessage_returnsCreated() throws Exception {
+        ArgumentCaptor<AiCoachMessageCreateRequest> requestCaptor =
+                ArgumentCaptor.forClass(AiCoachMessageCreateRequest.class);
+        given(aiCoachMessageService.saveUserMessage(
+                eq(USER_ID),
+                eq(CONVERSATION_ID),
+                any(AiCoachMessageCreateRequest.class)
+        )).willReturn(new AiCoachMessageResponse(
+                100L,
+                AiCoachMessageSenderType.USER,
+                "자산 관리 방법을 알려주세요",
+                LocalDateTime.of(2026, 8, 7, 10, 0)
+        ));
+
+        mockMvc.perform(post("/api/ai-coach/conversations/{conversationId}/messages", CONVERSATION_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"자산 관리 방법을 알려주세요\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.aiCoachMessageId").value(100L))
+                .andExpect(jsonPath("$.data.senderType").value("USER"))
+                .andExpect(jsonPath("$.data.content").value("자산 관리 방법을 알려주세요"));
+
+        verify(aiCoachMessageService).saveUserMessage(
+                eq(USER_ID),
+                eq(CONVERSATION_ID),
+                requestCaptor.capture()
+        );
+        org.junit.jupiter.api.Assertions.assertEquals(
+                "자산 관리 방법을 알려주세요",
+                requestCaptor.getValue().getContent()
+        );
+    }
+
+    @Test
+    @DisplayName("content가 null이면 400을 반환한다")
+    void saveUserMessage_returnsBadRequestWhenContentIsNull() throws Exception {
+        mockMvc.perform(post("/api/ai-coach/conversations/{conversationId}/messages", CONVERSATION_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_002"));
+
+        verifyNoInteractions(aiCoachMessageService);
+    }
+
+    @Test
+    @DisplayName("content가 빈 문자열이면 400을 반환한다")
+    void saveUserMessage_returnsBadRequestWhenContentIsEmpty() throws Exception {
+        mockMvc.perform(post("/api/ai-coach/conversations/{conversationId}/messages", CONVERSATION_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_002"));
+
+        verifyNoInteractions(aiCoachMessageService);
+    }
+
+    @Test
+    @DisplayName("content가 공백 문자열이면 400을 반환한다")
+    void saveUserMessage_returnsBadRequestWhenContentIsBlank() throws Exception {
+        mockMvc.perform(post("/api/ai-coach/conversations/{conversationId}/messages", CONVERSATION_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"   \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_002"));
+
+        verifyNoInteractions(aiCoachMessageService);
+    }
+
+    @Test
+    @DisplayName("인증되지 않은 사용자의 메시지 저장 요청은 401을 반환한다")
+    void saveUserMessage_returnsUnauthorizedWithoutAuthentication() throws Exception {
+        SecurityContextHolder.clearContext();
+
+        mockMvc.perform(post("/api/ai-coach/conversations/{conversationId}/messages", CONVERSATION_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"메시지\"}"))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(aiCoachMessageService);
+    }
+
+    @Test
+    @DisplayName("존재하지 않거나 다른 사용자 소유 대화방의 메시지 저장 요청은 404를 반환한다")
+    void saveUserMessage_returnsNotFoundWhenConversationIsNotAccessible() throws Exception {
+        willThrow(new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND))
+                .given(aiCoachMessageService)
+                .saveUserMessage(
+                        eq(USER_ID),
+                        eq(CONVERSATION_ID),
+                        any(AiCoachMessageCreateRequest.class)
+                );
+
+        mockMvc.perform(post("/api/ai-coach/conversations/{conversationId}/messages", CONVERSATION_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"메시지\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_004"));
+
+        verify(aiCoachMessageService).saveUserMessage(
+                eq(USER_ID),
+                eq(CONVERSATION_ID),
+                any(AiCoachMessageCreateRequest.class)
+        );
     }
 
     private void authenticate() {
