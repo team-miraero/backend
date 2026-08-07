@@ -38,12 +38,12 @@ public class AiCoachMessageController {
     }
 
     @PostMapping("/{conversationId}/messages")
-    public ResponseEntity<ApiResponse<AiCoachMessageResponse>> saveUserMessage(
+    public ResponseEntity<ApiResponse<AiCoachMessageResponse>> sendQuestion(
             @PathVariable Long conversationId,
             @Valid @RequestBody AiCoachMessageCreateRequest request,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        AiCoachMessageResponse response = aiCoachMessageService.saveUserMessage(
+        AiCoachMessageResponse response = aiCoachMessageService.sendQuestion(
                 user.getUserId(),
                 conversationId,
                 request

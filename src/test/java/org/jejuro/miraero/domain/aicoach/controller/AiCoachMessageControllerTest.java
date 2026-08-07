@@ -140,18 +140,18 @@ class AiCoachMessageControllerTest {
     }
 
     @Test
-    @DisplayName("사용자 메시지를 저장하고 201과 메시지 응답을 반환한다")
-    void saveUserMessage_returnsCreated() throws Exception {
+    @DisplayName("질문 전송 성공 시 201과 ASSISTANT 메시지 응답을 반환한다")
+    void sendQuestion_returnsCreatedWithAssistantMessage() throws Exception {
         ArgumentCaptor<AiCoachMessageCreateRequest> requestCaptor =
                 ArgumentCaptor.forClass(AiCoachMessageCreateRequest.class);
-        given(aiCoachMessageService.saveUserMessage(
+        given(aiCoachMessageService.sendQuestion(
                 eq(USER_ID),
                 eq(CONVERSATION_ID),
                 any(AiCoachMessageCreateRequest.class)
         )).willReturn(new AiCoachMessageResponse(
                 100L,
-                AiCoachMessageSenderType.USER,
-                "자산 관리 방법을 알려주세요",
+                AiCoachMessageSenderType.ASSISTANT,
+                "AI가 생성한 답변",
                 LocalDateTime.of(2026, 8, 7, 10, 0)
         ));
 
@@ -161,10 +161,10 @@ class AiCoachMessageControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.aiCoachMessageId").value(100L))
-                .andExpect(jsonPath("$.data.senderType").value("USER"))
-                .andExpect(jsonPath("$.data.content").value("자산 관리 방법을 알려주세요"));
+                .andExpect(jsonPath("$.data.senderType").value("ASSISTANT"))
+                .andExpect(jsonPath("$.data.content").value("AI가 생성한 답변"));
 
-        verify(aiCoachMessageService).saveUserMessage(
+        verify(aiCoachMessageService).sendQuestion(
                 eq(USER_ID),
                 eq(CONVERSATION_ID),
                 requestCaptor.capture()
@@ -177,7 +177,7 @@ class AiCoachMessageControllerTest {
 
     @Test
     @DisplayName("content가 null이면 400을 반환한다")
-    void saveUserMessage_returnsBadRequestWhenContentIsNull() throws Exception {
+    void sendQuestion_returnsBadRequestWhenContentIsNull() throws Exception {
         mockMvc.perform(post("/api/ai-coach/conversations/{conversationId}/messages", CONVERSATION_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
@@ -190,7 +190,7 @@ class AiCoachMessageControllerTest {
 
     @Test
     @DisplayName("content가 빈 문자열이면 400을 반환한다")
-    void saveUserMessage_returnsBadRequestWhenContentIsEmpty() throws Exception {
+    void sendQuestion_returnsBadRequestWhenContentIsEmpty() throws Exception {
         mockMvc.perform(post("/api/ai-coach/conversations/{conversationId}/messages", CONVERSATION_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"\"}"))
@@ -203,7 +203,7 @@ class AiCoachMessageControllerTest {
 
     @Test
     @DisplayName("content가 공백 문자열이면 400을 반환한다")
-    void saveUserMessage_returnsBadRequestWhenContentIsBlank() throws Exception {
+    void sendQuestion_returnsBadRequestWhenContentIsBlank() throws Exception {
         mockMvc.perform(post("/api/ai-coach/conversations/{conversationId}/messages", CONVERSATION_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"   \"}"))
@@ -215,8 +215,8 @@ class AiCoachMessageControllerTest {
     }
 
     @Test
-    @DisplayName("인증되지 않은 사용자의 메시지 저장 요청은 401을 반환한다")
-    void saveUserMessage_returnsUnauthorizedWithoutAuthentication() throws Exception {
+    @DisplayName("인증되지 않은 사용자의 질문 전송 요청은 401을 반환한다")
+    void sendQuestion_returnsUnauthorizedWithoutAuthentication() throws Exception {
         SecurityContextHolder.clearContext();
 
         mockMvc.perform(post("/api/ai-coach/conversations/{conversationId}/messages", CONVERSATION_ID)
@@ -228,11 +228,11 @@ class AiCoachMessageControllerTest {
     }
 
     @Test
-    @DisplayName("존재하지 않거나 다른 사용자 소유 대화방의 메시지 저장 요청은 404를 반환한다")
-    void saveUserMessage_returnsNotFoundWhenConversationIsNotAccessible() throws Exception {
+    @DisplayName("존재하지 않거나 다른 사용자 소유 대화방의 질문 전송 요청은 404를 반환한다")
+    void sendQuestion_returnsNotFoundWhenConversationIsNotAccessible() throws Exception {
         willThrow(new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND))
                 .given(aiCoachMessageService)
-                .saveUserMessage(
+                .sendQuestion(
                         eq(USER_ID),
                         eq(CONVERSATION_ID),
                         any(AiCoachMessageCreateRequest.class)
@@ -245,7 +245,32 @@ class AiCoachMessageControllerTest {
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("COMMON_004"));
 
-        verify(aiCoachMessageService).saveUserMessage(
+        verify(aiCoachMessageService).sendQuestion(
+                eq(USER_ID),
+                eq(CONVERSATION_ID),
+                any(AiCoachMessageCreateRequest.class)
+        );
+    }
+
+    @Test
+    @DisplayName("OpenAI 호출에 실패하면 503을 반환한다")
+    void sendQuestion_returnsServiceUnavailableWhenOpenAiFails() throws Exception {
+        willThrow(new BusinessException(CommonErrorCode.SERVICE_UNAVAILABLE))
+                .given(aiCoachMessageService)
+                .sendQuestion(
+                        eq(USER_ID),
+                        eq(CONVERSATION_ID),
+                        any(AiCoachMessageCreateRequest.class)
+                );
+
+        mockMvc.perform(post("/api/ai-coach/conversations/{conversationId}/messages", CONVERSATION_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"question\"}"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_007"));
+
+        verify(aiCoachMessageService).sendQuestion(
                 eq(USER_ID),
                 eq(CONVERSATION_ID),
                 any(AiCoachMessageCreateRequest.class)
