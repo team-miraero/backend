@@ -7,12 +7,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
+import org.jejuro.miraero.domain.aicoach.client.OpenAiClient;
+import org.jejuro.miraero.domain.aicoach.context.AiCoachFinancialContext;
 import org.jejuro.miraero.domain.aicoach.domain.AiCoachConversation;
 import org.jejuro.miraero.domain.aicoach.domain.AiCoachMessage;
 import org.jejuro.miraero.domain.aicoach.domain.AiCoachMessageSenderType;
@@ -20,6 +24,7 @@ import org.jejuro.miraero.domain.aicoach.dto.request.AiCoachMessageCreateRequest
 import org.jejuro.miraero.domain.aicoach.dto.response.AiCoachMessageResponse;
 import org.jejuro.miraero.domain.aicoach.mapper.AiCoachConversationMapper;
 import org.jejuro.miraero.domain.aicoach.mapper.AiCoachMessageMapper;
+import org.jejuro.miraero.domain.aicoach.prompt.AiCoachPromptBuilder;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +35,8 @@ import org.mockito.Mock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.SimpleTransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
 class AiCoachMessageServiceImplTest {
@@ -43,14 +50,31 @@ class AiCoachMessageServiceImplTest {
     @Mock
     private AiCoachMessageMapper aiCoachMessageMapper;
 
+    @Mock
+    private AiCoachFinancialContextService aiCoachFinancialContextService;
+
+    @Mock
+    private AiCoachPromptBuilder aiCoachPromptBuilder;
+
+    @Mock
+    private OpenAiClient openAiClient;
+
+    @Mock
+    private PlatformTransactionManager transactionManager;
+
     private AiCoachMessageService aiCoachMessageService;
 
     @BeforeEach
     void setUp() {
         aiCoachMessageService = new AiCoachMessageServiceImpl(
                 aiCoachConversationMapper,
-                aiCoachMessageMapper
+                aiCoachMessageMapper,
+                aiCoachFinancialContextService,
+                aiCoachPromptBuilder,
+                openAiClient,
+                transactionManager
         );
+        lenient().when(transactionManager.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
     }
 
     @Test
@@ -227,6 +251,193 @@ class AiCoachMessageServiceImplTest {
                 anyLong(),
                 any(LocalDateTime.class)
         );
+    }
+
+    @Test
+    void sendQuestion_savesAssistantMessageAfterGeneratingResponse() {
+        AtomicLong messageId = new AtomicLong(100L);
+        when(aiCoachConversationMapper.findByIdAndUserId(USER_ID, CONVERSATION_ID))
+                .thenReturn(createConversation());
+        when(aiCoachMessageMapper.countByConversationId(CONVERSATION_ID)).thenReturn(0);
+        doAnswer(invocation -> {
+            AiCoachMessage message = invocation.getArgument(0, AiCoachMessage.class);
+            ReflectionTestUtils.setField(
+                    message,
+                    "aiCoachMessageId",
+                    messageId.getAndIncrement()
+            );
+            return 1;
+        }).when(aiCoachMessageMapper).save(any(AiCoachMessage.class));
+        when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
+                .thenReturn(1);
+        when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of(
+                createMessage(100L, AiCoachMessageSenderType.USER, "질문", LocalDateTime.now())
+        ));
+        AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
+        when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
+        when(aiCoachPromptBuilder.buildPrompt(eq(context), any(), eq("질문"), eq(true)))
+                .thenReturn("prompt");
+        when(openAiClient.generateText("prompt")).thenReturn("AI 답변");
+
+        AiCoachMessageResponse response = aiCoachMessageService.sendQuestion(
+                USER_ID, CONVERSATION_ID, createRequest("질문")
+        );
+
+        ArgumentCaptor<AiCoachMessage> captor = ArgumentCaptor.forClass(AiCoachMessage.class);
+        verify(aiCoachMessageMapper, org.mockito.Mockito.times(2)).save(captor.capture());
+        assertEquals(AiCoachMessageSenderType.USER, captor.getAllValues().get(0).getSenderType());
+        assertEquals(AiCoachMessageSenderType.ASSISTANT, captor.getAllValues().get(1).getSenderType());
+        assertEquals("AI 답변", response.getContent());
+        assertEquals(AiCoachMessageSenderType.ASSISTANT, response.getSenderType());
+        verify(aiCoachMessageMapper).countByConversationId(CONVERSATION_ID);
+        verify(aiCoachMessageMapper).findRecentByConversationId(CONVERSATION_ID);
+        verify(aiCoachFinancialContextService).getFinancialContext(USER_ID);
+        verify(aiCoachPromptBuilder).buildPrompt(eq(context), any(), eq("질문"), eq(true));
+        verify(openAiClient).generateText("prompt");
+    }
+
+    @Test
+    void sendQuestion_savesParsedTitleAndAnswerForFirstQuestion() {
+        AtomicLong messageId = new AtomicLong(100L);
+        when(aiCoachConversationMapper.findByIdAndUserId(USER_ID, CONVERSATION_ID))
+                .thenReturn(createConversation());
+        when(aiCoachMessageMapper.countByConversationId(CONVERSATION_ID)).thenReturn(0);
+        doAnswer(invocation -> {
+            AiCoachMessage message = invocation.getArgument(0, AiCoachMessage.class);
+            ReflectionTestUtils.setField(message, "aiCoachMessageId", messageId.getAndIncrement());
+            return 1;
+        }).when(aiCoachMessageMapper).save(any(AiCoachMessage.class));
+        when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
+                .thenReturn(1);
+        when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of());
+        AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
+        when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
+        when(aiCoachPromptBuilder.buildPrompt(eq(context), any(), eq("first question"), eq(true)))
+                .thenReturn("prompt");
+        when(openAiClient.generateText("prompt"))
+                .thenReturn("TITLE: Monthly saving plan\nANSWER: Save 300,000 won every month.");
+
+        AiCoachMessageResponse response = aiCoachMessageService.sendQuestion(
+                USER_ID, CONVERSATION_ID, createRequest("first question")
+        );
+
+        ArgumentCaptor<AiCoachMessage> captor = ArgumentCaptor.forClass(AiCoachMessage.class);
+        verify(aiCoachMessageMapper, org.mockito.Mockito.times(2)).save(captor.capture());
+        assertEquals("Save 300,000 won every month.", captor.getAllValues().get(1).getContent());
+        assertEquals("Save 300,000 won every month.", response.getContent());
+        verify(aiCoachConversationMapper).updateTitle(
+                USER_ID, CONVERSATION_ID, "Monthly saving plan"
+        );
+        verify(aiCoachConversationMapper, org.mockito.Mockito.times(2)).updateLastMessageAt(
+                eq(USER_ID), eq(CONVERSATION_ID), any(LocalDateTime.class)
+        );
+    }
+
+    @Test
+    void sendQuestion_usesUserQuestionAsFallbackTitleWhenTitleIsMissing() {
+        when(aiCoachConversationMapper.findByIdAndUserId(USER_ID, CONVERSATION_ID))
+                .thenReturn(createConversation());
+        when(aiCoachMessageMapper.countByConversationId(CONVERSATION_ID)).thenReturn(0);
+        when(aiCoachMessageMapper.save(any(AiCoachMessage.class))).thenReturn(1);
+        when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
+                .thenReturn(1);
+        when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of());
+        AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
+        when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
+        when(aiCoachPromptBuilder.buildPrompt(eq(context), any(), eq("fallback title"), eq(true)))
+                .thenReturn("prompt");
+        when(openAiClient.generateText("prompt")).thenReturn("ANSWER: Generated answer");
+
+        AiCoachMessageResponse response = aiCoachMessageService.sendQuestion(
+                USER_ID, CONVERSATION_ID, createRequest("fallback title")
+        );
+
+        assertEquals("Generated answer", response.getContent());
+        verify(aiCoachConversationMapper).updateTitle(
+                USER_ID, CONVERSATION_ID, "fallback title"
+        );
+    }
+
+    @Test
+    void sendQuestion_usesEntireResponseAndDoesNotUpdateTitleForFollowUpQuestion() {
+        when(aiCoachConversationMapper.findByIdAndUserId(USER_ID, CONVERSATION_ID))
+                .thenReturn(createConversation());
+        when(aiCoachMessageMapper.countByConversationId(CONVERSATION_ID)).thenReturn(1);
+        when(aiCoachMessageMapper.save(any(AiCoachMessage.class))).thenReturn(1);
+        when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
+                .thenReturn(1);
+        when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of());
+        AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
+        when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
+        when(aiCoachPromptBuilder.buildPrompt(eq(context), any(), eq("follow-up question"), eq(false)))
+                .thenReturn("prompt");
+        when(openAiClient.generateText("prompt")).thenReturn("Entire follow-up response");
+
+        AiCoachMessageResponse response = aiCoachMessageService.sendQuestion(
+                USER_ID, CONVERSATION_ID, createRequest("follow-up question")
+        );
+
+        assertEquals("Entire follow-up response", response.getContent());
+        verify(aiCoachConversationMapper, never()).updateTitle(
+                anyLong(), anyLong(), any()
+        );
+    }
+
+    @Test
+    void sendQuestion_throwsServiceUnavailableWhenFirstQuestionAnswerIsBlank() {
+        when(aiCoachConversationMapper.findByIdAndUserId(USER_ID, CONVERSATION_ID))
+                .thenReturn(createConversation());
+        when(aiCoachMessageMapper.countByConversationId(CONVERSATION_ID)).thenReturn(0);
+        when(aiCoachMessageMapper.save(any(AiCoachMessage.class))).thenReturn(1);
+        when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
+                .thenReturn(1);
+        when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of());
+        AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
+        when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
+        when(aiCoachPromptBuilder.buildPrompt(eq(context), any(), eq("first question"), eq(true)))
+                .thenReturn("prompt");
+        when(openAiClient.generateText("prompt")).thenReturn("TITLE: A title\nANSWER:   ");
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> aiCoachMessageService.sendQuestion(
+                        USER_ID, CONVERSATION_ID, createRequest("first question")
+                )
+        );
+
+        assertEquals(CommonErrorCode.SERVICE_UNAVAILABLE, exception.getErrorCode());
+        verify(aiCoachMessageMapper).save(any(AiCoachMessage.class));
+        verify(aiCoachConversationMapper, never()).updateTitle(
+                anyLong(), anyLong(), any()
+        );
+    }
+
+    @Test
+    void sendQuestion_keepsUserMessageAndDoesNotSaveAssistantWhenOpenAiFails() {
+        when(aiCoachConversationMapper.findByIdAndUserId(USER_ID, CONVERSATION_ID))
+                .thenReturn(createConversation());
+        when(aiCoachMessageMapper.countByConversationId(CONVERSATION_ID)).thenReturn(0);
+        when(aiCoachMessageMapper.save(any(AiCoachMessage.class))).thenReturn(1);
+        when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
+                .thenReturn(1);
+        when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of());
+        AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
+        when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
+        when(aiCoachPromptBuilder.buildPrompt(eq(context), any(), eq("질문"), eq(true)))
+                .thenReturn("prompt");
+        when(openAiClient.generateText("prompt"))
+                .thenThrow(new BusinessException(CommonErrorCode.SERVICE_UNAVAILABLE));
+
+        assertThrows(
+                BusinessException.class,
+                () -> aiCoachMessageService.sendQuestion(USER_ID, CONVERSATION_ID, createRequest("질문"))
+        );
+
+        verify(aiCoachMessageMapper).save(any(AiCoachMessage.class));
+        verify(aiCoachConversationMapper).updateLastMessageAt(
+                eq(USER_ID), eq(CONVERSATION_ID), any(LocalDateTime.class)
+        );
+        verify(openAiClient).generateText("prompt");
     }
 
     private AiCoachConversation createConversation() {

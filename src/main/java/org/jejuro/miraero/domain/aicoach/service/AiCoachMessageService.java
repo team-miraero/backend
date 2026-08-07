@@ -13,4 +13,10 @@ public interface AiCoachMessageService {
             Long conversationId,
             AiCoachMessageCreateRequest request
     );
+
+    AiCoachMessageResponse sendQuestion(
+            Long userId,
+            Long conversationId,
+            AiCoachMessageCreateRequest request
+    );
 }

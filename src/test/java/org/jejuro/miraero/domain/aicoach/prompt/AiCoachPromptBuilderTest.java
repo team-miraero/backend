@@ -3,9 +3,11 @@ package org.jejuro.miraero.domain.aicoach.prompt;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import org.jejuro.miraero.domain.aicoach.context.AiCoachFinancialContext;
 import org.jejuro.miraero.domain.aicoach.domain.AiCoachMessage;
 import org.jejuro.miraero.domain.aicoach.domain.AiCoachMessageSenderType;
 import org.junit.jupiter.api.Test;
@@ -60,6 +62,62 @@ class AiCoachPromptBuilderTest {
         assertTrue(prompt.contains("후속 질문이므로 답변만 작성하세요."));
         assertFalse(prompt.contains("TITLE: 대화방 제목"));
         assertTrue(prompt.endsWith("USER: 후속 질문입니다."));
+    }
+
+    @Test
+    void buildPrompt_includesFinancialContextWithReadableAmounts() {
+        AiCoachFinancialContext financialContext = AiCoachFinancialContext.builder()
+                .activeGoals(List.of(new AiCoachFinancialContext.ActiveGoal(
+                        "내 집 마련",
+                        50_000_000L,
+                        LocalDate.of(2027, 12, 31)
+                )))
+                .totalAssets(12_345_678L)
+                .totalDebt(3_000_000L)
+                .monthlyIncome(3_200_000L)
+                .currentMonthTotalExpense(1_250_000L)
+                .currentMonthCategoryExpenses(List.of(
+                        new AiCoachFinancialContext.CategoryExpense("식비", 450_000L),
+                        new AiCoachFinancialContext.CategoryExpense("교통", 120_000L)
+                ))
+                .build();
+
+        String prompt = promptBuilder.buildPrompt(
+                financialContext,
+                List.of(),
+                "현재 상황을 분석해주세요.",
+                false
+        );
+
+        assertTrue(prompt.contains("[FINANCIAL_CONTEXT]"));
+        assertTrue(prompt.contains("- 내 집 마련 | 목표 금액: 50,000,000원 | 목표일: 2027년 12월 31일"));
+        assertTrue(prompt.contains("총자산: 12,345,678원"));
+        assertTrue(prompt.contains("총부채: 3,000,000원"));
+        assertTrue(prompt.contains("월 소득: 3,200,000원"));
+        assertTrue(prompt.contains("이번 달 총 지출: 1,250,000원"));
+        assertTrue(prompt.contains("- 식비: 450,000원"));
+        assertTrue(prompt.contains("- 교통: 120,000원"));
+    }
+
+    @Test
+    void buildPrompt_representsNullFinancialContextValuesAsUnknownInformation() {
+        AiCoachFinancialContext financialContext = AiCoachFinancialContext.builder()
+                .activeGoals(null)
+                .totalAssets(null)
+                .totalDebt(null)
+                .monthlyIncome(null)
+                .currentMonthTotalExpense(null)
+                .currentMonthCategoryExpenses(null)
+                .build();
+
+        String prompt = promptBuilder.buildPrompt(financialContext, List.of(), "질문", false);
+
+        assertTrue(prompt.contains("활성 목표:\n정보 없음"));
+        assertTrue(prompt.contains("총자산: 정보 없음"));
+        assertTrue(prompt.contains("총부채: 정보 없음"));
+        assertTrue(prompt.contains("월 소득: 정보 없음"));
+        assertTrue(prompt.contains("이번 달 총 지출: 정보 없음"));
+        assertTrue(prompt.contains("이번 달 카테고리별 지출:\n정보 없음"));
     }
 
     private AiCoachMessage createMessage(AiCoachMessageSenderType senderType, String content) {
