@@ -16,7 +16,7 @@
     FROM auto_saving
     WHERE user_id = #{userId}
   </select>
-
+  
   <select id="findDashboardByUserId"
     parameterType="long"
     resultType="org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse">
@@ -199,6 +199,15 @@
       AND g.goal_status = 'ACTIVE'
       AND ga.asset_type IN ('ACCOUNT', 'MONEY_BOX')
     ORDER BY ga.goal_id, wa.account_id
+  </select>
+  <select id="existsGoalDepositAccountByUserIdAndAccountId" resultType="java.lang.Boolean">
+    SELECT EXISTS (SELECT 1
+                   FROM goal g
+                          JOIN goal_asset ga
+                               ON g.goal_id = ga.goal_id
+                   WHERE g.user_id = #{userId}
+                     AND ga.asset_type = 'ACCOUNT'
+                     AND ga.asset_id = #{accountId})
   </select>
 
   <update id="updateMaxAmount">

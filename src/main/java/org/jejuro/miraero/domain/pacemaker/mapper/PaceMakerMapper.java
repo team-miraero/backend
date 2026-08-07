@@ -60,4 +60,9 @@ public interface PaceMakerMapper {
   List<PaceMakerGoalWithdrawalAccountRowResponse> findPaceMakerGoalWithdrawalAccounts(
       @Param("userId") Long userId
   );
+
+  boolean existsGoalDepositAccountByUserIdAndAccountId(
+      @Param("userId") Long userId,
+      @Param("accountId") Long accountId
+  );
 }
