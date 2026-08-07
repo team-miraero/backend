@@ -24,4 +24,19 @@
     #{agreeStatus}
     )
   </insert>
+
+  <select id="findConnectionsByUserId"
+    resultType="org.jejuro.miraero.domain.mydata.dto.MyDataConnectionResponse">
+    SELECT mc.connection_id AS connectionId,
+    fi.financial_institution_name AS institutionName,
+    mc.connection_status AS connectionStatus,
+    mc.expires_at AS expiresAt,
+    mc.synced_at AS lastSyncedAt,
+    mc.connection_status AS syncStatus
+    FROM mydata_connection mc
+    INNER JOIN financial_institution fi
+    ON mc.financial_institution_id = fi.financial_institution_id
+    WHERE mc.user_id = #{userId}
+    ORDER BY mc.synced_at DESC
+  </select>
 </mapper>
