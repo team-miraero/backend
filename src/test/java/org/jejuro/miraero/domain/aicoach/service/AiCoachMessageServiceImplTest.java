@@ -36,6 +36,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
 @ExtendWith(MockitoExtension.class)
@@ -294,6 +295,16 @@ class AiCoachMessageServiceImplTest {
         verify(aiCoachFinancialContextService).getFinancialContext(USER_ID);
         verify(aiCoachPromptBuilder).buildPrompt(eq(context), any(), eq("질문"), eq(true));
         verify(openAiClient).generateText("prompt");
+
+        ArgumentCaptor<TransactionDefinition> transactionDefinitionCaptor =
+                ArgumentCaptor.forClass(TransactionDefinition.class);
+        verify(transactionManager, org.mockito.Mockito.times(2))
+                .getTransaction(transactionDefinitionCaptor.capture());
+        assertTrue(transactionDefinitionCaptor.getAllValues().stream()
+                .allMatch(definition -> definition.getPropagationBehavior()
+                        == TransactionDefinition.PROPAGATION_REQUIRES_NEW));
+        verify(transactionManager, org.mockito.Mockito.times(2)).commit(any());
+        verify(transactionManager, never()).rollback(any());
     }
 
     @Test
@@ -438,6 +449,9 @@ class AiCoachMessageServiceImplTest {
                 eq(USER_ID), eq(CONVERSATION_ID), any(LocalDateTime.class)
         );
         verify(openAiClient).generateText("prompt");
+        verify(transactionManager).getTransaction(any(TransactionDefinition.class));
+        verify(transactionManager).commit(any());
+        verify(transactionManager, never()).rollback(any());
     }
 
     private AiCoachConversation createConversation() {

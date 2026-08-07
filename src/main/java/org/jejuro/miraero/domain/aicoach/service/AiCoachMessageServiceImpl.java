@@ -18,12 +18,12 @@ import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
-@Transactional(readOnly = true)
 public class AiCoachMessageServiceImpl implements AiCoachMessageService {
 
     private final AiCoachConversationMapper aiCoachConversationMapper;
@@ -39,6 +39,7 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
     private final AiCoachResponseParser aiCoachResponseParser = new AiCoachResponseParser();
 
     @Override
+    @Transactional(readOnly = true)
     public List<AiCoachMessageResponse> getMessages(Long userId, Long conversationId) {
         getOwnedConversation(userId, conversationId);
 
@@ -86,7 +87,7 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
         getOwnedConversation(userId, conversationId);
         boolean firstQuestion = aiCoachMessageMapper.countByConversationId(conversationId) == 0;
 
-        executeInTransaction(() -> saveUserMessage(userId, conversationId, request));
+        executeInNewTransaction(() -> saveUserMessage(userId, conversationId, request));
 
         List<AiCoachMessage> recentMessages = aiCoachMessageMapper.findRecentByConversationId(
                 conversationId
@@ -110,7 +111,7 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
                 ? getTitle(parsedResponse.getTitle(), request.getContent())
                 : null;
 
-        return executeInTransaction(() -> saveAssistantMessage(
+        return executeInNewTransaction(() -> saveAssistantMessage(
                 userId,
                 conversationId,
                 answer,
@@ -162,8 +163,10 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
         return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
-    private <T> T executeInTransaction(TransactionCallback<T> callback) {
-        return new TransactionTemplate(transactionManager).execute(status -> callback.execute());
+    private <T> T executeInNewTransaction(TransactionCallback<T> callback) {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+        return transactionTemplate.execute(status -> callback.execute());
     }
 
     @FunctionalInterface
