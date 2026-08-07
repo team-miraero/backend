@@ -14,11 +14,16 @@ import static org.mockito.Mockito.when;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import org.jejuro.miraero.domain.account.mapper.AccountMapper;
+import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
+import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
+import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerGoalDepositRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositAssetRowResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalListResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalSummaryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalWithdrawalAccountRowResponse;
@@ -47,15 +52,25 @@ class PaceMakerServiceImplTest {
     @Mock
     private PaceMakerMapper paceMakerMapper;
 
+    @Mock
+    private AccountMapper accountMapper;
+
+    @Mock
+    private MoneyBoxMapper moneyBoxMapper;
+
     private PaceMakerService paceMakerService;
 
     @BeforeEach
     void setUp() {
-        paceMakerService = new PaceMakerServiceImpl(paceMakerMapper);
+        paceMakerService = new PaceMakerServiceImpl(
+                paceMakerMapper,
+                moneyBoxMapper,
+                accountMapper
+        );
     }
 
     @Test
-    @DisplayName("자동저축 상태가 ACTIVE이면 enabled true를 반환한다")
+    @DisplayName("Get active pace maker")
     void getPaceMaker_active() {
         AutoSaving autoSaving = createAutoSaving(21L, "ACTIVE");
         when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(autoSaving);
@@ -70,7 +85,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("자동저축 상태가 PAUSED이면 enabled false를 반환한다")
+    @DisplayName("Get paused pace maker")
     void getPaceMaker_paused() {
         AutoSaving autoSaving = createAutoSaving(22L, "PAUSED");
         when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(autoSaving);
@@ -85,7 +100,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("자동저축 설정이 없으면 미개설 상태를 반환한다")
+    @DisplayName("Get not created pace maker")
     void getPaceMaker_notCreated() {
         when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(null);
 
@@ -99,7 +114,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("자동저축 상태 변경에 성공하면 변경된 상태를 반환한다")
+    @DisplayName("Update status")
     void updateStatus_success() {
         Long autoSavingId = 21L;
         AutoSaving autoSaving = createAutoSaving(autoSavingId, "PAUSED");
@@ -117,7 +132,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("수정된 자동저축이 없으면 리소스 없음 예외를 발생시킨다")
+    @DisplayName("Update status not found")
     void updateStatus_notFound() {
         Long autoSavingId = 99L;
         when(paceMakerMapper.updateStatus(USER_ID, autoSavingId, "ACTIVE")).thenReturn(0);
@@ -133,7 +148,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("자동저축 상한액 변경에 성공하면 변경된 상한액을 반환한다")
+    @DisplayName("Update max amount")
     void updateMaxAmount_success() {
         Long autoSavingId = 21L;
         Long maxAmount = 500_000L;
@@ -148,7 +163,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("상한액을 변경할 자동저축이 없으면 리소스 없음 예외를 발생시킨다")
+    @DisplayName("Update max amount not found")
     void updateMaxAmount_notFound() {
         Long autoSavingId = 99L;
         Long maxAmount = 500_000L;
@@ -164,7 +179,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("includeStreak false이면 기본 대시보드만 반환한다")
+    @DisplayName("Get dashboard without streak")
     void getDashboard_withoutStreak() {
         PaceMakerDashboardSummaryResponse summary = createDashboardSummary();
         when(paceMakerMapper.findDashboardByUserId(USER_ID)).thenReturn(summary);
@@ -189,7 +204,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("includeStreak true이면 스트릭 통계를 함께 반환한다")
+    @DisplayName("Get dashboard with streak")
     void getDashboard_withStreak() {
         PaceMakerDashboardSummaryResponse summary = createDashboardSummary();
         List<LocalDate> savingDates = List.of(
@@ -221,7 +236,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("대시보드 정보가 없으면 리소스 없음 예외를 발생시킨다")
+    @DisplayName("Get dashboard not found")
     void getDashboard_notFound() {
         when(paceMakerMapper.findDashboardByUserId(USER_ID)).thenReturn(null);
 
@@ -238,7 +253,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("자동저축 내역 조회에 성공하면 이번 달 내역 페이지를 반환한다")
+    @DisplayName("Get histories")
     void getHistories_success() {
         PaceMakerHistorySearchCondition condition = new PaceMakerHistorySearchCondition();
         condition.setPage(1);
@@ -279,7 +294,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("자동저축 내역 조회 결과가 없으면 빈 페이지를 반환한다")
+    @DisplayName("Get histories empty")
     void getHistories_empty() {
         PaceMakerHistorySearchCondition condition = new PaceMakerHistorySearchCondition();
         LocalDateTime startDateTime = LocalDate.now().withDayOfMonth(1).atStartOfDay();
@@ -304,7 +319,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("자동저축 내역 조회 파라미터가 잘못되면 입력값 예외를 발생시킨다")
+    @DisplayName("Get histories invalid condition")
     void getHistories_invalidCondition() {
         PaceMakerHistorySearchCondition condition = new PaceMakerHistorySearchCondition();
         condition.setPage(-1);
@@ -320,33 +335,33 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("페이스메이커 목표 목록 조회 성공")
+    @DisplayName("Get pace maker goals")
     void getPaceMakerGoals_success() {
         when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(createAutoSaving(21L, "ACTIVE"));
         when(paceMakerMapper.findPaceMakerGoals(USER_ID)).thenReturn(List.of(
-                createGoalSummary(1L, "유럽 여행", "TRAVEL", 3_000_000L),
-                createGoalSummary(2L, "비상금", "EMERGENCY", 1_000_000L)
+                createGoalSummary(1L, "Travel", "TRAVEL", 3_000_000L),
+                createGoalSummary(2L, "Emergency", "EMERGENCY", 1_000_000L)
         ));
         when(paceMakerMapper.findPaceMakerGoalDepositAssets(USER_ID)).thenReturn(List.of(
-                createDepositAssetRow(1L, "ACCOUNT", 3L, "KB국민은행", "123-***-789", 700_000L),
-                createDepositAssetRow(1L, "ACCOUNT", 4L, "신한은행", "456-***-111", 500_000L),
+                createDepositAssetRow(1L, "ACCOUNT", 3L, "KB", "123-***-789", 700_000L),
+                createDepositAssetRow(1L, "ACCOUNT", 4L, "Shinhan", "456-***-111", 500_000L),
                 createDepositAssetRow(2L, "MONEY_BOX", 5L, null, "789-***-222", 100_000L)
         ));
         when(paceMakerMapper.findPaceMakerGoalWithdrawalAccounts(USER_ID)).thenReturn(List.of(
-                createWithdrawalAccountRow(1L, 8L, "KB국민은행", "987-***-123", 1_000_000L),
-                createWithdrawalAccountRow(2L, 9L, "하나은행", "555-***-777", 300_000L)
+                createWithdrawalAccountRow(1L, 8L, "KB", "987-***-123", 1_000_000L),
+                createWithdrawalAccountRow(2L, 9L, "Hana", "555-***-777", 300_000L)
         ));
 
         PaceMakerGoalListResponse response = paceMakerService.getPaceMakerGoals(USER_ID);
 
         assertEquals(2, response.getGoals().size());
         assertEquals(1L, response.getGoals().get(0).getGoalId());
-        assertEquals("유럽 여행", response.getGoals().get(0).getGoalName());
+        assertEquals("Travel", response.getGoals().get(0).getGoalName());
         assertEquals("TRAVEL", response.getGoals().get(0).getGoalType());
         assertEquals(3_000_000L, response.getGoals().get(0).getGoalAmount());
         assertEquals(1_200_000L, response.getGoals().get(0).getTotalSavedAmount());
         assertEquals(2, response.getGoals().get(0).getDepositAssets().size());
-        assertEquals("KB국민은행", response.getGoals().get(0).getDepositAssets().get(0).getFinancialInstitutionName());
+        assertEquals("KB", response.getGoals().get(0).getDepositAssets().get(0).getFinancialInstitutionName());
         assertEquals(1, response.getGoals().get(0).getWithdrawalAccounts().size());
         assertEquals(8L, response.getGoals().get(0).getWithdrawalAccounts().get(0).getAccountId());
         assertEquals(100_000L, response.getGoals().get(1).getTotalSavedAmount());
@@ -358,7 +373,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("페이스메이커 목표 목록이 없으면 빈 목록을 반환한다")
+    @DisplayName("Get pace maker goals empty")
     void getPaceMakerGoals_empty() {
         when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(createAutoSaving(21L, "ACTIVE"));
         when(paceMakerMapper.findPaceMakerGoals(USER_ID)).thenReturn(List.of());
@@ -375,7 +390,7 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("페이스메이커가 미개설이면 목표 목록 조회에 실패한다")
+    @DisplayName("Get pace maker goals not registered")
     void getPaceMakerGoals_notRegistered() {
         when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(null);
 
@@ -389,6 +404,119 @@ class PaceMakerServiceImplTest {
         verify(paceMakerMapper, never()).findPaceMakerGoals(anyLong());
         verify(paceMakerMapper, never()).findPaceMakerGoalDepositAssets(anyLong());
         verify(paceMakerMapper, never()).findPaceMakerGoalWithdrawalAccounts(anyLong());
+    }
+
+    @Test
+    @DisplayName("Deposit pace maker balance to goal deposit account")
+    void depositToGoal_success() {
+        Long accountId = 8L;
+        PaceMakerGoalDepositRequest request = new PaceMakerGoalDepositRequest(3L, accountId, 270_000L);
+        MoneyBox paceMakerMoneyBox = MoneyBox.builder()
+                .moneyBoxId(3L)
+                .userId(USER_ID)
+                .balance(300_000L)
+                .build();
+
+        when(moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID))
+                .thenReturn(paceMakerMoneyBox);
+        when(paceMakerMapper.existsGoalDepositAccountByUserIdAndAccountId(USER_ID, accountId))
+                .thenReturn(true);
+        when(moneyBoxMapper.decreaseBalance(3L, USER_ID, 270_000L)).thenReturn(1);
+        when(accountMapper.increaseBalance(accountId, USER_ID, 270_000L)).thenReturn(1);
+
+        PaceMakerGoalDepositResponse response = paceMakerService.depositToGoal(USER_ID, request);
+
+        assertEquals(accountId, response.getAccountId());
+        assertEquals(270_000L, response.getDepositedAmount());
+        assertEquals(30_000L, response.getRemainingBalance());
+        verify(moneyBoxMapper).findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID);
+        verify(paceMakerMapper).existsGoalDepositAccountByUserIdAndAccountId(USER_ID, accountId);
+        verify(moneyBoxMapper).decreaseBalance(3L, USER_ID, 270_000L);
+        verify(accountMapper).increaseBalance(accountId, USER_ID, 270_000L);
+    }
+
+    @Test
+    @DisplayName("Deposit fails when amount is invalid")
+    void depositToGoal_invalidAmount() {
+        PaceMakerGoalDepositRequest request = new PaceMakerGoalDepositRequest(3L, 8L, 0L);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> paceMakerService.depositToGoal(USER_ID, request)
+        );
+
+        assertEquals(PaceMakerErrorCode.INVALID_DEPOSIT_AMOUNT, exception.getErrorCode());
+        verify(moneyBoxMapper, never()).findPaceMakerMoneyBoxByIdAndUserIdForUpdate(anyLong(), anyLong());
+        verify(moneyBoxMapper, never()).decreaseBalance(anyLong(), anyLong(), anyLong());
+        verify(accountMapper, never()).increaseBalance(anyLong(), anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("Deposit fails when pace maker is not registered")
+    void depositToGoal_notRegistered() {
+        PaceMakerGoalDepositRequest request = new PaceMakerGoalDepositRequest(3L, 8L, 10_000L);
+        when(moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID)).thenReturn(null);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> paceMakerService.depositToGoal(USER_ID, request)
+        );
+
+        assertEquals(PaceMakerErrorCode.NOT_REGISTERED, exception.getErrorCode());
+        verify(moneyBoxMapper).findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID);
+        verify(paceMakerMapper, never()).existsGoalDepositAccountByUserIdAndAccountId(anyLong(), anyLong());
+        verify(moneyBoxMapper, never()).decreaseBalance(anyLong(), anyLong(), anyLong());
+        verify(accountMapper, never()).increaseBalance(anyLong(), anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("Deposit fails when account is not connected to user's goal")
+    void depositToGoal_forbiddenGoalAccount() {
+        Long accountId = 8L;
+        PaceMakerGoalDepositRequest request = new PaceMakerGoalDepositRequest(3L, accountId, 10_000L);
+        MoneyBox paceMakerMoneyBox = MoneyBox.builder()
+                .moneyBoxId(3L)
+                .userId(USER_ID)
+                .balance(300_000L)
+                .build();
+        when(moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID))
+                .thenReturn(paceMakerMoneyBox);
+        when(paceMakerMapper.existsGoalDepositAccountByUserIdAndAccountId(USER_ID, accountId))
+                .thenReturn(false);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> paceMakerService.depositToGoal(USER_ID, request)
+        );
+
+        assertEquals(PaceMakerErrorCode.FORBIDDEN_GOAL_ACCOUNT, exception.getErrorCode());
+        verify(moneyBoxMapper, never()).decreaseBalance(anyLong(), anyLong(), anyLong());
+        verify(accountMapper, never()).increaseBalance(anyLong(), anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("Deposit fails when pace maker balance is insufficient")
+    void depositToGoal_insufficientBalance() {
+        Long accountId = 8L;
+        PaceMakerGoalDepositRequest request = new PaceMakerGoalDepositRequest(3L, accountId, 270_000L);
+        MoneyBox paceMakerMoneyBox = MoneyBox.builder()
+                .moneyBoxId(3L)
+                .userId(USER_ID)
+                .balance(100_000L)
+                .build();
+        when(moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID))
+                .thenReturn(paceMakerMoneyBox);
+        when(paceMakerMapper.existsGoalDepositAccountByUserIdAndAccountId(USER_ID, accountId))
+                .thenReturn(true);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> paceMakerService.depositToGoal(USER_ID, request)
+        );
+
+        assertEquals(PaceMakerErrorCode.INSUFFICIENT_BALANCE, exception.getErrorCode());
+        verify(moneyBoxMapper, never()).decreaseBalance(anyLong(), anyLong(), anyLong());
+        verify(accountMapper, never()).increaseBalance(anyLong(), anyLong(), anyLong());
     }
     private AutoSaving createAutoSaving(Long autoSavingId, String status) {
         AutoSaving autoSaving = new AutoSaving();
@@ -413,6 +541,7 @@ class PaceMakerServiceImplTest {
         ReflectionTestUtils.setField(summary, "todaySavingAmount", 5_000L);
         return summary;
     }
+
     private PaceMakerGoalSummaryResponse createGoalSummary(
             Long goalId,
             String goalName,

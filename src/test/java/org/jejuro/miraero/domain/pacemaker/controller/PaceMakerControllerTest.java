@@ -1,17 +1,20 @@
 package org.jejuro.miraero.domain.pacemaker.controller;
 
-import static org.mockito.BDDMockito.given;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.List;
+import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerGoalDepositRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDepositAssetResponse;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalListResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse;
@@ -68,7 +71,7 @@ class PaceMakerControllerTest {
     }
 
     @Test
-    @DisplayName("페이스메이커 조회 요청은 200 응답과 활성 상태를 반환한다")
+    @DisplayName("Get pace maker active status")
     void getPaceMaker_active() throws Exception {
         PaceMakerResponse response = PaceMakerResponse.builder()
                 .autoSavingId(21L)
@@ -90,7 +93,7 @@ class PaceMakerControllerTest {
     }
 
     @Test
-    @DisplayName("자동저축 설정이 없으면 null 상태와 enabled false를 반환한다")
+    @DisplayName("Get pace maker not created status")
     void getPaceMaker_notCreated() throws Exception {
         PaceMakerResponse response = PaceMakerResponse.builder()
                 .autoSavingId(null)
@@ -112,7 +115,7 @@ class PaceMakerControllerTest {
     }
 
     @Test
-    @DisplayName("페이스메이커 상태 변경 요청은 200 응답과 변경된 상태를 반환한다")
+    @DisplayName("Update pace maker status")
     void updatePaceMaker_success() throws Exception {
         PaceMakerResponse response = PaceMakerResponse.builder()
                 .autoSavingId(21L)
@@ -136,7 +139,7 @@ class PaceMakerControllerTest {
     }
 
     @Test
-    @DisplayName("허용되지 않은 상태값이면 400 응답을 반환한다")
+    @DisplayName("Invalid pace maker status returns 400")
     void updatePaceMaker_invalidStatus() throws Exception {
         mockMvc.perform(patch("/api/pace-maker/{autoSavingId}/status", 21L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -147,7 +150,7 @@ class PaceMakerControllerTest {
     }
 
     @Test
-    @DisplayName("수정 대상 자동저축이 없으면 404 응답을 반환한다")
+    @DisplayName("Update missing pace maker returns 404")
     void updatePaceMaker_notFound() throws Exception {
         given(paceMakerService.updateStatus(USER_ID, 99L, "ACTIVE"))
                 .willThrow(new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
@@ -163,7 +166,7 @@ class PaceMakerControllerTest {
     }
 
     @Test
-    @DisplayName("페이스메이커 상한액 변경 요청은 200 응답과 변경된 상한액을 반환한다")
+    @DisplayName("Update max amount")
     void updateMaxAmount_success() throws Exception {
         PaceMakerMaxAmountUpdateResponse response = PaceMakerMaxAmountUpdateResponse.builder()
                 .autoSavingId(21L)
@@ -183,7 +186,7 @@ class PaceMakerControllerTest {
     }
 
     @Test
-    @DisplayName("페이스메이커 상한액이 0 이하이면 400 응답을 반환한다")
+    @DisplayName("Invalid max amount returns 400")
     void updateMaxAmount_invalidAmount() throws Exception {
         mockMvc.perform(patch("/api/pace-maker/{autoSavingId}/max-amount", 21L)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -194,7 +197,7 @@ class PaceMakerControllerTest {
     }
 
     @Test
-    @DisplayName("상한액을 변경할 자동저축이 없으면 404 응답을 반환한다")
+    @DisplayName("Update max amount not found")
     void updateMaxAmount_notFound() throws Exception {
         given(paceMakerService.updateMaxAmount(USER_ID, 99L, 500_000L))
                 .willThrow(new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND));
@@ -210,7 +213,7 @@ class PaceMakerControllerTest {
     }
 
     @Test
-    @DisplayName("페이스메이커 자동저축 내역 조회 요청은 200 응답과 페이지 정보를 반환한다")
+    @DisplayName("Get pace maker histories")
     void getHistories_success() throws Exception {
         PaceMakerHistoryResponse history = PaceMakerHistoryResponse.builder()
                 .date("2026-08-05")
@@ -248,7 +251,7 @@ class PaceMakerControllerTest {
     }
 
     @Test
-    @DisplayName("자동저축 내역 조회 파라미터가 잘못되면 400 응답을 반환한다")
+    @DisplayName("Invalid history query returns 400")
     void getHistories_invalidCondition() throws Exception {
         given(paceMakerService.getHistories(
                 eq(USER_ID),
@@ -267,14 +270,15 @@ class PaceMakerControllerTest {
                 any(PaceMakerHistorySearchCondition.class)
         );
     }
+
     @Test
-    @DisplayName("페이스메이커 목표 목록 조회 요청은 200 응답과 목표 목록을 반환한다")
+    @DisplayName("Get pace maker goals")
     void getPaceMakerGoals_success() throws Exception {
         PaceMakerGoalListResponse response = PaceMakerGoalListResponse.builder()
                 .goals(List.of(
                         PaceMakerGoalResponse.builder()
                                 .goalId(1L)
-                                .goalName("유럽 여행")
+                                .goalName("Travel")
                                 .goalType("TRAVEL")
                                 .goalAmount(3_000_000L)
                                 .totalSavedAmount(1_200_000L)
@@ -282,7 +286,7 @@ class PaceMakerControllerTest {
                                         PaceMakerDepositAssetResponse.builder()
                                                 .assetType("ACCOUNT")
                                                 .assetId(3L)
-                                                .financialInstitutionName("KB국민은행")
+                                                .financialInstitutionName("KB")
                                                 .maskedAccountNumber("123-***-789")
                                                 .balance(700_000L)
                                                 .build()
@@ -290,7 +294,7 @@ class PaceMakerControllerTest {
                                 .withdrawalAccounts(List.of(
                                         PaceMakerWithdrawalAccountResponse.builder()
                                                 .accountId(8L)
-                                                .financialInstitutionName("KB국민은행")
+                                                .financialInstitutionName("KB")
                                                 .maskedAccountNumber("987-***-123")
                                                 .balance(1_000_000L)
                                                 .build()
@@ -304,12 +308,12 @@ class PaceMakerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.goals[0].goalId").value(1L))
-                .andExpect(jsonPath("$.data.goals[0].goalName").value("유럽 여행"))
+                .andExpect(jsonPath("$.data.goals[0].goalName").value("Travel"))
                 .andExpect(jsonPath("$.data.goals[0].goalType").value("TRAVEL"))
                 .andExpect(jsonPath("$.data.goals[0].goalAmount").value(3_000_000L))
                 .andExpect(jsonPath("$.data.goals[0].totalSavedAmount").value(1_200_000L))
                 .andExpect(jsonPath("$.data.goals[0].depositAssets[0].assetType").value("ACCOUNT"))
-                .andExpect(jsonPath("$.data.goals[0].depositAssets[0].financialInstitutionName").value("KB국민은행"))
+                .andExpect(jsonPath("$.data.goals[0].depositAssets[0].financialInstitutionName").value("KB"))
                 .andExpect(jsonPath("$.data.goals[0].depositAssets[0].balance").value(700_000L))
                 .andExpect(jsonPath("$.data.goals[0].withdrawalAccounts[0].accountId").value(8L))
                 .andExpect(jsonPath("$.data.goals[0].withdrawalAccounts[0].balance").value(1_000_000L));
@@ -318,7 +322,7 @@ class PaceMakerControllerTest {
     }
 
     @Test
-    @DisplayName("페이스메이커 미개설 사용자의 목표 목록 조회 요청은 400 응답을 반환한다")
+    @DisplayName("Get pace maker goals not registered")
     void getPaceMakerGoals_notRegistered() throws Exception {
         given(paceMakerService.getPaceMakerGoals(USER_ID))
                 .willThrow(new BusinessException(PaceMakerErrorCode.NOT_REGISTERED));
@@ -329,5 +333,55 @@ class PaceMakerControllerTest {
                 .andExpect(jsonPath("$.error.code").value("PACEMAKER_001"));
 
         verify(paceMakerService).getPaceMakerGoals(USER_ID);
+    }
+
+    @Test
+    @DisplayName("Deposit pace maker balance to goal")
+    void depositToGoal_success() throws Exception {
+        PaceMakerGoalDepositResponse response = PaceMakerGoalDepositResponse.builder()
+                .accountId(8L)
+                .depositedAmount(270_000L)
+                .remainingBalance(0L)
+                .build();
+        given(paceMakerService.depositToGoal(eq(USER_ID), any(PaceMakerGoalDepositRequest.class)))
+                .willReturn(response);
+
+        mockMvc.perform(post("/api/pace-maker/deposits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"moneyBoxId\":3,\"accountId\":8,\"amount\":270000}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.accountId").value(8L))
+                .andExpect(jsonPath("$.data.depositedAmount").value(270_000L))
+                .andExpect(jsonPath("$.data.remainingBalance").value(0L));
+
+        verify(paceMakerService).depositToGoal(eq(USER_ID), any(PaceMakerGoalDepositRequest.class));
+    }
+
+    @Test
+    @DisplayName("Deposit invalid amount returns 400")
+    void depositToGoal_invalidAmount() throws Exception {
+        mockMvc.perform(post("/api/pace-maker/deposits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"moneyBoxId\":3,\"accountId\":8,\"amount\":0}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("COMMON_002"));
+    }
+
+    @Test
+    @DisplayName("Deposit insufficient balance returns 400")
+    void depositToGoal_insufficientBalance() throws Exception {
+        given(paceMakerService.depositToGoal(eq(USER_ID), any(PaceMakerGoalDepositRequest.class)))
+                .willThrow(new BusinessException(PaceMakerErrorCode.INSUFFICIENT_BALANCE));
+
+        mockMvc.perform(post("/api/pace-maker/deposits")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"moneyBoxId\":3,\"accountId\":8,\"amount\":270000}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.error.code").value("PACEMAKER_002"));
+
+        verify(paceMakerService).depositToGoal(eq(USER_ID), any(PaceMakerGoalDepositRequest.class));
     }
 }
