@@ -8,8 +8,19 @@ import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
 @Mapper
 public interface MoneyBoxMapper {
 
-    void insert(MoneyBox moneyBox);
+  void insert(MoneyBox moneyBox);
 
-    boolean existsByAccountNumberHash(
-            @Param("accountNumberHash") String accountNumberHash);
+  boolean existsByAccountNumberHash(
+      @Param("accountNumberHash") String accountNumberHash);
+
+  int decreaseBalance(
+      @Param("moneyBoxId") Long moneyBoxId,
+      @Param("userId") Long userId,
+      @Param("amount") Long amount
+  );
+
+  MoneyBox findPaceMakerMoneyBoxByIdAndUserIdForUpdate(
+      @Param("moneyBoxId") Long moneyBoxId,
+      @Param("userId") Long userId
+  );
 }

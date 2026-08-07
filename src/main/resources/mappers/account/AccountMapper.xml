@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.jejuro.miraero.domain.account.mapper.AccountMapper">
+
+  <select id="findBalanceByIdAndUserIdForUpdate" resultType="long">
+    SELECT balance
+    FROM account
+    WHERE account_id = #{accountId}
+    AND user_id = #{userId}
+    FOR UPDATE
+  </select>
+
+  <update id="increaseBalance">
+    UPDATE account
+    SET balance = balance + #{amount}
+    WHERE account_id = #{accountId}
+    AND user_id = #{userId}
+  </update>
+</mapper>
