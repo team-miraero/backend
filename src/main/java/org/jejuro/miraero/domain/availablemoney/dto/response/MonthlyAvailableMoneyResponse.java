@@ -12,4 +12,7 @@ public class MonthlyAvailableMoneyResponse {
     private Long targetGoalAutoTransfer;
     private Long otherGoalAutoTransfer;
     private Long monthlyAvailableMoney;
+    private Long elapsedDays;
+    private Long remainingDays;
+    private Long periodDays;
 }

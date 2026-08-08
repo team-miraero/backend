@@ -43,6 +43,25 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
         Long availableMoney = calculator.calculateMonthlyAvailableMoney(
                 monthlyIncome, fixedExpense, variableExpense, targetTransfer, otherTransfer);
 
+        LocalDate businessDate =
+                LocalDateTime.now().minusHours(8).toLocalDate();
+
+        long elapsedDays = ChronoUnit.DAYS.between(
+                period.startDate.toLocalDate(),
+                businessDate
+        );
+
+        long remainingDays = ChronoUnit.DAYS.between(
+                businessDate,
+                period.nextSalaryDate.toLocalDate()
+        );
+
+        long periodDays = ChronoUnit.DAYS.between(
+                period.startDate.toLocalDate(),
+                period.nextSalaryDate.toLocalDate()
+        );
+
+
         return MonthlyAvailableMoneyResponse.builder()
                 .monthlyIncome(monthlyIncome)
                 .fixedExpense(fixedExpense)
@@ -50,6 +69,9 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
                 .targetGoalAutoTransfer(targetTransfer)
                 .otherGoalAutoTransfer(otherTransfer)
                 .monthlyAvailableMoney(availableMoney)
+                .elapsedDays(elapsedDays)
+                .remainingDays(remainingDays)
+                .periodDays(periodDays)
                 .build();
     }
 
@@ -82,6 +104,7 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
     }
 
     private PaydayPeriod resolvePaydayPeriod(List<LocalDateTime> salaryDateTimes) {
+
         if (salaryDateTimes == null || salaryDateTimes.isEmpty()) {
             LocalDate now = LocalDate.now();
             // Fallback: 이번 달 1일 08:00:00 ~ 다음 달 1일 07:59:59
@@ -156,11 +179,29 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
         final LocalDateTime startDate;
         final LocalDateTime endDate;
         final LocalDateTime nextSalaryDate;
+        long elapsedDays;
+        long remainingDays;
 
-        PaydayPeriod(LocalDateTime startDate, LocalDateTime endDate, LocalDateTime nextSalaryDate) {
+        PaydayPeriod(
+                LocalDateTime startDate,
+                LocalDateTime endDate,
+                LocalDateTime nextSalaryDate
+        ) {
             this.startDate = startDate;
             this.endDate = endDate;
             this.nextSalaryDate = nextSalaryDate;
+            LocalDate businessDate =
+                    LocalDateTime.now().minusHours(8).toLocalDate();
+
+            this.elapsedDays = ChronoUnit.DAYS.between(
+                    startDate.toLocalDate(),
+                    businessDate
+            );
+
+            this.remainingDays = ChronoUnit.DAYS.between(
+                    businessDate,
+                    nextSalaryDate.toLocalDate()
+            );
         }
     }
 }
