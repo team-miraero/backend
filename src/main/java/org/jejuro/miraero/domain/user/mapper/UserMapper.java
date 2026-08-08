@@ -20,5 +20,7 @@ public interface UserMapper {
       @Param("userId") Long userId,
       @Param("passwordHash") String passwordHash
   );
+
+  Long findMonthlyIncome(@Param("userId") Long userId);
 }
 

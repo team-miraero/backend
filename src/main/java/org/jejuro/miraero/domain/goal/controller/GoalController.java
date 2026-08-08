@@ -44,16 +44,15 @@ public class GoalController {
      */
     @PostMapping
     public ResponseEntity<ApiResponse<GoalCreateResponse>> createGoal(
-            //@AuthenticationPrincipal CustomUserDetails userDetails,
-            @Valid @RequestBody GoalCreateRequest request
+            @Valid @RequestBody GoalCreateRequest request,
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
         if(request == null){
             throw new BusinessException(CommonErrorCode.INVALID_REQUEST);
         }
 
         // TODO: 인증 구현 후 userId 가져오기
-        Long userId = 1L;
-        //Long userId = userDetails.getUserId();
+        Long userId = user.getUserId();
 
         GoalCreateResponse response =
                 goalService.createGoal(userId, request);
@@ -66,10 +65,12 @@ public class GoalController {
      * 목표 목록 조회
      */
     @GetMapping
-    public ResponseEntity<ApiResponse<List<GoalListResponse>>> getGoals() {
+    public ResponseEntity<ApiResponse<List<GoalListResponse>>> getGoals(
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
 
         // TODO Security 적용 후 변경
-        Long userId = 1L;
+        Long userId = user.getUserId();
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -82,8 +83,9 @@ public class GoalController {
     public ResponseEntity<ApiResponse<List<GoalCollectionResponse>>> getCollection(
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
+        Long userId = user.getUserId();
         List<GoalCollectionResponse> responses =
-                goalService.getGoalCollections(user.getUserId());
+                goalService.getGoalCollections(userId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(responses)
@@ -95,9 +97,10 @@ public class GoalController {
      */
     @GetMapping("/{goalId}")
     public ResponseEntity<ApiResponse<GoalDetailResponse>> getGoalDetail(
-            @PathVariable Long goalId
+            @PathVariable Long goalId,
+            @AuthenticationPrincipal AuthenticatedUser user
     ){
-        Long userId = 1L;
+        Long userId = user.getUserId();
         return ResponseEntity.ok(
                 ApiResponse.success(goalService.getGoalDetail(userId,goalId))
         );
@@ -106,10 +109,11 @@ public class GoalController {
     @PatchMapping("/{goalId}")
     public ResponseEntity<ApiResponse<Void>> updateGoal(
             @PathVariable Long goalId,
-            @RequestBody GoalUpdateRequest request
+            @RequestBody GoalUpdateRequest request,
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
         //JWT에서 받아오기로
-        Long userId = 1L;
+        Long userId = user.getUserId();
         goalService.updateGoal(userId ,goalId, request);
 
         return ResponseEntity.ok(ApiResponse.success(null));
@@ -117,10 +121,11 @@ public class GoalController {
 
     @DeleteMapping("/{goalId}")
     public ResponseEntity<ApiResponse<Void>> deleteGoal(
-            @PathVariable Long goalId
+            @PathVariable Long goalId,
+            @AuthenticationPrincipal AuthenticatedUser user
     ){
         //JWT 적용 예정
-        Long userId = 1L;
+        Long userId = user.getUserId();
 
         goalService.deleteGoal(userId,goalId);
 
@@ -141,10 +146,11 @@ public class GoalController {
     @PatchMapping("/{goalId}/status")
     public ResponseEntity<ApiResponse<Void>> updateGoalStatus(
             @PathVariable Long goalId,
-            @Valid @RequestBody GoalStatusUpdateRequest request
+            @Valid @RequestBody GoalStatusUpdateRequest request,
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
 
-        Long userId = 1L; // TODO 인증 적용
+        Long userId = user.getUserId();
 
         goalService.updateGoalStatus(
                 userId,

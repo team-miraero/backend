@@ -11,4 +11,6 @@ public interface UserService {
   ProfileResponse getProfile(Long userId);
 
   void changePassword(Long userId, PasswordChangeRequest request);
+
+  Long getMonthlyIncome(Long userId);
 }
