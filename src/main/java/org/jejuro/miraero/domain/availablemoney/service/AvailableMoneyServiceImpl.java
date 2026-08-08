@@ -67,7 +67,12 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
 
         Long todayAvailableMoney = calculator.calculateDailyAvailableMoney(
                 monthly.getMonthlyAvailableMoney(), remainingDays);
-        Long todayExpense = transactionQueryService.getTodayExpenseSum(userId);
+
+        LocalDateTime startDateTime = businessDate.atTime(8,0);
+
+        LocalDateTime endDateTime = businessDate.plusDays(1).atTime(8,0);
+
+        Long todayExpense = transactionQueryService.getTodayExpenseSum(userId,startDateTime,endDateTime);
 
         return DailyAvailableMoneyResponse.builder()
                 .todayAvailableMoney(todayAvailableMoney)

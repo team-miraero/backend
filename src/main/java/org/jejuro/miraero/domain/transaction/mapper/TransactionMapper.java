@@ -36,5 +36,9 @@ public interface TransactionMapper {
     );
 
     // 오늘 지출 합산 (아침 8시 기준 24시간 - XML 내부에서 NOW() 기준 계산)
-    Long findTodayExpenseSum(@Param("userId") Long userId);
+    Long findTodayExpenseSum(
+            @Param("userId") Long userId,
+            @Param("startDateTime") LocalDateTime startDateTime,
+            @Param("endDateTime") LocalDateTime endDateTime
+    );
 }

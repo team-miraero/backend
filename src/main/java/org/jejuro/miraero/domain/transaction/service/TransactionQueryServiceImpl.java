@@ -32,8 +32,8 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
     }
 
     @Override
-    public Long getTodayExpenseSum(Long userId) {
-        Long sum = transactionMapper.findTodayExpenseSum(userId);
+    public Long getTodayExpenseSum(Long userId, LocalDateTime startDateTime, LocalDateTime endDateTime) {
+        Long sum = transactionMapper.findTodayExpenseSum(userId,startDateTime,endDateTime);
         return sum == null ? 0L : sum;
     }
 }

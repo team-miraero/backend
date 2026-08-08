@@ -46,5 +46,10 @@ public interface TransactionQueryService {
      * @param userId 사용자 ID
      * @return 오늘 지출 합계 금액
      */
-    Long getTodayExpenseSum(Long userId);
+    Long getTodayExpenseSum(
+            Long userId,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    );
+
 }
