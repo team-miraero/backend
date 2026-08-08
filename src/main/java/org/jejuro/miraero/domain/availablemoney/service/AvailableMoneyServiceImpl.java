@@ -6,6 +6,7 @@ import org.jejuro.miraero.domain.availablemoney.calculator.AvailableMoneyCalcula
 import org.jejuro.miraero.domain.availablemoney.dto.response.DailyAvailableMoneyResponse;
 import org.jejuro.miraero.domain.availablemoney.dto.response.MonthlyAvailableMoneyResponse;
 import org.jejuro.miraero.domain.transaction.service.TransactionQueryService;
+import org.jejuro.miraero.domain.user.service.UserService;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -22,6 +23,7 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
     private final AvailableMoneyCalculator calculator;
     private final TransactionQueryService transactionQueryService;
     private final AutoTransferQueryService autoTransferQueryService;
+    private final UserService userService;
 
     @Override
     public MonthlyAvailableMoneyResponse getMonthlyAvailableMoney(Long userId, Long goalId) {
@@ -34,7 +36,7 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
         Long variableExpense = transactionQueryService.getVariableExpenseSum(
                 userId, period.startDate, period.endDate);
 
-        Long monthlyIncome = 3000000L; // userQueryService.getMonthlyIncome(userId);
+        Long monthlyIncome =  userService.getMonthlyIncome(userId);
         Long targetTransfer = autoTransferQueryService.getTargetGoalTransferAmount(goalId);
         Long otherTransfer = autoTransferQueryService.getOtherGoalTransferAmount(userId, goalId);
 

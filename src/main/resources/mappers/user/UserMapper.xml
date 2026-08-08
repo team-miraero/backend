@@ -90,5 +90,11 @@
     SET password_hash = #{passwordHash}
     WHERE user_id = #{userId}
   </update>
+
+  <select id="findMonthlyIncome" resultType="long">
+    SELECT monthly_income
+    FROM miraero_user
+    WHERE user_id = #{userId}
+  </select>
 </mapper>
 

@@ -87,5 +87,11 @@ public class UserServiceImpl implements UserService {
     String passwordHash = passwordEncoder.encode(request.getNewPassword());
     userMapper.updatePasswordHash(userId, passwordHash);
   }
+
+  @Override
+  @Transactional(readOnly = true)
+  public Long getMonthlyIncome(Long userId) {
+    return userMapper.findMonthlyIncome(userId);
+  }
 }
 
