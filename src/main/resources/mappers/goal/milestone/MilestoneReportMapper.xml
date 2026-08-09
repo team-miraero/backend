@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.jejuro.miraero.domain.goal.milestone.mapper.MilestoneReportMapper">
+
+    <select id="findByMilestoneId"
+            parameterType="long"
+            resultType="org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport">
+
+        SELECT
+        milestone_report_id,
+        milestone_id,
+        title,
+        content,
+        status
+        FROM milestone_report
+        WHERE milestone_id = #{milestoneId}
+
+    </select>
+
+
+    <insert id="save"
+            parameterType="org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport"
+            useGeneratedKeys="true"
+            keyProperty="milestoneReportId">
+
+        INSERT INTO milestone_report (
+        milestone_id,
+        title,
+        content,
+        status
+        )
+        VALUES (
+        #{milestoneId},
+        #{title},
+        #{content},
+        #{status}
+        )
+
+    </insert>
+
+
+    <update id="updateReport"
+            parameterType="org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport">
+
+        UPDATE milestone_report
+        SET
+        title = #{title},
+        content = #{content},
+        status = #{status}
+        WHERE milestone_report_id = #{milestoneReportId}
+
+    </update>
+
+</mapper>
