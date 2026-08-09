@@ -19,4 +19,33 @@
     WHERE account_id = #{accountId}
     AND user_id = #{userId}
   </update>
+
+  <insert id="upsert"
+    parameterType="org.jejuro.miraero.domain.account.domain.Account">
+    INSERT INTO account (
+    user_id, financial_institution_id, ex_account_id, account_type, account_name,
+    account_number, account_number_hash, masked_account_number,
+    balance, account_status, opened_at, maturity_at, interest_rate, monthly_payment_limit
+    )
+    VALUES (
+    #{userId}, #{financialInstitutionId}, #{exAccountId}, #{accountType}, #{accountName},
+    #{accountNumber}, #{accountNumberHash}, #{maskedAccountNumber},
+    #{balance}, #{accountStatus}, #{openedAt}, #{maturityAt}, #{interestRate},
+    #{monthlyPaymentLimit}
+    )
+    ON DUPLICATE KEY UPDATE
+    account_name = VALUES(account_name),
+    balance = VALUES(balance),
+    account_status = VALUES(account_status),
+    maturity_at = VALUES(maturity_at),
+    interest_rate = VALUES(interest_rate),
+    monthly_payment_limit = VALUES(monthly_payment_limit),
+    synced_at = CURRENT_TIMESTAMP
+  </insert>
+
+  <select id="findAccountIdByExAccountId" resultType="java.lang.Long">
+    SELECT account_id
+    FROM account
+    WHERE ex_account_id = #{exAccountId}
+  </select>
 </mapper>
