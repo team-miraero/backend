@@ -73,7 +73,7 @@ public class MyDataAuthClient {
   private <T> T post(String path, Map<String, String> body, Class<T> responseType) {
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_JSON);
-    // mock-server rejects every mydata oauth request without this header (401)
+    // mock-server는 이 헤더 없이는 모든 mydata oauth 요청을 거부 (401 에러)
     headers.set(CLIENT_SECRET_HEADER, clientSecret);
 
     try {
