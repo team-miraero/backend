@@ -5,9 +5,12 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.youthpolicy.domain.YouthPolicyDetailQueryResult;
 import org.jejuro.miraero.domain.youthpolicy.domain.YouthPolicyListQueryResult;
+import org.jejuro.miraero.domain.youthpolicy.domain.YouthPolicy;
 
 @Mapper
 public interface YouthPolicyMapper {
+
+    int upsert(YouthPolicy youthPolicy);
 
     List<YouthPolicyListQueryResult> findYouthPolicies(
             @Param("keyword") String keyword,

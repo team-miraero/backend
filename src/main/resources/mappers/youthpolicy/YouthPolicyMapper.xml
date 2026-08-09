@@ -4,6 +4,76 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.jejuro.miraero.domain.youthpolicy.mapper.YouthPolicyMapper">
 
+    <insert id="upsert"
+            parameterType="org.jejuro.miraero.domain.youthpolicy.domain.YouthPolicy">
+        INSERT INTO youth_policy (
+            policy_no,
+            policy_name,
+            policy_keyword,
+            policy_description,
+            support_content,
+            provider_institution_code,
+            provider_institution_name,
+            application_start_date,
+            application_end_date,
+            application_period_text,
+            application_method,
+            application_url,
+            reference_url,
+            min_age,
+            max_age,
+            income_condition_code,
+            min_income,
+            max_income,
+            income_condition_text,
+            qualification,
+            synced_at
+        ) VALUES (
+            #{policyNo},
+            #{policyName},
+            #{policyKeyword},
+            #{policyDescription},
+            #{supportContent},
+            #{providerInstitutionCode},
+            #{providerInstitutionName},
+            #{applicationStartDate},
+            #{applicationEndDate},
+            #{applicationPeriodText},
+            #{applicationMethod},
+            #{applicationUrl},
+            #{referenceUrl},
+            #{minAge},
+            #{maxAge},
+            #{incomeConditionCode},
+            #{minIncome},
+            #{maxIncome},
+            #{incomeConditionText},
+            #{qualification},
+            #{syncedAt}
+        ) AS new
+        ON DUPLICATE KEY UPDATE
+            policy_name = new.policy_name,
+            policy_keyword = new.policy_keyword,
+            policy_description = new.policy_description,
+            support_content = new.support_content,
+            provider_institution_code = new.provider_institution_code,
+            provider_institution_name = new.provider_institution_name,
+            application_start_date = new.application_start_date,
+            application_end_date = new.application_end_date,
+            application_period_text = new.application_period_text,
+            application_method = new.application_method,
+            application_url = new.application_url,
+            reference_url = new.reference_url,
+            min_age = new.min_age,
+            max_age = new.max_age,
+            income_condition_code = new.income_condition_code,
+            min_income = new.min_income,
+            max_income = new.max_income,
+            income_condition_text = new.income_condition_text,
+            qualification = new.qualification,
+            synced_at = new.synced_at
+    </insert>
+
     <sql id="youthPolicySearchCondition">
         <where>
             <if test="keyword != null and keyword != ''">
