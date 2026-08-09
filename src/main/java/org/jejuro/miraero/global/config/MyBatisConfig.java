@@ -22,7 +22,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
     "org.jejuro.miraero.domain.aicoach.mapper",
     "org.jejuro.miraero.domain.autotransfer.mapper",
     "org.jejuro.miraero.domain.account.mapper",
-    "org.jejuro.miraero.domain.goal.milestone.mapper"
+    "org.jejuro.miraero.domain.goal.milestone.mapper",
+    "org.jejuro.miraero.domain.youthpolicy.mapper"
 })
 public class MyBatisConfig {
 
