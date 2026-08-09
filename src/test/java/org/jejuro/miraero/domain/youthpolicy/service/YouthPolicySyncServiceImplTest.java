@@ -3,17 +3,27 @@ package org.jejuro.miraero.domain.youthpolicy.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
+import java.util.List;
+import org.jejuro.miraero.domain.youthpolicy.client.YouthPolicyApiClient;
 import org.jejuro.miraero.domain.youthpolicy.domain.YouthPolicy;
 import org.jejuro.miraero.domain.youthpolicy.dto.external.YouthPolicyApiItem;
+import org.jejuro.miraero.domain.youthpolicy.dto.external.YouthPolicyApiResponse;
 import org.jejuro.miraero.domain.youthpolicy.mapper.YouthPolicyMapper;
+import org.jejuro.miraero.global.exception.BusinessException;
+import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -23,13 +33,16 @@ class YouthPolicySyncServiceImplTest {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Mock
+    private YouthPolicyApiClient youthPolicyApiClient;
+
+    @Mock
     private YouthPolicyMapper youthPolicyMapper;
 
     private YouthPolicySyncService youthPolicySyncService;
 
     @BeforeEach
     void setUp() {
-        youthPolicySyncService = new YouthPolicySyncServiceImpl(youthPolicyMapper);
+        youthPolicySyncService = new YouthPolicySyncServiceImpl(youthPolicyApiClient, youthPolicyMapper);
     }
 
     @Test
@@ -120,8 +133,98 @@ class YouthPolicySyncServiceImplTest {
         assertNull(youthPolicy.getApplicationEndDate());
     }
 
+    @Test
+    void syncYouthPolicies_syncsOnlyFirstPageWhenThereIsOnePage() throws Exception {
+        when(youthPolicyApiClient.getYouthPolicies(1)).thenReturn(readResponse("""
+                {
+                  "resultCode": 200,
+                  "result": {
+                    "pagging": {"totCount": 1, "pageNum": 1, "pageSize": 10},
+                    "youthPolicyList": [{"plcyNo": "policy-1", "plcyNm": "정책 1"}]
+                  }
+                }
+                """));
+
+        youthPolicySyncService.syncYouthPolicies();
+
+        verify(youthPolicyApiClient).getYouthPolicies(1);
+        verify(youthPolicyMapper).upsert(org.mockito.ArgumentMatchers.any(YouthPolicy.class));
+    }
+
+    @Test
+    void syncYouthPolicies_requestsAllPagesInOrderAndUpsertsEveryItem() throws Exception {
+        when(youthPolicyApiClient.getYouthPolicies(1)).thenReturn(readResponse("""
+                {"resultCode": 200, "result": {"pagging": {"totCount": 25, "pageNum": 1, "pageSize": 10},
+                "youthPolicyList": [{"plcyNo": "policy-1", "plcyNm": "정책 1"}, {"plcyNo": "policy-2", "plcyNm": "정책 2"}]}}
+                """));
+        when(youthPolicyApiClient.getYouthPolicies(2)).thenReturn(readResponse("""
+                {"resultCode": 200, "result": {"pagging": {"totCount": 25, "pageNum": 2, "pageSize": 10},
+                "youthPolicyList": [{"plcyNo": "policy-3", "plcyNm": "정책 3"}]}}
+                """));
+        when(youthPolicyApiClient.getYouthPolicies(3)).thenReturn(readResponse("""
+                {"resultCode": 200, "result": {"pagging": {"totCount": 25, "pageNum": 3, "pageSize": 10},
+                "youthPolicyList": [{"plcyNo": "policy-4", "plcyNm": "정책 4"}]}}
+                """));
+
+        youthPolicySyncService.syncYouthPolicies();
+
+        InOrder inOrder = inOrder(youthPolicyApiClient);
+        inOrder.verify(youthPolicyApiClient).getYouthPolicies(1);
+        inOrder.verify(youthPolicyApiClient).getYouthPolicies(2);
+        inOrder.verify(youthPolicyApiClient).getYouthPolicies(3);
+
+        ArgumentCaptor<YouthPolicy> captor = ArgumentCaptor.forClass(YouthPolicy.class);
+        verify(youthPolicyMapper, org.mockito.Mockito.times(4)).upsert(captor.capture());
+        assertEquals(List.of("policy-1", "policy-2", "policy-3", "policy-4"), captor.getAllValues()
+                .stream()
+                .map(YouthPolicy::getPolicyNo)
+                .collect(java.util.stream.Collectors.toList()));
+    }
+
+    @Test
+    void syncYouthPolicies_handlesEmptyList() throws Exception {
+        when(youthPolicyApiClient.getYouthPolicies(1)).thenReturn(readResponse("""
+                {"resultCode": 200, "result": {"pagging": {"totCount": 0, "pageNum": 1, "pageSize": 10},
+                "youthPolicyList": []}}
+                """));
+
+        youthPolicySyncService.syncYouthPolicies();
+
+        verify(youthPolicyApiClient).getYouthPolicies(1);
+        verifyNoInteractions(youthPolicyMapper);
+    }
+
+    @Test
+    void syncYouthPolicies_propagatesApiCallFailure() {
+        RuntimeException exception = new RuntimeException("API 호출 실패");
+        when(youthPolicyApiClient.getYouthPolicies(1)).thenThrow(exception);
+
+        RuntimeException thrown = assertThrows(RuntimeException.class,
+                () -> youthPolicySyncService.syncYouthPolicies());
+
+        assertEquals(exception, thrown);
+        verifyNoInteractions(youthPolicyMapper);
+    }
+
+    @Test
+    void syncYouthPolicies_rejectsMalformedResponse() throws Exception {
+        when(youthPolicyApiClient.getYouthPolicies(1)).thenReturn(readResponse("""
+                {"resultCode": 200}
+                """));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> youthPolicySyncService.syncYouthPolicies());
+
+        assertEquals(CommonErrorCode.SERVICE_UNAVAILABLE, exception.getErrorCode());
+        verifyNoInteractions(youthPolicyMapper);
+    }
+
     private YouthPolicyApiItem readItem(String json) throws Exception {
         return objectMapper.readValue(json, YouthPolicyApiItem.class);
+    }
+
+    private YouthPolicyApiResponse readResponse(String json) throws Exception {
+        return objectMapper.readValue(json, YouthPolicyApiResponse.class);
     }
 
     private YouthPolicy capturedYouthPolicy() {

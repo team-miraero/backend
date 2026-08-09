@@ -4,12 +4,21 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.youthpolicy.client.YouthPolicyApiClient;
 import org.jejuro.miraero.domain.youthpolicy.domain.YouthPolicy;
 import org.jejuro.miraero.domain.youthpolicy.dto.external.YouthPolicyApiItem;
+import org.jejuro.miraero.domain.youthpolicy.dto.external.YouthPolicyApiPaging;
+import org.jejuro.miraero.domain.youthpolicy.dto.external.YouthPolicyApiResponse;
+import org.jejuro.miraero.domain.youthpolicy.dto.external.YouthPolicyApiResult;
 import org.jejuro.miraero.domain.youthpolicy.mapper.YouthPolicyMapper;
+import org.jejuro.miraero.global.exception.BusinessException;
+import org.jejuro.miraero.global.exception.CommonErrorCode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,16 +26,74 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class YouthPolicySyncServiceImpl implements YouthPolicySyncService {
 
+    private static final Logger log = LoggerFactory.getLogger(YouthPolicySyncServiceImpl.class);
     private static final DateTimeFormatter APPLICATION_DATE_FORMATTER = DateTimeFormatter.BASIC_ISO_DATE;
     private static final Pattern APPLICATION_PERIOD_PATTERN = Pattern.compile("^(\\d{8})\\s*~\\s*(\\d{8})$");
     private static final String QUALIFICATION_SEPARATOR = "\n";
 
+    private final YouthPolicyApiClient youthPolicyApiClient;
     private final YouthPolicyMapper youthPolicyMapper;
 
     @Override
     @Transactional
     public void syncYouthPolicy(YouthPolicyApiItem source) {
         youthPolicyMapper.upsert(toYouthPolicy(source));
+    }
+
+    @Override
+    @Transactional
+    public void syncYouthPolicies() {
+        log.info("청년정책 전체 동기화를 시작합니다.");
+
+        try {
+            YouthPolicyApiResult firstResult = getYouthPolicyApiResult(1);
+            int totalPages = calculateTotalPages(firstResult.getPagging());
+            int syncedCount = syncYouthPolicyItems(firstResult.getYouthPolicyList());
+
+            for (int pageNum = 2; pageNum <= totalPages; pageNum++) {
+                YouthPolicyApiResult result = getYouthPolicyApiResult(pageNum);
+                syncedCount += syncYouthPolicyItems(result.getYouthPolicyList());
+            }
+
+            log.info("청년정책 전체 동기화를 완료했습니다. 저장 건수: {}", syncedCount);
+        } catch (RuntimeException exception) {
+            log.error("청년정책 전체 동기화 중 오류가 발생했습니다.", exception);
+            throw exception;
+        }
+    }
+
+    private YouthPolicyApiResult getYouthPolicyApiResult(int pageNum) {
+        YouthPolicyApiResponse response = youthPolicyApiClient.getYouthPolicies(pageNum);
+        if (response == null || response.getResult() == null
+                || response.getResult().getPagging() == null
+                || response.getResult().getYouthPolicyList() == null) {
+            throw new BusinessException(CommonErrorCode.SERVICE_UNAVAILABLE);
+        }
+        return response.getResult();
+    }
+
+    private int calculateTotalPages(YouthPolicyApiPaging paging) {
+        Integer totalCount = paging.getTotCount();
+        Integer pageSize = paging.getPageSize();
+
+        if (totalCount == null || totalCount < 0 || pageSize == null || pageSize <= 0) {
+            throw new BusinessException(CommonErrorCode.SERVICE_UNAVAILABLE);
+        }
+
+        return (int) Math.ceil((double) totalCount / pageSize);
+    }
+
+    private int syncYouthPolicyItems(List<YouthPolicyApiItem> youthPolicyItems) {
+        int syncedCount = 0;
+
+        for (YouthPolicyApiItem youthPolicyItem : youthPolicyItems) {
+            if (youthPolicyItem == null) {
+                continue;
+            }
+            syncYouthPolicy(youthPolicyItem);
+            syncedCount++;
+        }
+        return syncedCount;
     }
 
     private YouthPolicy toYouthPolicy(YouthPolicyApiItem source) {
