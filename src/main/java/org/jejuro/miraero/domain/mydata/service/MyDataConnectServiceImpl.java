@@ -59,8 +59,7 @@ public class MyDataConnectServiceImpl implements MyDataConnectService {
 
     syncWithTokenRefresh(userId, user);
 
-    Long financialInstitutionId = referenceDataMapper.findFinancialInstitutionIdByCode(MOCK_INSTITUTION_CODE);
-    myDataConsentMapper.updateSyncedAt(userId, financialInstitutionId);
+    myDataConsentMapper.updateSyncedAt(userId, resolveMockInstitutionId());
   }
 
   // 토큰이 Redis TTL로 만료됐으면 재인증 후 1회만 재시도한다 (사용자에게 재연동을 요구하지 않기 위함)
@@ -83,14 +82,21 @@ public class MyDataConnectServiceImpl implements MyDataConnectService {
     myDataTokenRepository.save(userId, token.getAccessToken(), token.getExpiresIn());
     userMapper.updateKbPayId(userId, token.getKbUserId());
 
-    Long financialInstitutionId = referenceDataMapper.findFinancialInstitutionIdByCode(MOCK_INSTITUTION_CODE);
     myDataConsentMapper.upsertConnection(
         userId,
-        financialInstitutionId,
+        resolveMockInstitutionId(),
         CONNECTION_STATUS_CONNECTED,
         LocalDateTime.now().plusSeconds(token.getExpiresIn())
     );
 
     return token;
+  }
+
+  private Long resolveMockInstitutionId() {
+    Long financialInstitutionId = referenceDataMapper.findFinancialInstitutionIdByCode(MOCK_INSTITUTION_CODE);
+    if (financialInstitutionId == null) {
+      throw new BusinessException(MyDataErrorCode.MYDATA_INSTITUTION_NOT_FOUND);
+    }
+    return financialInstitutionId;
   }
 }
