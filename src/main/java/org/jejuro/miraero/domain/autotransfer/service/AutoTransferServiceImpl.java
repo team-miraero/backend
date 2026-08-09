@@ -1,7 +1,6 @@
 package org.jejuro.miraero.domain.autotransfer.service;
 
 import lombok.RequiredArgsConstructor;
-import org.jejuro.miraero.domain.account.Account;
 import org.jejuro.miraero.domain.autotransfer.domain.AutoTransfer;
 import org.jejuro.miraero.domain.autotransfer.domain.AutoTransferStatus;
 import org.jejuro.miraero.domain.autotransfer.dto.request.AutoTransferCreateRequest;
