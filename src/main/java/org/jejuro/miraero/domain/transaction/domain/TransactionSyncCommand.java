@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 // 외부(mock-server) 거래 데이터를 로컬 DB에 동기화하기 위한 파라미터 객체.
-// accountId/expenseCategoryId는 각각 B6(계좌 매퍼), B5(기준 데이터 매퍼)가 미리 해석해서 넘겨준다는 전제.
+// accountId/expenseCategoryId는 각각 계좌 매퍼, 기준 데이터 매퍼가 미리 해석해서 넘겨준다는 전제.
 @Getter
 @AllArgsConstructor
 public class TransactionSyncCommand {
