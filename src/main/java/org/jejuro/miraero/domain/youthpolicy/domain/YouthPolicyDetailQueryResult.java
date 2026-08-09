@@ -18,7 +18,7 @@ public class YouthPolicyDetailQueryResult {
     private String providerInstitutionName;
     private LocalDate applicationStartDate;
     private LocalDate applicationEndDate;
-    private String applicationPeriod;
+    private String applicationPeriodText;
     private Integer minAge;
     private Integer maxAge;
     private Long minIncome;

@@ -1,5 +1,6 @@
 package org.jejuro.miraero.domain.youthpolicy.domain;
 
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,5 +14,7 @@ public class YouthPolicyListQueryResult {
     private String policyName;
     private String policyKeyword;
     private String providerInstitutionName;
-    private String applicationPeriod;
+    private LocalDate applicationStartDate;
+    private LocalDate applicationEndDate;
+    private String applicationPeriodText;
 }
