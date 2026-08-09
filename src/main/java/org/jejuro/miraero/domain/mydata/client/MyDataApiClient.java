@@ -47,7 +47,7 @@ public class MyDataApiClient {
       String transactionsPath
   ) {
     this.restTemplate = restTemplate;
-    // LocalDate/LocalDateTime fields in the response DTOs need this to deserialize.
+    // 외부 API 응답 DTO의 LocalDate/LocalDateTime 필드 역직렬화를 위해 필요
     this.objectMapper = objectMapper.registerModule(new JavaTimeModule());
     this.baseUrl = baseUrl;
     this.accountsPath = accountsPath;
