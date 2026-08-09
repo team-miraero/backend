@@ -96,5 +96,11 @@
     FROM miraero_user
     WHERE user_id = #{userId}
   </select>
+
+  <update id="updateKbPayId">
+    UPDATE miraero_user
+    SET kb_pay_id = #{kbPayId}
+    WHERE user_id = #{userId}
+  </update>
 </mapper>
 

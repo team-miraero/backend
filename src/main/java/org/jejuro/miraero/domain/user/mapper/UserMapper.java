@@ -22,5 +22,7 @@ public interface UserMapper {
   );
 
   Long findMonthlyIncome(@Param("userId") Long userId);
+
+  int updateKbPayId(@Param("userId") Long userId, @Param("kbPayId") Long kbPayId);
 }
 

@@ -14,7 +14,6 @@ import org.jejuro.miraero.domain.auth.dto.response.LoginResponse;
 import org.jejuro.miraero.domain.auth.dto.response.SignUpResponse;
 import org.jejuro.miraero.domain.auth.exception.AuthErrorCode;
 import org.jejuro.miraero.domain.auth.repository.RefreshTokenRepository;
-import org.jejuro.miraero.domain.mydata.service.MyDataLinkService;
 import org.jejuro.miraero.domain.user.domain.User;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
 import org.jejuro.miraero.domain.user.service.UserCreateCommand;
@@ -39,9 +38,6 @@ class AuthServiceImplTest {
   private PasswordEncoder passwordEncoder;
 
   @Mock
-  private MyDataLinkService myDataLinkService;
-
-  @Mock
   private AuthTokenProvider authTokenProvider;
 
   @Mock
@@ -57,7 +53,6 @@ class AuthServiceImplTest {
     authService = new AuthServiceImpl(
         userMapper,
         passwordEncoder,
-        myDataLinkService,
         authTokenProvider,
         userService,
         refreshTokenRepository
@@ -123,7 +118,6 @@ class AuthServiceImplTest {
 
     verify(userMapper).findByEmail("test@example.com");
     verify(passwordEncoder).matches("password123!", "encodedPassword");
-    verify(myDataLinkService).syncUserData(user);
     verify(authTokenProvider).createAccessToken(user.getUserId());
     verify(authTokenProvider).createRefreshToken(user.getUserId());
   }
@@ -148,7 +142,6 @@ class AuthServiceImplTest {
 
     verify(userMapper).findByEmail("not-found@example.com");
     verify(passwordEncoder, never()).matches(any(), any());
-    verify(myDataLinkService, never()).syncUserData(any());
     verify(authTokenProvider, never()).createAccessToken(any());
     verify(authTokenProvider, never()).createRefreshToken(any());
   }
@@ -177,7 +170,6 @@ class AuthServiceImplTest {
 
     verify(userMapper).findByEmail("test@example.com");
     verify(passwordEncoder).matches("wrongPassword123!", "encodedPassword");
-    verify(myDataLinkService, never()).syncUserData(any());
     verify(authTokenProvider, never()).createAccessToken(any());
     verify(authTokenProvider, never()).createRefreshToken(any());
     verify(refreshTokenRepository, never()).save(any(), any(), any());
