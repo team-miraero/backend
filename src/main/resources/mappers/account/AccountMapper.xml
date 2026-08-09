@@ -20,6 +20,7 @@
     AND user_id = #{userId}
   </update>
 
+  <!-- ex_account_id UNIQUE 제약 기준 upsert. 신규면 INSERT, 이미 있으면 UPDATE절만 갱신 -->
   <insert id="upsert"
     parameterType="org.jejuro.miraero.domain.account.domain.Account">
     INSERT INTO account (
@@ -43,6 +44,7 @@
     synced_at = CURRENT_TIMESTAMP
   </insert>
 
+  <!-- 거래 동기화 시 ex_account_id -> account_id 변환용 -->
   <select id="findAccountIdByExAccountId" resultType="java.lang.Long">
     SELECT account_id
     FROM account
