@@ -287,7 +287,7 @@ public class GoalServiceImpl implements GoalService{
 
 
         long differenceAmount =
-                Math.abs((currentAmount == null ? 0L : currentAmount) - expectedAmount);
+                (currentAmount == null ? 0L : currentAmount) - expectedAmount;
 
 
         PaceStatus status;
@@ -299,6 +299,8 @@ public class GoalServiceImpl implements GoalService{
         } else {
             status = PaceStatus.ON_TRACK;
         }
+
+        differenceAmount = Math.abs(differenceAmount);
 
 
         return GoalPaceResponse.builder()
