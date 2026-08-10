@@ -2,6 +2,8 @@ package org.jejuro.miraero.domain.goal.service;
 
 
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.account.dto.response.AccountResponse;
+import org.jejuro.miraero.domain.account.mapper.AccountMapper;
 import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
@@ -25,6 +27,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
 
     private final GoalAssetMapper goalAssetMapper;
     private final GoalMapper goalMapper;
+    private final AccountMapper accountMapper;
 
 
 
@@ -49,7 +52,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
             return;
         }
 
-        validateAssets(assets);
+        validateAssets(userId, assets);
 
         validateDuplicateAssets(assets);
 
@@ -73,11 +76,11 @@ public class GoalAssetServiceImpl implements GoalAssetService {
 
 
 
-    private void validateAssets(List<GoalAssetRequest> assets) {
+    private void validateAssets(Long userId, List<GoalAssetRequest> assets) {
         for (GoalAssetRequest asset : assets) {
 
             boolean exists = switch (asset.getAssetType()) {
-                case ACCOUNT -> true;//accountMapper.existsById(asset.getAssetId());
+                case ACCOUNT -> accountMapper.existsByIdAndUserId(asset.getAssetId(), userId);
                 case MONEY_BOX -> true;//moneyBoxMapper.existsById(asset.getAssetId());
                 case LOAN -> true;//loanMapper.existsById(asset.getAssetId());
             };
@@ -98,8 +101,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
         for (GoalAsset asset : assets) {
 
             Long amount = switch (asset.getAssetType()) {
-                case ACCOUNT ->
-                        0L;//accountMapper.findCurrentAmount(asset.getAssetId());
+                case ACCOUNT -> findAccountBalance(asset.getAssetId());
 
                 case MONEY_BOX ->
                         0L; //moneyBoxMapper.findCurrentAmount(asset.getAssetId());
@@ -110,6 +112,12 @@ public class GoalAssetServiceImpl implements GoalAssetService {
             totalAmount += (amount == null ? 0L : amount);
         }
         return totalAmount;
+    }
+
+    // 목표 연결 이후 계좌가 삭제/연동해제됐을 수 있어 null 방어
+    private Long findAccountBalance(Long accountId) {
+        AccountResponse account = accountMapper.findResponseById(accountId);
+        return account == null ? 0L : account.getBalance();
     }
 
     @Override
@@ -128,140 +136,33 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                 .build();
     }
 
-    //TODO 자산 서비스 완성되면 연결
+    // MONEY_BOX/LOAN은 아직 자산 서비스가 없어 assetType/assetId만 반환 (범위 밖)
     private GoalAssetResponse convertResponse(
             GoalAsset goalAsset
     ){
+        if (goalAsset.getAssetType() == AssetType.ACCOUNT) {
+            AccountResponse account = accountMapper.findResponseById(goalAsset.getAssetId());
 
-//        GoalAssetResponse response;
-//
-//        switch (goalAsset.getAssetType()) {
-//
-//
-//            case ACCOUNT -> {
-//
-//                AccountResponse account =
-//                        accountService.findById(
-//                                goalAsset.getAssetId()
-//                        );
-//
-//
-//                response =
-//                        GoalAssetResponse.builder()
-//                                .assetType(
-//                                        goalAsset.getAssetType()
-//                                )
-//                                .assetId(
-//                                        account.getAccountId()
-//                                )
-//                                .assetName(
-//                                        account.getAccountName()
-//                                )
-//                                .bankName(
-//                                        account.getBankName()
-//                                )
-//                                .accountNumberMasked(
-//                                        account.getAccountNumberMasked()
-//                                )
-//                                .balance(
-//                                        account.getBalance()
-//                                )
-//                                .assetDetail(
-//                                        AssetDetailResponse.builder()
-//                                                .interestRate(
-//                                                        account.getInterestRate()
-//                                                )
-//                                                .maturityDate(
-//                                                        account.getMaturityDate()
-//                                                )
-//                                                .build()
-//                                )
-//                                .build();
-//            }
-//
-//
-//            case MONEY_BOX -> {
-//
-//                MoneyBoxResponse moneyBox =
-//                        moneyBoxService.findById(
-//                                goalAsset.getAssetId()
-//                        );
-//
-//
-//                response =
-//                        GoalAssetResponse.builder()
-//                                .assetType(
-//                                        goalAsset.getAssetType()
-//                                )
-//                                .assetId(
-//                                        moneyBox.getMoneyBoxId()
-//                                )
-//                                .assetName(
-//                                        moneyBox.getName()
-//                                )
-//                                .bankName(
-//                                        moneyBox.getBankName()
-//                                )
-//                                .accountNumberMasked(
-//                                        moneyBox.getAccountNumberMasked()
-//                                )
-//                                .balance(
-//                                        moneyBox.getBalance()
-//                                )
-//                                .build();
-//
-//            }
-//
-//
-//            case LOAN -> {
-//
-//                LoanResponse loan =
-//                        loanService.findById(
-//                                goalAsset.getAssetId()
-//                        );
-//
-//
-//                response =
-//                        GoalAssetResponse.builder()
-//                                .assetType(
-//                                        goalAsset.getAssetType()
-//                                )
-//                                .assetId(
-//                                        loan.getLoanId()
-//                                )
-//                                .assetName(
-//                                        loan.getLoanName()
-//                                )
-//                                .bankName(
-//                                        loan.getBankName()
-//                                )
-//                                .balance(
-//                                        loan.getBalance()
-//                                )
-//                                .build();
-//
-//            }
-//
-//
-//            default -> throw new IllegalArgumentException();
-//        }
-//
-//        AutoTransferResponse autoTransfer =
-//                autoTransferService.getByAsset(
-//                        goalAsset.getAssetType(),
-//                        goalAsset.getAssetId()
-//                );
-//
-//        return GoalAssetResponse.builder()
-//                .assetType(response.getAssetType())
-//                .assetId(response.getAssetId())
-//                .assetName(response.getAssetName())
-//                .bankName(response.getBankName())
-//                .accountNumberMasked(response.getAccountNumberMasked())
-//                .balance(response.getBalance())
-//                .assetDetail(response.getAssetDetail())
-//                .autoTransfer(autoTransfer)
-//                .build();
+            if (account == null) {
+                return GoalAssetResponse.builder()
+                        .assetType(goalAsset.getAssetType())
+                        .assetId(goalAsset.getAssetId())
+                        .build();
+            }
+
+            return GoalAssetResponse.builder()
+                    .assetType(goalAsset.getAssetType())
+                    .assetId(account.getAccountId())
+                    .assetName(account.getAccountName())
+                    .bankName(account.getInstitutionName())
+                    .accountNumberMasked(account.getMaskedAccountNumber())
+                    .balance(account.getBalance())
+                    .assetDetail(AssetDetailResponse.builder()
+                            .interestRate(account.getInterestRate())
+                            .maturityDate(account.getMaturityAt())
+                            .build())
+                    .build();
+        }
 
         return GoalAssetResponse.builder()
                 .assetType(goalAsset.getAssetType())

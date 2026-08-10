@@ -1,0 +1,21 @@
+package org.jejuro.miraero.domain.account.exception;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.global.exception.ErrorCode;
+import org.springframework.http.HttpStatus;
+
+@Getter
+@RequiredArgsConstructor
+public enum AccountErrorCode implements ErrorCode {
+
+  ACCOUNT_NOT_FOUND(
+      HttpStatus.NOT_FOUND,
+      "ACCOUNT_001",
+      "계좌를 찾을 수 없습니다."
+  );
+
+  private final HttpStatus status;
+  private final String code;
+  private final String message;
+}

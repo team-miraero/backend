@@ -50,4 +50,61 @@
     FROM account
     WHERE ex_account_id = #{exAccountId}
   </select>
+
+  <select id="findByIdAndUserId" resultType="org.jejuro.miraero.domain.account.domain.Account">
+    SELECT
+    account_id, user_id, financial_institution_id, ex_account_id, account_type, account_name,
+    account_number, account_number_hash, masked_account_number,
+    balance, account_status, opened_at, maturity_at, interest_rate, monthly_payment_limit
+    FROM account
+    WHERE account_id = #{accountId}
+    AND user_id = #{userId}
+  </select>
+
+  <select id="existsByIdAndUserId" resultType="boolean">
+    SELECT EXISTS (
+    SELECT 1 FROM account
+    WHERE account_id = #{accountId}
+    AND user_id = #{userId}
+    )
+  </select>
+
+  <select id="findAllByUserId" resultType="org.jejuro.miraero.domain.account.dto.response.AccountResponse">
+    SELECT
+    a.account_id AS accountId,
+    a.account_type AS accountType,
+    a.account_name AS accountName,
+    fi.financial_institution_name AS institutionName,
+    a.masked_account_number AS maskedAccountNumber,
+    a.balance AS balance,
+    a.account_status AS accountStatus,
+    a.opened_at AS openedAt,
+    a.maturity_at AS maturityAt,
+    a.interest_rate AS interestRate,
+    a.monthly_payment_limit AS monthlyPaymentLimit
+    FROM account a
+    INNER JOIN financial_institution fi
+    ON a.financial_institution_id = fi.financial_institution_id
+    WHERE a.user_id = #{userId}
+    ORDER BY a.account_id
+  </select>
+
+  <select id="findResponseById" resultType="org.jejuro.miraero.domain.account.dto.response.AccountResponse">
+    SELECT
+    a.account_id AS accountId,
+    a.account_type AS accountType,
+    a.account_name AS accountName,
+    fi.financial_institution_name AS institutionName,
+    a.masked_account_number AS maskedAccountNumber,
+    a.balance AS balance,
+    a.account_status AS accountStatus,
+    a.opened_at AS openedAt,
+    a.maturity_at AS maturityAt,
+    a.interest_rate AS interestRate,
+    a.monthly_payment_limit AS monthlyPaymentLimit
+    FROM account a
+    INNER JOIN financial_institution fi
+    ON a.financial_institution_id = fi.financial_institution_id
+    WHERE a.account_id = #{accountId}
+  </select>
 </mapper>

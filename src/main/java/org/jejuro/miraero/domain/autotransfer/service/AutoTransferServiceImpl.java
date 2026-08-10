@@ -1,6 +1,9 @@
 package org.jejuro.miraero.domain.autotransfer.service;
 
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.account.domain.Account;
+import org.jejuro.miraero.domain.account.exception.AccountErrorCode;
+import org.jejuro.miraero.domain.account.mapper.AccountMapper;
 import org.jejuro.miraero.domain.autotransfer.domain.AutoTransfer;
 import org.jejuro.miraero.domain.autotransfer.domain.AutoTransferStatus;
 import org.jejuro.miraero.domain.autotransfer.dto.request.AutoTransferCreateRequest;
@@ -19,6 +22,7 @@ import java.time.LocalDateTime;
 public class AutoTransferServiceImpl implements AutoTransferService {
 
     private final AutoTransferMapper autoTransferMapper;
+    private final AccountMapper accountMapper;
 
 
     @Override
@@ -29,19 +33,17 @@ public class AutoTransferServiceImpl implements AutoTransferService {
             String maskedDepositAccount,
             AutoTransferCreateRequest request
     ){
-//        Account account =
-//                accountMapper.findByIdAndUserId(
-//                        request.getWithdrawalAccountId(),
-//                        userId
-//                );
-//
-//        if (account == null) {
-//            throw new BusinessException(
-//                    AccountErrorCode.ACCOUNT_NOT_FOUND
-//            );
-//        }
+        Account account =
+                accountMapper.findByIdAndUserId(
+                        request.getWithdrawalAccountId(),
+                        userId
+                );
 
-
+        if (account == null) {
+            throw new BusinessException(
+                    AccountErrorCode.ACCOUNT_NOT_FOUND
+            );
+        }
 
         AutoTransfer autoTransfer =
                 AutoTransfer.builder()

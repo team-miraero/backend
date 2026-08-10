@@ -1,8 +1,10 @@
 package org.jejuro.miraero.domain.account.mapper;
 
+import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.account.domain.Account;
+import org.jejuro.miraero.domain.account.dto.response.AccountResponse;
 
 @Mapper
 public interface AccountMapper {
@@ -11,6 +13,22 @@ public interface AccountMapper {
       @Param("accountId") Long accountId,
       @Param("userId") Long userId
   );
+
+  // 다른 도메인이 출금계좌 등으로 참조하는 계좌 ID의 소유권을 확인할 때 사용
+  Account findByIdAndUserId(
+      @Param("accountId") Long accountId,
+      @Param("userId") Long userId
+  );
+
+  boolean existsByIdAndUserId(
+      @Param("accountId") Long accountId,
+      @Param("userId") Long userId
+  );
+
+  List<AccountResponse> findAllByUserId(@Param("userId") Long userId);
+
+  // 소유권 확인이 끝난 뒤(예: goal_asset 조회) 은행명까지 포함한 상세 조회용
+  AccountResponse findResponseById(@Param("accountId") Long accountId);
 
   int increaseBalance(
       @Param("accountId") Long accountId,

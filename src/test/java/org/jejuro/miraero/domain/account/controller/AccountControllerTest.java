@@ -1,0 +1,76 @@
+package org.jejuro.miraero.domain.account.controller;
+
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.List;
+import org.jejuro.miraero.domain.account.dto.response.AccountListResponse;
+import org.jejuro.miraero.domain.account.dto.response.AccountResponse;
+import org.jejuro.miraero.domain.account.service.AccountService;
+import org.jejuro.miraero.global.exception.GlobalExceptionHandler;
+import org.jejuro.miraero.global.security.AuthenticatedUser;
+import org.jejuro.miraero.global.security.JwtAuthenticationToken;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+@ExtendWith(MockitoExtension.class)
+class AccountControllerTest {
+
+  private static final Long USER_ID = 1L;
+
+  @Mock
+  private AccountService accountService;
+
+  private MockMvc mockMvc;
+
+  @BeforeEach
+  void setUp() {
+    AccountController accountController = new AccountController(accountService);
+
+    mockMvc = MockMvcBuilders
+        .standaloneSetup(accountController)
+        .setControllerAdvice(new GlobalExceptionHandler())
+        .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+        .build();
+
+    SecurityContextHolder.getContext().setAuthentication(
+        new JwtAuthenticationToken(new AuthenticatedUser(USER_ID))
+    );
+  }
+
+  @Test
+  @DisplayName("로그인한 사용자의 계좌 목록을 반환한다")
+  void getAccounts_success() throws Exception {
+    AccountListResponse response = AccountListResponse.builder()
+        .accounts(List.of(
+            AccountResponse.builder()
+                .accountId(1L)
+                .accountType("CHECKING")
+                .accountName("KB 입출금통장")
+                .institutionName("국민은행")
+                .maskedAccountNumber("123*****90")
+                .balance(3_400_000L)
+                .build()
+        ))
+        .build();
+    given(accountService.getAccounts(USER_ID)).willReturn(response);
+
+    mockMvc.perform(get("/api/accounts"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.accounts[0].accountId").value(1))
+        .andExpect(jsonPath("$.data.accounts[0].accountType").value("CHECKING"))
+        .andExpect(jsonPath("$.data.accounts[0].institutionName").value("국민은행"))
+        .andExpect(jsonPath("$.data.accounts[0].balance").value(3_400_000));
+  }
+}

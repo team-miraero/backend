@@ -1,5 +1,7 @@
 package org.jejuro.miraero.domain.goal.service;
 
+import org.jejuro.miraero.domain.account.dto.response.AccountResponse;
+import org.jejuro.miraero.domain.account.mapper.AccountMapper;
 import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
@@ -32,6 +34,9 @@ class GoalAssetServiceImplTest {
     @Mock
     private GoalMapper goalMapper;
 
+    @Mock
+    private AccountMapper accountMapper;
+
     @InjectMocks
     private GoalAssetServiceImpl goalAssetService;
 
@@ -51,6 +56,10 @@ class GoalAssetServiceImplTest {
                         .build()
         );
 
+        given(goalMapper.findByIdAndUserId(userId, goalId))
+                .willReturn(Goal.builder().goalId(goalId).userId(userId).build());
+        when(accountMapper.existsByIdAndUserId(10L, userId))
+                .thenReturn(true);
 
         // when
         goalAssetService.saveGoalAssets(
@@ -63,6 +72,34 @@ class GoalAssetServiceImplTest {
         // then
         verify(goalAssetMapper)
                 .saveAll(goalId, assets);
+    }
+
+    @Test
+    @DisplayName("연결하려는 계좌가 내 소유가 아니면 예외 발생")
+    void saveGoalAssets_accountNotOwned_fail() {
+
+        Long goalId = 1L;
+        Long userId = 1L;
+
+        List<GoalAssetRequest> assets = List.of(
+                GoalAssetRequest.builder()
+                        .assetId(10L)
+                        .assetType(AssetType.ACCOUNT)
+                        .build()
+        );
+
+        given(goalMapper.findByIdAndUserId(userId, goalId))
+                .willReturn(Goal.builder().goalId(goalId).userId(userId).build());
+        when(accountMapper.existsByIdAndUserId(10L, userId))
+                .thenReturn(false);
+
+        assertThrows(
+                BusinessException.class,
+                () -> goalAssetService.saveGoalAssets(userId, goalId, assets)
+        );
+
+        verify(goalAssetMapper, never())
+                .saveAll(anyLong(), anyList());
     }
 
     @Test
@@ -83,6 +120,8 @@ class GoalAssetServiceImplTest {
 
         when(goalAssetMapper.findByGoalId(goalId))
                 .thenReturn(assets);
+        when(accountMapper.findResponseById(10L))
+                .thenReturn(AccountResponse.builder().accountId(10L).balance(500_000L).build());
 
 
         // when
@@ -91,7 +130,7 @@ class GoalAssetServiceImplTest {
 
 
         // then
-        assertEquals(0L, result);
+        assertEquals(500_000L, result);
     }
 
     @Test
@@ -109,7 +148,10 @@ class GoalAssetServiceImplTest {
                         .build()
         );
 
-
+        given(goalMapper.findByIdAndUserId(userId, goalId))
+                .willReturn(Goal.builder().goalId(goalId).userId(userId).build());
+        when(accountMapper.existsByIdAndUserId(10L, userId))
+                .thenReturn(true);
         when(goalAssetMapper.existsByAsset(
                 AssetType.ACCOUNT,
                 10L
@@ -125,6 +167,40 @@ class GoalAssetServiceImplTest {
 
         verify(goalAssetMapper, never())
                 .saveAll(anyLong(), anyList());
+    }
+
+    @Test
+    @DisplayName("ACCOUNT 자산 조회 시 계좌 상세정보를 채워서 반환한다")
+    void getGoalAssets_account_fillsAccountDetail() {
+
+        Long goalId = 1L;
+
+        List<GoalAsset> assets = List.of(
+                GoalAsset.builder()
+                        .goalId(goalId)
+                        .assetType(AssetType.ACCOUNT)
+                        .assetId(10L)
+                        .build()
+        );
+
+        when(goalAssetMapper.findByGoalId(goalId))
+                .thenReturn(assets);
+        when(accountMapper.findResponseById(10L))
+                .thenReturn(AccountResponse.builder()
+                        .accountId(10L)
+                        .accountName("KB 입출금통장")
+                        .institutionName("국민은행")
+                        .maskedAccountNumber("123*****90")
+                        .balance(500_000L)
+                        .build());
+
+        var response = goalAssetService.getGoalAssets(goalId);
+
+        assertEquals(1, response.getAssets().size());
+        var asset = response.getAssets().get(0);
+        assertEquals("KB 입출금통장", asset.getAssetName());
+        assertEquals("국민은행", asset.getBankName());
+        assertEquals(500_000L, asset.getBalance());
     }
 
     @Test
