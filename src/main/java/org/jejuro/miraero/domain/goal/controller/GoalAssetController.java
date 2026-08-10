@@ -42,12 +42,13 @@ public class GoalAssetController {
      */
     @GetMapping("/{goalId}/assets")
     public ResponseEntity<ApiResponse<GoalAssetListResponse>> getGoalAssets(
-            @PathVariable Long goalId
+            @PathVariable Long goalId,
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
 
         return ResponseEntity.ok(
                 ApiResponse.success(
-                        goalAssetService.getGoalAssets(goalId)
+                        goalAssetService.getGoalAssets(user.getUserId(), goalId)
                 )
         );
     }

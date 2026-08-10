@@ -1,11 +1,15 @@
 package org.jejuro.miraero.domain.account.mapper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.jejuro.miraero.domain.account.domain.Account;
+import org.jejuro.miraero.domain.account.dto.response.AccountResponse;
 import org.jejuro.miraero.global.config.RootConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,6 +41,50 @@ class AccountMapperTest {
     Long secondId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
 
     assertEquals(firstId, secondId);
+  }
+
+  @Test
+  @DisplayName("소유자가 맞으면 계좌를 조회하고, 다른 사용자면 null을 반환한다")
+  void findByIdAndUserId_ownershipCheck() {
+    accountMapper.upsert(createAccount(3400000L));
+    Long accountId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
+
+    assertNotNull(accountMapper.findByIdAndUserId(accountId, 1L));
+    assertNull(accountMapper.findByIdAndUserId(accountId, 999L));
+  }
+
+  @Test
+  @DisplayName("소유자가 맞으면 true, 다른 사용자면 false를 반환한다")
+  void existsByIdAndUserId_ownershipCheck() {
+    accountMapper.upsert(createAccount(3400000L));
+    Long accountId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
+
+    assertTrue(accountMapper.existsByIdAndUserId(accountId, 1L));
+    assertFalse(accountMapper.existsByIdAndUserId(accountId, 999L));
+  }
+
+  @Test
+  @DisplayName("사용자의 전체 계좌 목록을 은행명과 함께 조회한다")
+  void findAllByUserId_includesInstitutionName() {
+    accountMapper.upsert(createAccount(3400000L));
+
+    java.util.List<AccountResponse> accounts = accountMapper.findAllByUserId(1L);
+
+    assertTrue(accounts.stream().anyMatch(a ->
+        "KB 입출금통장".equals(a.getAccountName()) && a.getInstitutionName() != null));
+  }
+
+  @Test
+  @DisplayName("계좌 ID로 은행명을 포함한 상세정보를 조회한다")
+  void findResponseById_returnsDetail() {
+    accountMapper.upsert(createAccount(3400000L));
+    Long accountId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
+
+    AccountResponse response = accountMapper.findResponseById(accountId);
+
+    assertNotNull(response);
+    assertEquals(3400000L, response.getBalance());
+    assertNotNull(response.getInstitutionName());
   }
 
   private Account createAccount(Long balance) {
