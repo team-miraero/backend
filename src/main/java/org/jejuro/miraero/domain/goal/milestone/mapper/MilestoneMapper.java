@@ -16,5 +16,7 @@ public interface MilestoneMapper {
 
     void saveAll(List<Milestone> milestones);
 
+    void deleteByGoalId(Long goalId);
+
     void updateAchievement(Milestone milestone);
 }

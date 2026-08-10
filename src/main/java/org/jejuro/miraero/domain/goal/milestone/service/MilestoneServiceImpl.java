@@ -13,11 +13,16 @@ import org.jejuro.miraero.domain.goal.milestone.mapper.MilestoneReportMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class MilestoneServiceImpl implements MilestoneService {
+
+    private static final int[] MILESTONE_PERCENTAGES = {
+            25, 50, 75, 100
+    };
 
     private final GoalMapper goalMapper;
     private final MilestoneMapper milestoneMapper;
@@ -54,6 +59,46 @@ public class MilestoneServiceImpl implements MilestoneService {
         return MilestoneListResponse.of(responses);
     }
 
+    @Override
+    public void createMilestones(
+            Long goalId,
+            Long goalAmount
+    ) {
+        List<Milestone> milestones =
+                createMilestoneList(goalId, goalAmount);
+
+        milestoneMapper.saveAll(milestones);
+    }
+
+    @Override
+    public void recreateMilestones(Long goalId, Long goalAmount) {
+        milestoneMapper.deleteByGoalId(goalId);
+        createMilestones(goalId, goalAmount);
+    }
+
+    /**
+     * 목표 금액을 기준으로
+     * 25%, 50%, 75%, 100% 마일스톤을 생성한다.
+     */
+    private List<Milestone> createMilestoneList(
+            Long goalId,
+            Long goalAmount
+    ) {
+        return Arrays.stream(MILESTONE_PERCENTAGES)
+                .mapToObj(percentage ->
+                        Milestone.builder()
+                                .goalId(goalId)
+                                .milestonePercentage(percentage)
+                                .milestoneAmount(
+                                        goalAmount * percentage / 100
+                                )
+                                .achieved(false)
+                                .build()
+                )
+                .toList();
+    }
+
+
     /**
      * 마일스톤과 해당 마일스톤의 리포트를
      * 화면 응답 DTO로 변환한다.
@@ -67,29 +112,10 @@ public class MilestoneServiceImpl implements MilestoneService {
                 );
 
         return MilestoneResponse.from(
-                getStep(milestone.getMilestonePercentage()),
+                milestone.getStep(),
                 milestone,
                 MilestoneReportResponse.from(report)
         );
     }
 
-    /**
-     * 마일스톤 퍼센트를 화면상의 단계로 변환한다.
-     *
-     * 25%  → 1단계
-     * 50%  → 2단계
-     * 75%  → 3단계
-     * 100% → 4단계
-     */
-    private int getStep(int percentage) {
-        return switch (percentage) {
-            case 25 -> 1;
-            case 50 -> 2;
-            case 75 -> 3;
-            case 100 -> 4;
-            default -> throw new IllegalArgumentException(
-                    "올바르지 않은 마일스톤 비율입니다."
-            );
-        };
-    }
 }

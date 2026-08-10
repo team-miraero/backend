@@ -52,4 +52,14 @@ public class Milestone {
 
         return false;
     }
+
+    public int getStep() {
+        return switch (this.milestonePercentage) {
+            case 25 -> 1;
+            case 50 -> 2;
+            case 75 -> 3;
+            case 100 -> 4;
+            default -> throw new IllegalArgumentException("올바르지 않은 마일스톤 비율입니다.");
+        };
+    }
 }
