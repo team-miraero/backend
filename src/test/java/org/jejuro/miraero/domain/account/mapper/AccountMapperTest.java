@@ -68,10 +68,36 @@ class AccountMapperTest {
   void findAllByUserId_includesInstitutionName() {
     accountMapper.upsert(createAccount(3400000L));
 
-    java.util.List<AccountResponse> accounts = accountMapper.findAllByUserId(1L);
+    java.util.List<AccountResponse> accounts = accountMapper.findAllByUserId(1L, null);
 
     assertTrue(accounts.stream().anyMatch(a ->
         "KB 입출금통장".equals(a.getAccountName()) && a.getInstitutionName() != null));
+  }
+
+  @Test
+  @DisplayName("accountType으로 필터링하면 다른 유형 계좌는 제외된다")
+  void findAllByUserId_filtersByAccountType() {
+    accountMapper.upsert(createAccount(3400000L));
+
+    java.util.List<AccountResponse> checking = accountMapper.findAllByUserId(1L, "CHECKING");
+    java.util.List<AccountResponse> savings = accountMapper.findAllByUserId(1L, "SAVINGS");
+
+    assertTrue(checking.stream().anyMatch(a -> "KB 입출금통장".equals(a.getAccountName())));
+    assertTrue(savings.stream().noneMatch(a -> "KB 입출금통장".equals(a.getAccountName())));
+  }
+
+  @Test
+  @DisplayName("소유자가 맞으면 은행명 포함 상세를 조회하고, 다른 사용자면 null을 반환한다")
+  void findResponseByIdAndUserId_ownershipCheck() {
+    accountMapper.upsert(createAccount(3400000L));
+    Long accountId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
+
+    AccountResponse own = accountMapper.findResponseByIdAndUserId(accountId, 1L);
+    AccountResponse other = accountMapper.findResponseByIdAndUserId(accountId, 999L);
+
+    assertNotNull(own);
+    assertEquals(3400000L, own.getBalance());
+    assertNull(other);
   }
 
   @Test

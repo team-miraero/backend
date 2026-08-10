@@ -16,6 +16,12 @@ public enum GoalErrorCode implements ErrorCode {
             "목표를 찾을 수 없습니다."
     ),
 
+    GOAL_ACCESS_DENIED(
+            HttpStatus.FORBIDDEN,
+            "GOAL_007",
+            "다른 사용자의 목표입니다."
+    ),
+
     GOAL_NOT_COMPLETED(
             HttpStatus.BAD_REQUEST,
             "GOAL_002",

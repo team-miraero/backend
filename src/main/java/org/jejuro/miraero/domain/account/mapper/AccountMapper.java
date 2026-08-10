@@ -25,10 +25,19 @@ public interface AccountMapper {
       @Param("userId") Long userId
   );
 
-  List<AccountResponse> findAllByUserId(@Param("userId") Long userId);
+  List<AccountResponse> findAllByUserId(
+      @Param("userId") Long userId,
+      @Param("accountType") String accountType
+  );
 
   // 소유권 확인이 끝난 뒤(예: goal_asset 조회) 은행명까지 포함한 상세 조회용
   AccountResponse findResponseById(@Param("accountId") Long accountId);
+
+  // 외부 요청(컨트롤러)에서 계좌 단건 상세를 조회할 때 — 소유권 검증 포함
+  AccountResponse findResponseByIdAndUserId(
+      @Param("accountId") Long accountId,
+      @Param("userId") Long userId
+  );
 
   int increaseBalance(
       @Param("accountId") Long accountId,

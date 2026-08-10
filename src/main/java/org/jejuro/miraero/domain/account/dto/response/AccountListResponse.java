@@ -8,5 +8,6 @@ import lombok.Getter;
 @Builder
 public class AccountListResponse {
 
+  private Long totalBalance;
   private List<AccountResponse> accounts;
 }

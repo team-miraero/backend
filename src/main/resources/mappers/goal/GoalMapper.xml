@@ -67,6 +67,21 @@
           AND goal_id = #{goalId}
     </select>
 
+    <select id="findById" resultType="org.jejuro.miraero.domain.goal.domain.Goal">
+        SELECT
+            goal_id,
+            user_id,
+            goal_name,
+            goal_type,
+            goal_amount,
+            start_amount,
+            goal_status,
+            start_date,
+            goal_date
+        FROM goal
+        WHERE goal_id = #{goalId}
+    </select>
+
     <update id="update"
             parameterType="org.jejuro.miraero.domain.goal.domain.Goal">
         UPDATE goal
