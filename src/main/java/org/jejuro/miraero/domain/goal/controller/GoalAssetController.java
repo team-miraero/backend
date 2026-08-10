@@ -7,7 +7,6 @@ import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetListResponse;
 import org.jejuro.miraero.domain.goal.service.GoalAssetService;
 import org.jejuro.miraero.global.response.ApiResponse;
 import org.jejuro.miraero.global.security.AuthenticatedUser;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
