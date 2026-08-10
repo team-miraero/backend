@@ -39,4 +39,23 @@
     WHERE mc.user_id = #{userId}
     ORDER BY mc.synced_at DESC
   </select>
+
+  <insert id="upsertConnection">
+    INSERT INTO mydata_connection (
+    user_id, financial_institution_id, connection_status, expires_at
+    )
+    VALUES (
+    #{userId}, #{financialInstitutionId}, #{connectionStatus}, #{expiresAt}
+    )
+    ON DUPLICATE KEY UPDATE
+    connection_status = VALUES(connection_status),
+    expires_at = VALUES(expires_at)
+  </insert>
+
+  <update id="updateSyncedAt">
+    UPDATE mydata_connection
+    SET synced_at = CURRENT_TIMESTAMP
+    WHERE user_id = #{userId}
+    AND financial_institution_id = #{financialInstitutionId}
+  </update>
 </mapper>

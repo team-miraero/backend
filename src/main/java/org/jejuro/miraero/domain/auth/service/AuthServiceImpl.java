@@ -9,7 +9,6 @@ import org.jejuro.miraero.domain.auth.dto.response.SignUpResponse;
 import org.jejuro.miraero.domain.auth.dto.response.TokenReissueResponse;
 import org.jejuro.miraero.domain.auth.exception.AuthErrorCode;
 import org.jejuro.miraero.domain.auth.repository.RefreshTokenRepository;
-import org.jejuro.miraero.domain.mydata.service.MyDataLinkService;
 import org.jejuro.miraero.domain.user.domain.User;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
 import org.jejuro.miraero.domain.user.service.UserCreateCommand;
@@ -29,7 +28,6 @@ public class AuthServiceImpl implements AuthService {
 
   private final UserMapper userMapper;
   private final PasswordEncoder passwordEncoder;
-  private final MyDataLinkService myDataLinkService;
   private final AuthTokenProvider authTokenProvider;
   private final UserService userService;
   private final RefreshTokenRepository refreshTokenRepository;
@@ -59,8 +57,6 @@ public class AuthServiceImpl implements AuthService {
     if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
       throw new BusinessException(AuthErrorCode.INVALID_EMAIL_OR_PASSWORD);
     }
-
-    myDataLinkService.syncUserData(user);
 
     Long userId = user.getUserId();
     String accessToken = authTokenProvider.createAccessToken(userId);
