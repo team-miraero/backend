@@ -36,6 +36,15 @@ class LoginUserResponseTest {
     assertEquals(true, response.getGoalSet());
   }
 
+  @Test
+  @DisplayName("연동도 안 됐고 목표도 설정하지 않은 사용자")
+  void from_notConnectedAndGoalNotSet() {
+    LoginUserResponse response = LoginUserResponse.from(createUser(null), false);
+
+    assertEquals(false, response.getMydataConnected());
+    assertEquals(false, response.getGoalSet());
+  }
+
   private User createUser(Long kbPayId) {
     return User.create(
         "테스트 사용자",
