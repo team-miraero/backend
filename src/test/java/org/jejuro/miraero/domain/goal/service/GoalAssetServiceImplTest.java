@@ -230,6 +230,46 @@ class GoalAssetServiceImplTest {
     }
 
     @Test
+    @DisplayName("MONEY_BOX 자산은 자동이체가 설정되어 있으면 autoTransfer를 채우되 자산 상세는 채우지 않는다")
+    void getGoalAssets_moneyBox_withAutoTransfer_fillsAutoTransferOnly() {
+
+        List<GoalAsset> assets = List.of(
+                GoalAsset.builder()
+                        .goalId(GOAL_ID)
+                        .assetType(AssetType.MONEY_BOX)
+                        .assetId(30L)
+                        .build()
+        );
+
+        given(goalMapper.findById(GOAL_ID))
+                .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
+        when(goalAssetMapper.findByGoalId(GOAL_ID))
+                .thenReturn(assets);
+        when(autoTransferMapper.findByAsset(AssetType.MONEY_BOX, 30L))
+                .thenReturn(AutoTransfer.builder()
+                        .withdrawalAccountId(20L)
+                        .transferAmount(50_000L)
+                        .transferDay(25)
+                        .build());
+        when(accountMapper.findResponseById(20L))
+                .thenReturn(AccountResponse.builder()
+                        .accountId(20L)
+                        .institutionName("국민은행")
+                        .maskedAccountNumber("456*****12")
+                        .build());
+
+        var response = goalAssetService.getGoalAssets(USER_ID, GOAL_ID);
+
+        assertEquals(1, response.getAssets().size());
+        GoalAssetResponse asset = response.getAssets().get(0);
+        assertEquals(50_000L, asset.getAutoTransfer().getAmount());
+        assertEquals(25, asset.getAutoTransfer().getTransferDay());
+        assertEquals("456*****12", asset.getAutoTransfer().getWithdrawalAccount().getAccountNumberMasked());
+        assertNull(asset.getAssetName());
+        assertNull(asset.getBalance());
+    }
+
+    @Test
     @DisplayName("목표 자체가 없으면 404에 해당하는 예외를 던진다")
     void getGoalAssets_notFound_throws() {
 

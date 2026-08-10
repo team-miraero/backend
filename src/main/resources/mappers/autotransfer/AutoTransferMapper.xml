@@ -58,11 +58,14 @@
             synced_at
         FROM auto_transfer
         WHERE
+            (
             ( #{assetType} = 'MONEY_BOX'
             AND money_box_id = #{assetId} )
-        OR
-        ( #{assetType} = 'ACCOUNT'
-            AND deposit_account_id = #{assetId} )
+            OR
+            ( #{assetType} = 'ACCOUNT'
+                AND deposit_account_id = #{assetId} )
+            )
+            AND auto_transfer_status = 'ACTIVE'
 
     </select>
 
