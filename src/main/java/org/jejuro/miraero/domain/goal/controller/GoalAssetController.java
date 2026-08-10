@@ -7,6 +7,7 @@ import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetListResponse;
 import org.jejuro.miraero.domain.goal.service.GoalAssetService;
 import org.jejuro.miraero.global.response.ApiResponse;
 import org.jejuro.miraero.global.security.AuthenticatedUser;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -42,12 +43,13 @@ public class GoalAssetController {
      */
     @GetMapping("/{goalId}/assets")
     public ResponseEntity<ApiResponse<GoalAssetListResponse>> getGoalAssets(
-            @PathVariable Long goalId
+            @PathVariable Long goalId,
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
 
         return ResponseEntity.ok(
                 ApiResponse.success(
-                        goalAssetService.getGoalAssets(goalId)
+                        goalAssetService.getGoalAssets(user.getUserId(), goalId)
                 )
         );
     }

@@ -18,7 +18,7 @@ public interface GoalAssetService {
      */
     Long calculateCurrentAmount(Long goalId);
 
-    GoalAssetListResponse getGoalAssets(Long goalId);
+    GoalAssetListResponse getGoalAssets(Long userId, Long goalId);
 
     /**
      * 목표 자산 연결 해제

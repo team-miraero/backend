@@ -174,6 +174,7 @@ class GoalAssetServiceImplTest {
     void getGoalAssets_account_fillsAccountDetail() {
 
         Long goalId = 1L;
+        Long userId = 1L;
 
         List<GoalAsset> assets = List.of(
                 GoalAsset.builder()
@@ -183,6 +184,8 @@ class GoalAssetServiceImplTest {
                         .build()
         );
 
+        given(goalMapper.findByIdAndUserId(userId, goalId))
+                .willReturn(Goal.builder().goalId(goalId).userId(userId).build());
         when(goalAssetMapper.findByGoalId(goalId))
                 .thenReturn(assets);
         when(accountMapper.findResponseById(10L))
@@ -194,13 +197,31 @@ class GoalAssetServiceImplTest {
                         .balance(500_000L)
                         .build());
 
-        var response = goalAssetService.getGoalAssets(goalId);
+        var response = goalAssetService.getGoalAssets(userId, goalId);
 
         assertEquals(1, response.getAssets().size());
         var asset = response.getAssets().get(0);
         assertEquals("KB 입출금통장", asset.getAssetName());
         assertEquals("국민은행", asset.getBankName());
         assertEquals(500_000L, asset.getBalance());
+    }
+
+    @Test
+    @DisplayName("내 목표가 아니면 자산 조회 시 예외를 던진다")
+    void getGoalAssets_notOwned_fail() {
+
+        Long goalId = 1L;
+        Long userId = 1L;
+
+        given(goalMapper.findByIdAndUserId(userId, goalId))
+                .willReturn(null);
+
+        assertThrows(
+                BusinessException.class,
+                () -> goalAssetService.getGoalAssets(userId, goalId)
+        );
+
+        verify(goalAssetMapper, never()).findByGoalId(anyLong());
     }
 
     @Test

@@ -122,7 +122,13 @@ public class GoalAssetServiceImpl implements GoalAssetService {
 
     @Override
     @Transactional(readOnly = true)
-    public GoalAssetListResponse getGoalAssets(Long goalId) {
+    public GoalAssetListResponse getGoalAssets(Long userId, Long goalId) {
+        Goal goal = goalMapper.findByIdAndUserId(userId, goalId);
+
+        if (goal == null) {
+            throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        }
+
         List<GoalAsset> goalAssets =
                 goalAssetMapper.findByGoalId(goalId);
 
