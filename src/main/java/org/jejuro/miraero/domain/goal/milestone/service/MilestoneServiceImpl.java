@@ -99,33 +99,28 @@ public class MilestoneServiceImpl implements MilestoneService {
 
     @Override
     @Transactional
-    public void updatedMilestoneAchievement(Long goalId, Long currentAmount) {
+    public void updatedMilestoneAchievement(
+            Long goalId,
+            Long currentAmount
+    ) {
 
-        List<Milestone> milestones = milestoneMapper.findByGoalId(goalId);
+        List<Milestone> milestones =
+                milestoneMapper.findByGoalId(goalId);
 
-        for(Milestone milestone : milestones){
+        for (Milestone milestone : milestones) {
 
-            if(milestone.isAchieved()) continue;
-            if(currentAmount < milestone.getMilestoneAmount()) continue;
+            if(!milestone.achieveIfReached(currentAmount)) continue;
 
-            //달성처리
-            milestone.markAchieved();
+            int updated = milestoneMapper.updateAchievement(milestone);
 
-            milestoneMapper.updateAchievement(milestone);
-
-            // AI 리포트가 이미 존재하는지 확인
-            MilestoneReport report =
-                    milestoneReportMapper.findByMilestoneId(
-                            milestone.getMilestoneId()
-                    );
-
-            if (report != null) continue;
+            if (updated == 0) {
+                continue;
+            }
 
             milestoneReportService.generateReport(
                     milestone.getMilestoneId(),
                     goalId
             );
-
         }
     }
 

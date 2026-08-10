@@ -16,6 +16,17 @@ public interface MilestoneMapper {
     Milestone findById(
             @Param("milestoneId") Long milestoneId);
 
+    Milestone findPreviousMilestone(
+            @Param("goalId") Long goalId,
+            @Param("percentage") Integer percentage
+    );
+
+
+    Milestone findByGoalIdAndPercentage(
+            @Param("goalId") Long goalId,
+            @Param("percentage") Integer percentage
+    );
+
     void save(
             @Param("milestone") Milestone milestone);
 
@@ -25,6 +36,6 @@ public interface MilestoneMapper {
     void deleteByGoalId(
             @Param("goalId") Long goalId);
 
-    void updateAchievement(
+    int updateAchievement(
             @Param("milestone") Milestone milestone);
 }

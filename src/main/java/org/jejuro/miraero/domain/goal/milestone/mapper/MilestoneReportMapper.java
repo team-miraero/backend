@@ -18,6 +18,19 @@ public interface MilestoneReportMapper {
     void save(
             @Param("report") MilestoneReport report);
 
-    void updateReport(
-            @Param("report") MilestoneReport report);
+    int insertIfAbsent(MilestoneReport report );
+
+    int updateSuccess(
+            @Param("reportId") Long reportId,
+            @Param("title") String title,
+            @Param("content") String content
+    );
+
+    int updateFailed(
+            @Param("reportId") Long reportId
+    );
+
+    int updatePending(
+            @Param("milestoneReportId") Long milestoneReportId
+    );
 }
