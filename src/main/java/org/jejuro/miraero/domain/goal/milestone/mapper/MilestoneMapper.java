@@ -2,6 +2,7 @@ package org.jejuro.miraero.domain.goal.milestone.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.jejuro.miraero.domain.goal.milestone.domain.Milestone;
+import org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport;
 
 import java.util.List;
 

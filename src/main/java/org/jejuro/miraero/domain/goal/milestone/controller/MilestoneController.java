@@ -3,6 +3,7 @@ package org.jejuro.miraero.domain.goal.milestone.controller;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.goal.milestone.dto.response.MilestoneListResponse;
 import org.jejuro.miraero.domain.goal.milestone.service.MilestoneService;
+import org.jejuro.miraero.global.response.ApiResponse;
 import org.jejuro.miraero.global.security.AuthenticatedUser;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,7 +23,7 @@ public class MilestoneController {
      * 각 마일스톤에 연결된 AI 리포트를 함께 반환한다.
      */
     @GetMapping("/{goalId}/milestones")
-    public ResponseEntity<MilestoneListResponse> getMilestoneJourney(
+    public ResponseEntity<ApiResponse<MilestoneListResponse>> getMilestoneJourney(
             @PathVariable Long goalId,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
@@ -34,6 +35,8 @@ public class MilestoneController {
                         userId
                 );
 
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(
+                ApiResponse.success(response)
+        );
     }
 }
