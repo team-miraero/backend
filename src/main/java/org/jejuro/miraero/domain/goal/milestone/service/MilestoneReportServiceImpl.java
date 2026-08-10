@@ -1,6 +1,9 @@
 package org.jejuro.miraero.domain.goal.milestone.service;
 
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.goal.exception.GoalErrorCode;
+import org.jejuro.miraero.domain.goal.milestone.exception.MilestoneErrorCode;
+import org.jejuro.miraero.global.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.jejuro.miraero.domain.goal.domain.Goal;
@@ -31,13 +34,21 @@ public class MilestoneReportServiceImpl
     ) {
 
         if (milestoneId == null || goalId == null) {
-            return;
+            throw new BusinessException(
+                    MilestoneErrorCode.MILESTONE_NOT_FOUND
+            );
         }
 
         Milestone milestone =
                 milestoneMapper.findById(milestoneId);
 
-        if (milestone == null || !milestone.isAchieved()) {
+        if (milestone == null) {
+            throw new BusinessException(
+                    MilestoneErrorCode.MILESTONE_NOT_FOUND
+            );
+        }
+
+        if (!milestone.isAchieved()) {
             return;
         }
 
@@ -45,7 +56,9 @@ public class MilestoneReportServiceImpl
                 goalMapper.findById(goalId);
 
         if (goal == null) {
-            return;
+            throw new BusinessException(
+                    GoalErrorCode.GOAL_NOT_FOUND
+            );
         }
 
         // 마일스톤과 목표 관계 검증

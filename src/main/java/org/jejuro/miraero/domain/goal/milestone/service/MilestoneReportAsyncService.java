@@ -6,14 +6,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.aicoach.client.OpenAiClient;
 import org.jejuro.miraero.domain.goal.domain.Goal;
+import org.jejuro.miraero.domain.goal.exception.GoalErrorCode;
 import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.domain.goal.milestone.domain.Milestone;
+import org.jejuro.miraero.domain.goal.milestone.exception.MilestoneErrorCode;
 import org.jejuro.miraero.domain.goal.milestone.mapper.MilestoneMapper;
 import org.jejuro.miraero.domain.goal.milestone.mapper.MilestoneReportMapper;
 import org.jejuro.miraero.domain.goal.milestone.dto.request.MilestoneReportAiRequest;
 import org.jejuro.miraero.domain.transaction.domain.ExpenseCategory;
 import org.jejuro.miraero.domain.transaction.dto.response.ExpenseCategorySummaryResponse;
 import org.jejuro.miraero.domain.transaction.mapper.TransactionMapper;
+import org.jejuro.miraero.global.exception.BusinessException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Async;
@@ -67,9 +70,15 @@ public class MilestoneReportAsyncService {
             Milestone milestone =
                     milestoneMapper.findById(milestoneId);
 
-            if (goal == null || milestone == null) {
-                throw new IllegalArgumentException(
-                        "목표 또는 마일스톤을 찾을 수 없습니다."
+            if (goal == null) {
+                throw new BusinessException(
+                        GoalErrorCode.GOAL_NOT_FOUND
+                );
+            }
+
+            if (milestone == null) {
+                throw new BusinessException(
+                        MilestoneErrorCode.MILESTONE_NOT_FOUND
                 );
             }
 
@@ -933,8 +942,8 @@ public class MilestoneReportAsyncService {
     ) {
 
         if (!StringUtils.hasText(response)) {
-            throw new IllegalArgumentException(
-                    "AI 응답이 비어 있습니다."
+            throw new BusinessException(
+                    MilestoneErrorCode.MILESTONE_REPORT_GENERATION_FAILED
             );
         }
 
@@ -966,8 +975,8 @@ public class MilestoneReportAsyncService {
             }
 
             if (!StringUtils.hasText(content)) {
-                throw new IllegalArgumentException(
-                        "AI 응답의 content가 비어 있습니다."
+                throw new BusinessException(
+                        MilestoneErrorCode.MILESTONE_REPORT_GENERATION_FAILED
                 );
             }
 
@@ -983,8 +992,8 @@ public class MilestoneReportAsyncService {
                     cleanedResponse
             );
 
-            throw new IllegalArgumentException(
-                    "AI 응답 형식이 올바르지 않습니다."
+            throw new BusinessException(
+                    MilestoneErrorCode.MILESTONE_REPORT_GENERATION_FAILED
             );
         }
     }
