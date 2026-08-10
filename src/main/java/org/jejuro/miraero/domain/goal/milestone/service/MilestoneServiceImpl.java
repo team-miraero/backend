@@ -29,6 +29,7 @@ public class MilestoneServiceImpl implements MilestoneService {
     private final GoalMapper goalMapper;
     private final MilestoneMapper milestoneMapper;
     private final MilestoneReportMapper milestoneReportMapper;
+    private final MilestoneReportService milestoneReportService;
 
     @Override
     @Transactional(readOnly = true)
@@ -94,6 +95,38 @@ public class MilestoneServiceImpl implements MilestoneService {
     public void recreateMilestones(Long goalId, Long goalAmount) {
         milestoneMapper.deleteByGoalId(goalId);
         createMilestones(goalId, goalAmount);
+    }
+
+    @Override
+    @Transactional
+    public void updatedMilestoneAchievement(Long goalId, Long currentAmount) {
+
+        List<Milestone> milestones = milestoneMapper.findByGoalId(goalId);
+
+        for(Milestone milestone : milestones){
+
+            if(milestone.isAchieved()) continue;
+            if(currentAmount < milestone.getMilestoneAmount()) continue;
+
+            //달성처리
+            milestone.markAchieved();
+
+            milestoneMapper.updateAchievement(milestone);
+
+            // AI 리포트가 이미 존재하는지 확인
+            MilestoneReport report =
+                    milestoneReportMapper.findByMilestoneId(
+                            milestone.getMilestoneId()
+                    );
+
+            if (report != null) continue;
+
+            milestoneReportService.generateReport(
+                    milestone.getMilestoneId(),
+                    goalId
+            );
+
+        }
     }
 
     /**

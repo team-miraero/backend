@@ -23,6 +23,11 @@
                 #{milestoneId}
             </foreach>
     </select>
+    <select id="findByMilestoneId"
+            resultType="org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport">
+
+
+    </select>
 
 
     <insert id="save"
