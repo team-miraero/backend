@@ -1,6 +1,7 @@
 package org.jejuro.miraero.domain.account.service;
 
 import java.util.List;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.account.dto.response.AccountListResponse;
 import org.jejuro.miraero.domain.account.dto.response.AccountResponse;
@@ -15,10 +16,19 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class AccountServiceImpl implements AccountService {
 
+  // account 테이블 ck_account_type 제약과 동일한 값 집합
+  private static final Set<String> VALID_ACCOUNT_TYPES = Set.of(
+      "CHECKING", "SAVINGS", "DEPOSIT", "INSTALLMENT", "ISA", "CMA"
+  );
+
   private final AccountMapper accountMapper;
 
   @Override
   public AccountListResponse getAccounts(Long userId, String accountType) {
+    if (accountType != null && !VALID_ACCOUNT_TYPES.contains(accountType)) {
+      throw new BusinessException(AccountErrorCode.INVALID_ACCOUNT_TYPE);
+    }
+
     List<AccountResponse> accounts = accountMapper.findAllByUserId(userId, accountType);
     long totalBalance = accounts.stream()
         .mapToLong(AccountResponse::getBalance)

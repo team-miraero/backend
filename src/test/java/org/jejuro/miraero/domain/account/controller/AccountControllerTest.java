@@ -10,7 +10,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import org.jejuro.miraero.domain.account.dto.response.AccountListResponse;
 import org.jejuro.miraero.domain.account.dto.response.AccountResponse;
+import org.jejuro.miraero.domain.account.exception.AccountErrorCode;
 import org.jejuro.miraero.domain.account.service.AccountService;
+import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.GlobalExceptionHandler;
 import org.jejuro.miraero.global.security.AuthenticatedUser;
 import org.jejuro.miraero.global.security.JwtAuthenticationToken;
@@ -109,5 +111,24 @@ class AccountControllerTest {
         .andExpect(jsonPath("$.success").value(true))
         .andExpect(jsonPath("$.data.accountId").value(1))
         .andExpect(jsonPath("$.data.institutionName").value("국민은행"));
+  }
+
+  @Test
+  @DisplayName("허용되지 않은 accountType이면 400을 반환한다")
+  void getAccounts_invalidAccountType_returns400() throws Exception {
+    given(accountService.getAccounts(USER_ID, "INVALID"))
+        .willThrow(new BusinessException(AccountErrorCode.INVALID_ACCOUNT_TYPE));
+
+    mockMvc.perform(get("/api/accounts").param("accountType", "INVALID"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.success").value(false));
+  }
+
+  @Test
+  @DisplayName("accountId가 숫자 형식이 아니면 400을 반환한다")
+  void getAccount_invalidIdFormat_returns400() throws Exception {
+    mockMvc.perform(get("/api/accounts/abc"))
+        .andExpect(status().isBadRequest())
+        .andExpect(jsonPath("$.success").value(false));
   }
 }

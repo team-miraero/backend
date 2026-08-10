@@ -3,6 +3,8 @@ package org.jejuro.miraero.domain.account.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,6 +54,14 @@ class AccountServiceImplTest {
     accountService.getAccounts(USER_ID, "SAVINGS");
 
     verify(accountMapper).findAllByUserId(USER_ID, "SAVINGS");
+  }
+
+  @Test
+  @DisplayName("허용되지 않은 accountType이면 예외를 던지고 매퍼를 호출하지 않는다")
+  void getAccounts_invalidAccountType_throws() {
+    assertThrows(BusinessException.class, () -> accountService.getAccounts(USER_ID, "INVALID"));
+
+    verify(accountMapper, never()).findAllByUserId(any(), any());
   }
 
   @Test

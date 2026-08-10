@@ -13,6 +13,12 @@ public enum AccountErrorCode implements ErrorCode {
       HttpStatus.NOT_FOUND,
       "ACCOUNT_001",
       "계좌를 찾을 수 없습니다."
+  ),
+
+  INVALID_ACCOUNT_TYPE(
+      HttpStatus.BAD_REQUEST,
+      "ACCOUNT_002",
+      "유효하지 않은 계좌 유형입니다."
   );
 
   private final HttpStatus status;
