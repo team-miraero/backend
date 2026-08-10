@@ -10,12 +10,12 @@
             resultType="org.jejuro.miraero.domain.goal.milestone.domain.Milestone">
 
         SELECT
-        milestone_id,
-        goal_id,
-        milestone_percentage,
-        milestone_amount,
-        achieved,
-        achieved_at
+            milestone_id,
+            goal_id,
+            milestone_percentage,
+            milestone_amount,
+            achieved,
+            achieved_at
         FROM milestone
         WHERE goal_id = #{goalId}
         ORDER BY milestone_percentage ASC
@@ -28,12 +28,12 @@
             resultType="org.jejuro.miraero.domain.goal.milestone.domain.Milestone">
 
         SELECT
-        milestone_id,
-        goal_id,
-        milestone_percentage,
-        milestone_amount,
-        achieved,
-        achieved_at
+            milestone_id,
+            goal_id,
+            milestone_percentage,
+            milestone_amount,
+            achieved,
+            achieved_at
         FROM milestone
         WHERE milestone_id = #{milestoneId}
 
@@ -46,16 +46,16 @@
             keyProperty="milestoneId">
 
         INSERT INTO milestone (
-        goal_id,
-        milestone_percentage,
-        milestone_amount,
-        achieved
+            goal_id,
+            milestone_percentage,
+            milestone_amount,
+            achieved
         )
         VALUES (
-        #{goalId},
-        #{milestonePercentage},
-        #{milestoneAmount},
-        #{achieved}
+            #{goalId},
+            #{milestonePercentage},
+            #{milestoneAmount},
+            #{achieved}
         )
 
     </insert>
@@ -65,10 +65,10 @@
             parameterType="java.util.List">
 
         INSERT INTO milestone (
-        goal_id,
-        milestone_percentage,
-        milestone_amount,
-        achieved
+            goal_id,
+            milestone_percentage,
+            milestone_amount,
+            achieved
         )
         VALUES
 
@@ -76,14 +76,20 @@
                  item="milestone"
                  separator=",">
             (
-            #{milestone.goalId},
-            #{milestone.milestonePercentage},
-            #{milestone.milestoneAmount},
-            #{milestone.achieved}
+                #{milestone.goalId},
+                #{milestone.milestonePercentage},
+                #{milestone.milestoneAmount},
+                #{milestone.achieved}
             )
         </foreach>
 
     </insert>
+
+    <delete id="deleteByGoalId"
+            parameterType="long">
+        DELETE FROM milestone
+        WHERE goal_id = #{goalId}
+    </delete>
 
 
     <update id="updateAchievement"
@@ -91,8 +97,8 @@
 
         UPDATE milestone
         SET
-        achieved = #{achieved},
-        achieved_at = #{achievedAt}
+            achieved = #{achieved},
+            achieved_at = #{achievedAt}
         WHERE milestone_id = #{milestoneId}
         AND achieved = FALSE
 

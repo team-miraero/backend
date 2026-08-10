@@ -11,6 +11,7 @@ import org.jejuro.miraero.domain.goal.dto.request.GoalUpdateRequest;
 import org.jejuro.miraero.domain.goal.dto.response.*;
 import org.jejuro.miraero.domain.goal.exception.GoalErrorCode;
 import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
+import org.jejuro.miraero.domain.goal.milestone.service.MilestoneService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class GoalServiceImpl implements GoalService{
 
     private final GoalMapper goalMapper;
     private final GoalAssetService goalAssetService;
+    private final MilestoneService milestoneService;
 
 
     /**
@@ -118,8 +120,13 @@ public class GoalServiceImpl implements GoalService{
 
         goalMapper.save(goal);
 
+        //2. 목표 마일스톤 4개 생성
+        milestoneService.createMilestones(
+                goal.getGoalId(),
+                goal.getGoalAmount()
+        );
 
-        //2. 목표 자산 연결
+        //3. 목표 자산 연결
         goalAssetService.saveGoalAssets(
                 userId,
                 goal.getGoalId(),
@@ -370,6 +377,8 @@ public class GoalServiceImpl implements GoalService{
 
         validateUpdateRequest(request);
 
+        Long previousGoalAmount = goal.getGoalAmount();
+
         LocalDate goalDate = null;
 
         if (request.getGoalMonths() != null) {
@@ -385,6 +394,15 @@ public class GoalServiceImpl implements GoalService{
         );
 
         goalMapper.update(goal);
+
+        if (request.getGoalAmount() != null
+                && !previousGoalAmount.equals(request.getGoalAmount())) {
+
+            milestoneService.recreateMilestones(
+                    goalId,
+                    request.getGoalAmount()
+            );
+        }
     }
 
     private void validateUpdateRequest(GoalUpdateRequest request) {

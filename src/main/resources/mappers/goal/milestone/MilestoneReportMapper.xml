@@ -5,19 +5,23 @@
 
 <mapper namespace="org.jejuro.miraero.domain.goal.milestone.mapper.MilestoneReportMapper">
 
-    <select id="findByMilestoneId"
-            parameterType="long"
+    <select id="findByMilestoneIds"
             resultType="org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport">
-
         SELECT
-        milestone_report_id,
-        milestone_id,
-        title,
-        content,
-        status
+            milestone_report_id,
+            milestone_id,
+            title,
+            content,
+            status
         FROM milestone_report
-        WHERE milestone_id = #{milestoneId}
-
+        WHERE milestone_id IN
+            <foreach collection="list"
+                     item="milestoneId"
+                     open="("
+                     separator=","
+                     close=")">
+                #{milestoneId}
+            </foreach>
     </select>
 
 
@@ -27,16 +31,16 @@
             keyProperty="milestoneReportId">
 
         INSERT INTO milestone_report (
-        milestone_id,
-        title,
-        content,
-        status
+            milestone_id,
+            title,
+            content,
+            status
         )
         VALUES (
-        #{milestoneId},
-        #{title},
-        #{content},
-        #{status}
+            #{milestoneId},
+            #{title},
+            #{content},
+            #{status}
         )
 
     </insert>
@@ -47,9 +51,9 @@
 
         UPDATE milestone_report
         SET
-        title = #{title},
-        content = #{content},
-        status = #{status}
+            title = #{title},
+            content = #{content},
+            status = #{status}
         WHERE milestone_report_id = #{milestoneReportId}
 
     </update>
