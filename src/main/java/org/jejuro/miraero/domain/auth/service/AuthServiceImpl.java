@@ -9,6 +9,7 @@ import org.jejuro.miraero.domain.auth.dto.response.SignUpResponse;
 import org.jejuro.miraero.domain.auth.dto.response.TokenReissueResponse;
 import org.jejuro.miraero.domain.auth.exception.AuthErrorCode;
 import org.jejuro.miraero.domain.auth.repository.RefreshTokenRepository;
+import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.domain.user.domain.User;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
 import org.jejuro.miraero.domain.user.service.UserCreateCommand;
@@ -31,6 +32,7 @@ public class AuthServiceImpl implements AuthService {
   private final AuthTokenProvider authTokenProvider;
   private final UserService userService;
   private final RefreshTokenRepository refreshTokenRepository;
+  private final GoalMapper goalMapper;
 
   @Override
   @Transactional
@@ -76,7 +78,7 @@ public class AuthServiceImpl implements AuthService {
         accessTokenExpiresIn,
         refreshTokenExpiresIn,
         AUTO_LOGIN,
-        LoginUserResponse.from(user)
+        LoginUserResponse.from(user, goalMapper.existsActiveGoalByUserId(userId))
     );
   }
 
@@ -118,7 +120,7 @@ public class AuthServiceImpl implements AuthService {
         newRefreshToken,
         accessTokenExpiresIn,
         refreshTokenExpiresIn,
-        LoginUserResponse.from(user)
+        LoginUserResponse.from(user, goalMapper.existsActiveGoalByUserId(user.getUserId()))
     );
   }
 

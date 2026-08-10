@@ -34,4 +34,6 @@ public interface GoalMapper {
             Long goalId,
             GoalStatus status
     );
+
+    boolean existsActiveGoalByUserId(@Param("userId") Long userId);
 }

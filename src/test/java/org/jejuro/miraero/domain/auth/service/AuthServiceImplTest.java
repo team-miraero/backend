@@ -14,6 +14,7 @@ import org.jejuro.miraero.domain.auth.dto.response.LoginResponse;
 import org.jejuro.miraero.domain.auth.dto.response.SignUpResponse;
 import org.jejuro.miraero.domain.auth.exception.AuthErrorCode;
 import org.jejuro.miraero.domain.auth.repository.RefreshTokenRepository;
+import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.domain.user.domain.User;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
 import org.jejuro.miraero.domain.user.service.UserCreateCommand;
@@ -46,6 +47,9 @@ class AuthServiceImplTest {
   @Mock
   private RefreshTokenRepository refreshTokenRepository;
 
+  @Mock
+  private GoalMapper goalMapper;
+
   private AuthService authService;
 
   @BeforeEach
@@ -55,7 +59,8 @@ class AuthServiceImplTest {
         passwordEncoder,
         authTokenProvider,
         userService,
-        refreshTokenRepository
+        refreshTokenRepository,
+        goalMapper
     );
   }
 
@@ -103,6 +108,8 @@ class AuthServiceImplTest {
         .thenReturn(1800L);
     when(authTokenProvider.getRefreshTokenExpiresIn())
         .thenReturn(1209600L);
+    when(goalMapper.existsActiveGoalByUserId(user.getUserId()))
+        .thenReturn(true);
 
     LoginResponse response = authService.login(request);
 
@@ -115,6 +122,8 @@ class AuthServiceImplTest {
     assertEquals(user.getUserId(), response.getUser().getUserId());
     assertEquals(user.getName(), response.getUser().getName());
     assertEquals(user.getEmail(), response.getUser().getEmail());
+    assertEquals(true, response.getUser().getMydataConnected());
+    assertEquals(true, response.getUser().getGoalSet());
 
     verify(userMapper).findByEmail("test@example.com");
     verify(passwordEncoder).matches("password123!", "encodedPassword");
