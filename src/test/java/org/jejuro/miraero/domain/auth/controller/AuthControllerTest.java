@@ -186,7 +186,9 @@ class AuthControllerTest {
         new LoginUserResponse(
             1L,
             "테스트 사용자",
-            "test@example.com"
+            "test@example.com",
+            true,
+            true
         )
     );
 
@@ -213,7 +215,9 @@ class AuthControllerTest {
         .andExpect(jsonPath("$.data.autoLogin").value(true))
         .andExpect(jsonPath("$.data.user.userId").value(1))
         .andExpect(jsonPath("$.data.user.name").value("테스트 사용자"))
-        .andExpect(jsonPath("$.data.user.email").value("test@example.com"));
+        .andExpect(jsonPath("$.data.user.email").value("test@example.com"))
+        .andExpect(jsonPath("$.data.user.mydataConnected").value(true))
+        .andExpect(jsonPath("$.data.user.goalSet").value(true));
 
     verify(authService).login(any(LoginRequest.class));
   }
@@ -226,7 +230,7 @@ class AuthControllerTest {
         "new-refresh-token",
         1800L,
         1209600L,
-        new LoginUserResponse(1L, "테스트 사용자", "test@example.com")
+        new LoginUserResponse(1L, "테스트 사용자", "test@example.com", true, true)
     );
 
     given(authService.reissue("refresh-token"))

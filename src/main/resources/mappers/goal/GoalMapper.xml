@@ -119,4 +119,12 @@
 
     </select>
 
+    <select id="existsActiveGoalByUserId" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM goal
+            WHERE user_id = #{userId}
+              AND goal_status = 'ACTIVE'
+        )
+    </select>
+
 </mapper>

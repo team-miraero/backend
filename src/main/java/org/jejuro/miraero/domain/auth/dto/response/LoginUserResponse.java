@@ -11,12 +11,16 @@ public class LoginUserResponse {
   private Long userId;
   private String name;
   private String email;
+  private Boolean mydataConnected;
+  private Boolean goalSet;
 
-  public static LoginUserResponse from(User user) {
+  public static LoginUserResponse from(User user, boolean goalSet) {
     return new LoginUserResponse(
         user.getUserId(),
         user.getName(),
-        user.getEmail()
+        user.getEmail(),
+        user.getKbPayId() != null,
+        goalSet
     );
   }
 }
