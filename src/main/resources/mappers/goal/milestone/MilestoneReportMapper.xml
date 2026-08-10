@@ -15,7 +15,7 @@
             status
         FROM milestone_report
         WHERE milestone_id IN
-            <foreach collection="list"
+            <foreach collection="milestoneIds"
                      item="milestoneId"
                      open="("
                      separator=","

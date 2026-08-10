@@ -15,7 +15,6 @@ import org.jejuro.miraero.global.exception.BusinessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -79,6 +78,7 @@ public class MilestoneServiceImpl implements MilestoneService {
     }
 
     @Override
+    @Transactional
     public void createMilestones(
             Long goalId,
             Long goalAmount
