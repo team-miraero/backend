@@ -14,8 +14,8 @@ public interface GoalAssetMapper {
             @Param("assets") List<GoalAssetRequest> assets);
     List<GoalAsset> findByGoalId(@Param("goalId") Long goalId);
     boolean existsByAsset(
-            AssetType assetType,
-            Long assetId
+            @Param("assetType") AssetType assetType,
+            @Param("assetId") Long assetId
     );
     void delete(Long goalId,AssetType assetType, Long assetId);
     boolean existsByGoalIdAndAsset(Long goalId, AssetType assetType, Long assetId);
