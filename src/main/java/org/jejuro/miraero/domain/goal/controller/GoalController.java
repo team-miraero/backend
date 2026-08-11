@@ -29,10 +29,13 @@ public class GoalController {
      */
     @PostMapping("/possibility")
     public ResponseEntity<ApiResponse<GoalPossibilityResponse>> checkPossibility(
-            @Valid @RequestBody GoalPossibilityRequest request
+            @Valid @RequestBody GoalPossibilityRequest request,
+            @AuthenticationPrincipal AuthenticatedUser user
             ){
 
-        GoalPossibilityResponse response = goalService.checkPossibility(request);
+        Long userId = user.getUserId();
+
+        GoalPossibilityResponse response = goalService.checkPossibility(request,userId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(response)

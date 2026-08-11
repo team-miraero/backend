@@ -1,7 +1,10 @@
 package org.jejuro.miraero.domain.goal.service;
 
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.availablemoney.dto.response.MonthlyAvailableMoneyResponse;
+import org.jejuro.miraero.domain.availablemoney.service.AvailableMoneyService;
 import org.jejuro.miraero.domain.goal.domain.Goal;
+import org.jejuro.miraero.domain.goal.domain.GoalPossibility;
 import org.jejuro.miraero.domain.goal.domain.GoalStatus;
 import org.jejuro.miraero.domain.goal.domain.PaceStatus;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
@@ -12,6 +15,8 @@ import org.jejuro.miraero.domain.goal.dto.response.*;
 import org.jejuro.miraero.domain.goal.exception.GoalErrorCode;
 import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.domain.goal.milestone.service.MilestoneService;
+import org.jejuro.miraero.domain.transaction.service.ExpenseCategoryTargetService;
+import org.jejuro.miraero.domain.user.service.UserService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.springframework.stereotype.Service;
@@ -32,6 +37,9 @@ public class GoalServiceImpl implements GoalService{
     private final GoalMapper goalMapper;
     private final GoalAssetService goalAssetService;
     private final MilestoneService milestoneService;
+    private final ExpenseCategoryTargetService expenseCategoryTargetService;
+    private final AvailableMoneyService availableMoneyService;
+    private final UserService userService;
 
 
     /**
@@ -46,10 +54,18 @@ public class GoalServiceImpl implements GoalService{
      */
     @Override
     @Transactional(readOnly = true)
-    public GoalPossibilityResponse checkPossibility(GoalPossibilityRequest request) {
+    public GoalPossibilityResponse checkPossibility(
+            GoalPossibilityRequest request,
+            Long userId
+            )
+    {
 
-        //TODO:여유 자금 계산 API 나오면 호출 만원단위일거임
-        Long availableMonthly = 500000L;
+        MonthlyAvailableMoneyResponse availableMoney =
+                availableMoneyService.getMonthlyAvailableMoney(userId, null);
+
+        // 여유자금의 70% 를 저축 가능금액으로 설정
+        long monthlySavingAmount =
+                availableMoney.getMonthlyAvailableMoney()*70/100;
 
         long requiredMonthly = calculateRequiredMonthlyDisplay(
                 request.getGoalAmount(),
@@ -57,13 +73,21 @@ public class GoalServiceImpl implements GoalService{
                 request.getGoalMonths()
         );
 
-        boolean possible = availableMonthly >= requiredMonthly;
+        GoalPossibility possibility;
+        if(monthlySavingAmount <= 0) {
+            possibility = GoalPossibility.DIFFICULT;
+        }else{
+            double possible = (double) requiredMonthly / monthlySavingAmount;
+            if (possible <= 1) possibility = GoalPossibility.REALISTIC;
+            else if (possible <= 1.2) possibility = GoalPossibility.TIGHT;
+            else possibility = GoalPossibility.DIFFICULT;
+        }
 
 
         return GoalPossibilityResponse.builder()
-                .availableMonthly(availableMonthly)
+                .availableMonthly(monthlySavingAmount)
                 .requiredMonthly(requiredMonthly)
-                .possible(possible)
+                .possible(possibility)
                 .build();
     }
 

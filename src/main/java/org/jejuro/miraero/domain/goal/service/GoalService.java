@@ -11,7 +11,8 @@ import java.util.List;
 
 public interface GoalService {
     GoalPossibilityResponse checkPossibility(
-        GoalPossibilityRequest request
+        GoalPossibilityRequest request,
+        Long userId
     );
 
     GoalCreateResponse createGoal(
