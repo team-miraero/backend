@@ -12,13 +12,11 @@ import java.util.List;
 public interface GoalMapper {
     void save(Goal goal);
     List<Goal> findGoalsByUserId(@Param("userId") Long userId);
+    Goal findById(@Param("goalId") Long goalId);
     Goal findByIdAndUserId(
             @Param("userId") Long userId,
             @Param("goalId") Long goalId
     );
-
-    // 존재 자체를 모르는 상태(404)와 소유자가 다른 상태(403)를 구분할 때 사용
-    Goal findById(@Param("goalId") Long goalId);
     int update(@Param("goal") Goal goal);
     void delete(@Param("goalId") Long goalId);
     void updateCollection(

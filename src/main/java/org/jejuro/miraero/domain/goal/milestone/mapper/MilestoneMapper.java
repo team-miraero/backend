@@ -1,6 +1,7 @@
 package org.jejuro.miraero.domain.goal.milestone.mapper;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.goal.milestone.domain.Milestone;
 import org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport;
 
@@ -9,15 +10,32 @@ import java.util.List;
 @Mapper
 public interface MilestoneMapper {
 
-    List<Milestone> findByGoalId(Long goalId);
+    List<Milestone> findByGoalId(
+            @Param("goalId") Long goalId);
 
-    Milestone findById(Long milestoneId);
+    Milestone findById(
+            @Param("milestoneId") Long milestoneId);
 
-    void save(Milestone milestone);
+    Milestone findPreviousMilestone(
+            @Param("goalId") Long goalId,
+            @Param("percentage") Integer percentage
+    );
 
-    void saveAll(List<Milestone> milestones);
 
-    void deleteByGoalId(Long goalId);
+    Milestone findByGoalIdAndPercentage(
+            @Param("goalId") Long goalId,
+            @Param("percentage") Integer percentage
+    );
 
-    void updateAchievement(Milestone milestone);
+    void save(
+            @Param("milestone") Milestone milestone);
+
+    void saveAll(
+            @Param("milestones") List<Milestone> milestones);
+
+    void deleteByGoalId(
+            @Param("goalId") Long goalId);
+
+    int updateAchievement(
+            @Param("milestone") Milestone milestone);
 }

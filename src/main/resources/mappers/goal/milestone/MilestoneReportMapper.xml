@@ -15,13 +15,24 @@
             status
         FROM milestone_report
         WHERE milestone_id IN
-            <foreach collection="list"
+            <foreach collection="milestoneIds"
                      item="milestoneId"
                      open="("
                      separator=","
                      close=")">
                 #{milestoneId}
             </foreach>
+    </select>
+    <select id="findByMilestoneId"
+            resultType="org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport">
+        SELECT
+            milestone_report_id,
+            milestone_id,
+            title,
+            content,
+            status
+        FROM milestone_report
+        WHERE milestone_id = #{milestoneId}
     </select>
 
 
@@ -45,17 +56,54 @@
 
     </insert>
 
+    <insert id="insertIfAbsent"
+            parameterType="org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport"
+            useGeneratedKeys="true"
+            keyProperty="milestoneReportId">
+        INSERT INTO milestone_report
+        (
+            milestone_id,
+            title,
+            content,
+            status
+        )
+        VALUES
+        (
+            #{milestoneId},
+            #{title},
+            #{content},
+            #{status}
+        )
+        ON DUPLICATE KEY UPDATE
+            milestone_id = milestone_id
+    </insert>
 
-    <update id="updateReport"
-            parameterType="org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport">
-
+    <update id="updateSuccess">
         UPDATE milestone_report
         SET
             title = #{title},
             content = #{content},
-            status = #{status}
-        WHERE milestone_report_id = #{milestoneReportId}
+            status = 'SUCCESS'
+        WHERE milestone_report_id = #{reportId}
+            AND status = 'PENDING'
+    </update>
 
+    <update id="updateFailed">
+        UPDATE milestone_report
+            SET
+            status = 'FAILED'
+        WHERE milestone_report_id = #{reportId}
+            AND status = 'PENDING'
+    </update>
+
+    <update id="updatePending">
+        UPDATE milestone_report
+        SET
+            title = '마일스톤 리포트 생성 중',
+            content = '',
+            status = 'PENDING'
+        WHERE milestone_report_id = #{milestoneReportId}
+            AND status = 'FAILED'
     </update>
 
 </mapper>

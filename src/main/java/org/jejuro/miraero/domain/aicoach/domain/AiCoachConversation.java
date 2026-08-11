@@ -15,6 +15,7 @@ public class AiCoachConversation {
     private Long aiCoachConversationId;
     private Long userId;
     private String title;
+    private String conversationSummary;
     private LocalDateTime lastMessageAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

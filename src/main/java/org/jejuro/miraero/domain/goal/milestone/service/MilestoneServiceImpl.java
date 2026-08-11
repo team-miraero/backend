@@ -15,7 +15,6 @@ import org.jejuro.miraero.global.exception.BusinessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -30,6 +29,7 @@ public class MilestoneServiceImpl implements MilestoneService {
     private final GoalMapper goalMapper;
     private final MilestoneMapper milestoneMapper;
     private final MilestoneReportMapper milestoneReportMapper;
+    private final MilestoneReportService milestoneReportService;
 
     @Override
     @Transactional(readOnly = true)
@@ -79,6 +79,7 @@ public class MilestoneServiceImpl implements MilestoneService {
     }
 
     @Override
+    @Transactional
     public void createMilestones(
             Long goalId,
             Long goalAmount
@@ -94,6 +95,33 @@ public class MilestoneServiceImpl implements MilestoneService {
     public void recreateMilestones(Long goalId, Long goalAmount) {
         milestoneMapper.deleteByGoalId(goalId);
         createMilestones(goalId, goalAmount);
+    }
+
+    @Override
+    @Transactional
+    public void updatedMilestoneAchievement(
+            Long goalId,
+            Long currentAmount
+    ) {
+
+        List<Milestone> milestones =
+                milestoneMapper.findByGoalId(goalId);
+
+        for (Milestone milestone : milestones) {
+
+            if(!milestone.achieveIfReached(currentAmount)) continue;
+
+            int updated = milestoneMapper.updateAchievement(milestone);
+
+            if (updated == 0) {
+                continue;
+            }
+
+            milestoneReportService.generateReport(
+                    milestone.getMilestoneId(),
+                    goalId
+            );
+        }
     }
 
     /**

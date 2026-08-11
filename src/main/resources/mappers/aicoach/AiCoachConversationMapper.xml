@@ -11,6 +11,7 @@
         <id property="aiCoachConversationId" column="ai_coach_conversation_id"/>
         <result property="userId" column="user_id"/>
         <result property="title" column="title"/>
+        <result property="conversationSummary" column="conversation_summary"/>
         <result property="lastMessageAt" column="last_message_at"/>
         <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
@@ -20,6 +21,7 @@
         ai_coach_conversation_id,
         user_id,
         title,
+        conversation_summary,
         last_message_at,
         created_at,
         updated_at
@@ -74,6 +76,13 @@
     <update id="updateTitle">
         UPDATE ai_coach_conversation
         SET title = #{title}
+        WHERE user_id = #{userId}
+          AND ai_coach_conversation_id = #{conversationId}
+    </update>
+
+    <update id="updateConversationSummary">
+        UPDATE ai_coach_conversation
+        SET conversation_summary = #{conversationSummary}
         WHERE user_id = #{userId}
           AND ai_coach_conversation_id = #{conversationId}
     </update>

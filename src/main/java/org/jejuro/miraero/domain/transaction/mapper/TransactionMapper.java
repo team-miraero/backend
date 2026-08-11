@@ -1,10 +1,12 @@
 package org.jejuro.miraero.domain.transaction.mapper;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.transaction.domain.TransactionQueryResult;
 import org.jejuro.miraero.domain.transaction.dto.request.TransactionSearchCondition;
+import org.jejuro.miraero.domain.transaction.dto.response.ExpenseCategorySummaryResponse;
 
 public interface TransactionMapper {
 
@@ -44,4 +46,11 @@ public interface TransactionMapper {
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime
     );
+
+    List<ExpenseCategorySummaryResponse> findVariableExpenseSummary(
+            @Param("userId") Long userId,
+            @Param("startDate") LocalDate startDate,
+            @Param("endDate") LocalDate endDate
+    );
+
 }
