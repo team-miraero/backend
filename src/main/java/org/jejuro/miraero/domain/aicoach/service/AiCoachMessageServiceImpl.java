@@ -84,27 +84,23 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
             Long conversationId,
             AiCoachMessageCreateRequest request
     ) {
-        getOwnedConversation(userId, conversationId);
+        AiCoachConversation conversation = getOwnedConversation(userId, conversationId);
         boolean firstQuestion = aiCoachMessageMapper.countByConversationId(conversationId) == 0;
 
         executeInNewTransaction(() -> saveUserMessage(userId, conversationId, request));
 
-        List<AiCoachMessage> recentMessages = aiCoachMessageMapper.findRecentByConversationId(
-                conversationId
-        );
         AiCoachFinancialContext financialContext = aiCoachFinancialContextService.getFinancialContext(userId);
         String prompt = aiCoachPromptBuilder.buildPrompt(
                 financialContext,
-                recentMessages,
+                conversation.getConversationSummary(),
                 request.getContent(),
                 firstQuestion
         );
         String generatedText = openAiClient.generateText(prompt);
-        AiCoachResponseParser.ParsedResponse parsedResponse = firstQuestion
-                ? aiCoachResponseParser.parse(generatedText)
-                : null;
-        String answer = firstQuestion ? parsedResponse.getAnswer() : generatedText;
-        if (!StringUtils.hasText(answer)) {
+        AiCoachResponseParser.ParsedResponse parsedResponse = aiCoachResponseParser.parse(generatedText);
+        String answer = parsedResponse.getAnswer();
+        String conversationSummary = parsedResponse.getSummary();
+        if (!StringUtils.hasText(answer) || !StringUtils.hasText(conversationSummary)) {
             throw new BusinessException(CommonErrorCode.SERVICE_UNAVAILABLE);
         }
         String title = firstQuestion
@@ -115,7 +111,8 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
                 userId,
                 conversationId,
                 answer,
-                title
+                title,
+                conversationSummary
         ));
     }
 
@@ -123,7 +120,8 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
             Long userId,
             Long conversationId,
             String content,
-            String title
+            String title,
+            String conversationSummary
     ) {
         LocalDateTime now = LocalDateTime.now();
         AiCoachMessage message = AiCoachMessage.builder()
@@ -138,6 +136,13 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
         }
         if (title != null) {
             aiCoachConversationMapper.updateTitle(userId, conversationId, title);
+        }
+        if (aiCoachConversationMapper.updateConversationSummary(
+                userId,
+                conversationId,
+                conversationSummary
+        ) != 1) {
+            throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
         }
         if (aiCoachConversationMapper.updateLastMessageAt(userId, conversationId, now) != 1) {
             throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
