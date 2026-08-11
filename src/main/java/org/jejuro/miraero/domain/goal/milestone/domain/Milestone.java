@@ -62,4 +62,9 @@ public class Milestone {
             default -> throw new IllegalArgumentException("올바르지 않은 마일스톤 비율입니다.");
         };
     }
+
+    public void markAchieved() {
+        this.achieved = true;
+        this.achievedAt = LocalDateTime.now();
+    }
 }

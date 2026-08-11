@@ -12,6 +12,7 @@ import java.util.List;
 public interface GoalMapper {
     void save(Goal goal);
     List<Goal> findGoalsByUserId(@Param("userId") Long userId);
+    Goal findById(@Param("goalId") Long goalId);
     Goal findByIdAndUserId(
             @Param("userId") Long userId,
             @Param("goalId") Long goalId

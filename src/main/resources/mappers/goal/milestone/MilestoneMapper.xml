@@ -39,6 +39,39 @@
 
     </select>
 
+    <select id="findPreviousMilestone"
+            resultType="org.jejuro.miraero.domain.goal.milestone.domain.Milestone">
+        SELECT
+            milestone_id,
+            goal_id,
+            milestone_percentage,
+            milestone_amount,
+            achieved,
+            achieved_at
+        FROM milestone
+        WHERE goal_id = #{goalId}
+            AND milestone_percentage <![CDATA[<]]> #{percentage}
+        ORDER BY milestone_percentage DESC
+        LIMIT 1
+
+    </select>
+
+    <select id="findByGoalIdAndPercentage"
+            resultType="org.jejuro.miraero.domain.goal.milestone.domain.Milestone">
+        SELECT
+            milestone_id,
+            goal_id,
+            milestone_percentage,
+            milestone_amount,
+            achieved,
+            achieved_at
+        FROM milestone
+        WHERE goal_id = #{goalId}
+        AND milestone_percentage = #{percentage}
+    </select>
+
+
+
 
     <insert id="save"
             parameterType="org.jejuro.miraero.domain.goal.milestone.domain.Milestone"
@@ -72,7 +105,7 @@
         )
         VALUES
 
-        <foreach collection="list"
+        <foreach collection="milestones"
                  item="milestone"
                  separator=",">
             (

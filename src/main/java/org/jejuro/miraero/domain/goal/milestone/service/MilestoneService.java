@@ -22,4 +22,7 @@ public interface MilestoneService {
     void createMilestones(Long goalId, Long goalAmount);
 
     void recreateMilestones(Long goalId, Long goalAmount);
+
+    void updatedMilestoneAchievement(Long goalId, Long currentAmount);
+
 }

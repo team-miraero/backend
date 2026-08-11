@@ -216,6 +216,12 @@ public class GoalServiceImpl implements GoalService{
                 goalAssetService.calculateCurrentAmount(goalId)
         ).orElse(0L);
 
+        // 마일스톤
+        milestoneService.updatedMilestoneAchievement(
+                goalId,
+                currentAmount
+        );
+
         // 진행률 계산
         int progressRate = calculateProgressRate(
                 currentAmount,
