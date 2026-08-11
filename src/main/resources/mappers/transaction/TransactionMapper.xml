@@ -139,7 +139,7 @@
             AND t.transacted_at >= #{startDate}
             AND t.transacted_at <![CDATA[<]]> DATE_ADD(#{endDate}, INTERVAL 1 DAY)
             AND t.transaction_type = 'PAYMENT'
-            AND ec.category_type = 'VARIABLE'
+            AND ec.expense_type = 'VARIABLE'
         GROUP BY
             ec.expense_category_id,
             ec.category_name
