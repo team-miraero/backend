@@ -5,6 +5,8 @@
 
 <mapper namespace="org.jejuro.miraero.domain.account.mapper.AccountMapper">
 
+  <!-- 조회 잔액은 저금통에 묶인 금액을 뺀 값이다. account.balance 원본은 목서버가 원천이라 수정하지 않는다. -->
+
   <select id="findBalanceByIdAndUserIdForUpdate" resultType="long">
     SELECT balance
     FROM account
@@ -76,7 +78,8 @@
     a.account_name AS accountName,
     fi.financial_institution_name AS institutionName,
     a.masked_account_number AS maskedAccountNumber,
-    a.balance AS balance,
+    a.balance - COALESCE((SELECT SUM(mb.balance) FROM money_box mb
+                          WHERE mb.account_id = a.account_id), 0) AS balance,
     a.account_status AS accountStatus,
     a.opened_at AS openedAt,
     a.maturity_at AS maturityAt,
@@ -99,7 +102,8 @@
     a.account_name AS accountName,
     fi.financial_institution_name AS institutionName,
     a.masked_account_number AS maskedAccountNumber,
-    a.balance AS balance,
+    a.balance - COALESCE((SELECT SUM(mb.balance) FROM money_box mb
+                          WHERE mb.account_id = a.account_id), 0) AS balance,
     a.account_status AS accountStatus,
     a.opened_at AS openedAt,
     a.maturity_at AS maturityAt,
@@ -118,7 +122,8 @@
     a.account_name AS accountName,
     fi.financial_institution_name AS institutionName,
     a.masked_account_number AS maskedAccountNumber,
-    a.balance AS balance,
+    a.balance - COALESCE((SELECT SUM(mb.balance) FROM money_box mb
+                          WHERE mb.account_id = a.account_id), 0) AS balance,
     a.account_status AS accountStatus,
     a.opened_at AS openedAt,
     a.maturity_at AS maturityAt,

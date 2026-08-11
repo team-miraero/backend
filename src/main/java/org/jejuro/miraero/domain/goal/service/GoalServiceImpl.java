@@ -133,6 +133,12 @@ public class GoalServiceImpl implements GoalService{
                 request.getAssets()
         );
 
+        //4. 시작 금액을 연결된 저금통 잔액으로 반영
+        goalAssetService.applyStartAmount(
+                goal.getGoalId(),
+                request.getStartAmount()
+        );
+
 
         return GoalCreateResponse.builder()
                 .goalId(goal.getGoalId())
@@ -447,6 +453,9 @@ public class GoalServiceImpl implements GoalService{
         if (goal == null) {
             throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
         }
+
+        // 저금통은 goal_asset과 FK가 없어 목표만 지우면 잔액이 묶인 채 남는다
+        goalAssetService.releaseGoalAssets(goalId);
 
         // 목표 삭제
         goalMapper.delete(goalId);

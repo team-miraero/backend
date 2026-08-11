@@ -13,6 +13,10 @@ import javax.validation.constraints.NotNull;
 @NoArgsConstructor
 public class MoneyBoxCreateRequest {
 
+    // 저금통을 만들 입출금통장. 자동이체를 걸지 않아도 소속 계좌는 반드시 필요하다.
+    @NotNull
+    private Long accountId;
+
     @NotNull
     private MoneyBoxType moneyBoxType;
 

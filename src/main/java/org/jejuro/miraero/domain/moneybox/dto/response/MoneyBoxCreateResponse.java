@@ -9,5 +9,6 @@ import org.jejuro.miraero.domain.moneybox.domain.MoneyBoxType;
 public class MoneyBoxCreateResponse {
 
     private Long moneyBoxId;
+    private Long accountId;
     private MoneyBoxType moneyBoxType;
 }

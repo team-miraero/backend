@@ -29,4 +29,6 @@ public interface AutoTransferMapper {
     );
 
 
+
+    void deleteByMoneyBoxId(@Param("moneyBoxId") Long moneyBoxId);
 }

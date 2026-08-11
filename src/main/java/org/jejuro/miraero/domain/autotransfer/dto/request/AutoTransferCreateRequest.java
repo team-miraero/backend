@@ -12,9 +12,6 @@ import javax.validation.constraints.Positive;
 public class AutoTransferCreateRequest {
 
     @NotNull
-    private Long withdrawalAccountId;
-
-    @NotNull
     @Positive
     private Long amount;
 

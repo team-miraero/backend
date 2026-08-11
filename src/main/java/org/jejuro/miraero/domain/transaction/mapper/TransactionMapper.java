@@ -21,6 +21,9 @@ public interface TransactionMapper {
 
     List<LocalDateTime> findLatestSalaryDateTimes(@Param("userId") Long userId, @Param("limit") int limit);
 
+    // 저금통 자동이체는 급여가 들어오는 계좌에서만 허용하므로 그 계좌를 특정한다
+    Long findLatestSalaryAccountId(@Param("userId") Long userId);
+
     // 고정 지출 합산
     Long findFixedExpenseSum(
             @Param("userId") Long userId,

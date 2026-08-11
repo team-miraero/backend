@@ -18,6 +18,8 @@ import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetResponse;
 import org.jejuro.miraero.domain.goal.exception.GoalErrorCode;
 import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
 import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
+import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
+import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.springframework.stereotype.Service;
@@ -29,10 +31,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GoalAssetServiceImpl implements GoalAssetService {
 
+    private static final String CHECKING = "CHECKING";
+
     private final GoalAssetMapper goalAssetMapper;
     private final GoalMapper goalMapper;
     private final AccountMapper accountMapper;
     private final AutoTransferMapper autoTransferMapper;
+    private final MoneyBoxMapper moneyBoxMapper;
 
 
 
@@ -85,8 +90,8 @@ public class GoalAssetServiceImpl implements GoalAssetService {
         for (GoalAssetRequest asset : assets) {
 
             boolean exists = switch (asset.getAssetType()) {
-                case ACCOUNT -> accountMapper.existsByIdAndUserId(asset.getAssetId(), userId);
-                case MONEY_BOX -> true;//moneyBoxMapper.existsById(asset.getAssetId());
+                case ACCOUNT -> isConnectableAccount(asset.getAssetId(), userId);
+                case MONEY_BOX -> moneyBoxMapper.existsByIdAndUserId(asset.getAssetId(), userId);
                 case LOAN -> true;//loanMapper.existsById(asset.getAssetId());
             };
 
@@ -94,6 +99,35 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                 throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
                 //throw new BusinessException(AssetErrorCode.ASSET_NOT_FOUND);
             }
+        }
+    }
+
+    @Override
+    @Transactional
+    public void applyStartAmount(Long goalId, Long startAmount) {
+        if (startAmount == null || startAmount <= 0) {
+            return;
+        }
+
+        // 시작 금액은 저금통에 담아둔 돈이라, 예적금만 연결한 목표는 반영 대상이 없다
+        goalAssetMapper.findByGoalId(goalId).stream()
+                .filter(asset -> asset.getAssetType() == AssetType.MONEY_BOX)
+                .findFirst()
+                .ifPresent(asset ->
+                        moneyBoxMapper.increaseBalance(asset.getAssetId(), startAmount));
+    }
+
+    @Override
+    @Transactional
+    public void releaseGoalAssets(Long goalId) {
+        for (GoalAsset asset : goalAssetMapper.findByGoalId(goalId)) {
+            if (asset.getAssetType() != AssetType.MONEY_BOX) {
+                continue;
+            }
+
+            // 저금통을 지우면 묶여 있던 금액이 소속 계좌 잔액으로 자동 복귀한다
+            autoTransferMapper.deleteByMoneyBoxId(asset.getAssetId());
+            moneyBoxMapper.deleteById(asset.getAssetId());
         }
     }
 
@@ -108,8 +142,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
             Long amount = switch (asset.getAssetType()) {
                 case ACCOUNT -> findAccountBalance(asset.getAssetId());
 
-                case MONEY_BOX ->
-                        0L; //moneyBoxMapper.findCurrentAmount(asset.getAssetId());
+                case MONEY_BOX -> moneyBoxMapper.findBalanceById(asset.getAssetId());
 
                 case LOAN -> 0L; // 대출 제외
             };
@@ -117,6 +150,12 @@ public class GoalAssetServiceImpl implements GoalAssetService {
             totalAmount += (amount == null ? 0L : amount);
         }
         return totalAmount;
+    }
+
+    // 목표 자산은 예적금만 허용한다. 입출금통장은 저금통이 달리는 계좌라 목표 자산이 아니다.
+    private boolean isConnectableAccount(Long accountId, Long userId) {
+        AccountResponse account = accountMapper.findResponseByIdAndUserId(accountId, userId);
+        return account != null && !CHECKING.equals(account.getAccountType());
     }
 
     // 목표 연결 이후 계좌가 삭제/연동해제됐을 수 있어 null 방어
@@ -150,8 +189,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                 .build();
     }
 
-    // MONEY_BOX는 아직 자산 서비스가 없어 자체 상세(assetName 등)는 못 채우지만,
-    // 자동이체 연결 정보(autoTransfer)는 ACCOUNT와 동일하게 채운다. LOAN은 자동이체 대상이 아니라 범위 밖.
+    // LOAN은 자산 서비스가 없어 최소 정보만 채운다.
     private GoalAssetResponse convertResponse(
             GoalAsset goalAsset
     ){
@@ -180,9 +218,23 @@ public class GoalAssetServiceImpl implements GoalAssetService {
         }
 
         if (assetType == AssetType.MONEY_BOX) {
+            MoneyBox moneyBox = moneyBoxMapper.findById(goalAsset.getAssetId());
+
+            if (moneyBox == null) {
+                return minimalResponse(goalAsset);
+            }
+
+            // 저금통은 자체 계좌번호가 없어 소속 통장의 은행명·마스킹 번호를 쓴다
+            AccountResponse ownerAccount =
+                    accountMapper.findResponseById(moneyBox.getAccountId());
+
             return GoalAssetResponse.builder()
                     .assetType(assetType)
-                    .assetId(goalAsset.getAssetId())
+                    .assetId(moneyBox.getMoneyBoxId())
+                    .bankName(ownerAccount == null ? null : ownerAccount.getInstitutionName())
+                    .accountNumberMasked(
+                            ownerAccount == null ? null : ownerAccount.getMaskedAccountNumber())
+                    .balance(moneyBox.getBalance())
                     .autoTransfer(resolveAutoTransfer(assetType, goalAsset.getAssetId()))
                     .build();
         }
