@@ -13,7 +13,7 @@ sudo vi /etc/miraero/miraero.env
 ```
 
 Do not add `export` in this file. Quote values that contain whitespace.
-Set `SPRING_PROFILES_ACTIVE=dev` on EC2. The `local` profile is the default only for local development.
+Local development and EC2 use the same property keys. EC2 values override the local defaults through this environment file.
 
 ## 2. Tomcat service
 
