@@ -1,6 +1,7 @@
 package org.jejuro.miraero.domain.youthpolicy.service;
 
 import java.time.LocalDate;
+import java.time.Period;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -11,6 +12,8 @@ import org.jejuro.miraero.domain.youthpolicy.domain.YouthPolicyListQueryResult;
 import org.jejuro.miraero.domain.youthpolicy.dto.response.YouthPolicyDetailResponse;
 import org.jejuro.miraero.domain.youthpolicy.dto.response.YouthPolicyListResponse;
 import org.jejuro.miraero.domain.youthpolicy.mapper.YouthPolicyMapper;
+import org.jejuro.miraero.domain.user.domain.User;
+import org.jejuro.miraero.domain.user.mapper.UserMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.response.PageResponse;
@@ -27,10 +30,12 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
     private static final String APPLICATION_PERIOD_END_ONLY_PREFIX = "~ ";
 
     private final YouthPolicyMapper youthPolicyMapper;
+    private final UserMapper userMapper;
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<YouthPolicyListResponse> getYouthPolicies(
+            Long userId,
             String keyword,
             String region,
             String search,
@@ -38,14 +43,23 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
             int size
     ) {
         validatePage(page, size);
+        User user = getUserWithEligibilityInfo(userId);
+        int age = calculateAge(user.getBirthDate());
+        Long monthlyIncome = user.getMonthlyIncome();
 
         long offset = (long) (page - 1) * size;
         List<YouthPolicyListResponse> policies = youthPolicyMapper
-                .findYouthPolicies(keyword, region, search, offset, size)
+                .findYouthPolicies(keyword, region, search, age, monthlyIncome, offset, size)
                 .stream()
                 .map(this::toYouthPolicyListResponse)
                 .collect(Collectors.toList());
-        long totalElements = youthPolicyMapper.countYouthPolicies(keyword, region, search);
+        long totalElements = youthPolicyMapper.countYouthPolicies(
+                keyword,
+                region,
+                search,
+                age,
+                monthlyIncome
+        );
 
         return PageResponse.of(policies, page - 1, size, totalElements);
     }
@@ -141,6 +155,24 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
 
     private String formatDate(LocalDate date) {
         return date.format(DateTimeFormatter.ISO_LOCAL_DATE);
+    }
+
+    private User getUserWithEligibilityInfo(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+        User user = userMapper.findById(userId);
+        if (user == null) {
+            throw new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND);
+        }
+        if (user.getBirthDate() == null || user.getMonthlyIncome() == null) {
+            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+        return user;
+    }
+
+    private int calculateAge(LocalDate birthDate) {
+        return Period.between(birthDate, LocalDate.now()).getYears();
     }
 
     private Long calculateDDay(LocalDate applicationEndDate) {

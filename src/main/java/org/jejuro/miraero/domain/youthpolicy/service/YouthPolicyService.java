@@ -7,6 +7,7 @@ import org.jejuro.miraero.global.response.PageResponse;
 public interface YouthPolicyService {
 
     PageResponse<YouthPolicyListResponse> getYouthPolicies(
+            Long userId,
             String keyword,
             String region,
             String search,
