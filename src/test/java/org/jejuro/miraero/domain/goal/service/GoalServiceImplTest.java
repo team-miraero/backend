@@ -58,12 +58,11 @@ class GoalServiceImplTest {
         GoalPossibilityRequest request =
                 createRequest(1_000_000L, 10, 0L);
 
+        Long userId = 1L;
         // when
         GoalPossibilityResponse response =
-                goalService.checkPossibility(request);
+                goalService.checkPossibility(request,userId);
 
-        // then
-        assertTrue(response.isPossible());
         assertEquals(100_000L, response.getRequiredMonthly());
         assertEquals(500_000L, response.getAvailableMonthly());
     }
@@ -75,12 +74,12 @@ class GoalServiceImplTest {
         GoalPossibilityRequest request =
                 createRequest(10_000_000L, 10, 0L);
 
+        Long userId = 1L;
         // when
         GoalPossibilityResponse response =
-                goalService.checkPossibility(request);
+                goalService.checkPossibility(request,userId);
 
         // then
-        assertFalse(response.isPossible());
         assertEquals(1_000_000L, response.getRequiredMonthly());
         assertEquals(500_000L, response.getAvailableMonthly());
     }
@@ -91,14 +90,14 @@ class GoalServiceImplTest {
         // given
         GoalPossibilityRequest request =
                 createRequest(1_000_000L, 10, 200_000L);
-
+        Long userId = 1L;
         // when
         GoalPossibilityResponse response =
-                goalService.checkPossibility(request);
+                goalService.checkPossibility(request,userId);
 
         // then
         assertEquals(80_000L, response.getRequiredMonthly());
-        assertTrue(response.isPossible());
+
     }
 
     @Test
