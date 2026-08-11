@@ -85,6 +85,11 @@
             <if test="search != null and search != ''">
                 AND yp.policy_name LIKE CONCAT('%', #{search}, '%')
             </if>
+            AND (yp.application_end_date IS NULL OR yp.application_end_date <![CDATA[>=]]> CURDATE())
+            AND (yp.min_age IS NULL OR yp.min_age <![CDATA[<=]]> #{age})
+            AND (yp.max_age IS NULL OR yp.max_age <![CDATA[>=]]> #{age})
+            AND (yp.min_income IS NULL OR yp.min_income <![CDATA[<=]]> #{monthlyIncome})
+            AND (yp.max_income IS NULL OR yp.max_income <![CDATA[>=]]> #{monthlyIncome})
         </where>
     </sql>
 
