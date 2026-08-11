@@ -67,6 +67,35 @@ public class AiCoachPromptBuilder {
         return prompt.toString();
     }
 
+    public String buildPrompt(
+            AiCoachFinancialContext financialContext,
+            String conversationSummary,
+            String currentQuestion,
+            boolean firstQuestion
+    ) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("[SYSTEM]\n")
+                .append(SYSTEM_PROMPT)
+                .append("\n[FINANCIAL_CONTEXT]\n");
+        appendFinancialContext(prompt, financialContext);
+
+        prompt.append("\n[PREVIOUS_CONVERSATION_SUMMARY]\n")
+                .append(conversationSummary == null || conversationSummary.isBlank()
+                        ? UNKNOWN_INFORMATION
+                        : conversationSummary)
+                .append("\n[CURRENT_USER_QUESTION]\n")
+                .append("USER: ")
+                .append(currentQuestion)
+                .append("\n[RESPONSE_FORMAT]\n")
+                .append(firstQuestion
+                        ? "TITLE: conversation title\nANSWER: answer\n"
+                        : "ANSWER: answer\n")
+                .append("SUMMARY: updated cumulative conversation summary\n")
+                .append("The summary must preserve important facts, decisions, and the current "
+                        + "question and answer. Keep it concise and within 1000 Korean characters.");
+        return prompt.toString();
+    }
+
     private void appendFinancialContext(
             StringBuilder prompt,
             AiCoachFinancialContext financialContext
