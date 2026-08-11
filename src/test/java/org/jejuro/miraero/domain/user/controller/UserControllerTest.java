@@ -117,7 +117,7 @@ class UserControllerTest {
         "NewPassword123!"
     );
 
-    mockMvc.perform(patch("/api/users/password")
+    mockMvc.perform(patch("/api/users/me/password")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isOk())
@@ -140,7 +140,7 @@ class UserControllerTest {
         .given(userService)
         .changePassword(any(Long.class), any(PasswordChangeRequest.class));
 
-    mockMvc.perform(patch("/api/users/password")
+    mockMvc.perform(patch("/api/users/me/password")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())
@@ -159,7 +159,7 @@ class UserControllerTest {
         "NewPassword123!"
     );
 
-    mockMvc.perform(patch("/api/users/password")
+    mockMvc.perform(patch("/api/users/me/password")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(request)))
         .andExpect(status().isBadRequest())

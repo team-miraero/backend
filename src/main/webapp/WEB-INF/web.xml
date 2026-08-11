@@ -15,13 +15,6 @@
     </param-value>
   </context-param>
 
-  <!-- Local profile activation example:
-  <context-param>
-      <param-name>spring.profiles.active</param-name>
-      <param-value>local</param-value>
-  </context-param>
-  -->
-
   <listener>
     <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
   </listener>
