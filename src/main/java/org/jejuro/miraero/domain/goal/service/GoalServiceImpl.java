@@ -74,11 +74,14 @@ public class GoalServiceImpl implements GoalService{
         );
 
         GoalPossibility possibility;
-        double possible = (double) requiredMonthly/monthlySavingAmount;
-        if(possible <= 1 ) possibility = GoalPossibility.REALISTIC;
-        else if(possible  <= 1.2 ) possibility = GoalPossibility.TIGHT;
-        else possibility = GoalPossibility.DIFFICULT;
-
+        if(monthlySavingAmount <= 0) {
+            possibility = GoalPossibility.DIFFICULT;
+        }else{
+            double possible = (double) requiredMonthly / monthlySavingAmount;
+            if (possible <= 1) possibility = GoalPossibility.REALISTIC;
+            else if (possible <= 1.2) possibility = GoalPossibility.TIGHT;
+            else possibility = GoalPossibility.DIFFICULT;
+        }
 
 
         return GoalPossibilityResponse.builder()
