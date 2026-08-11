@@ -2,6 +2,7 @@ package org.jejuro.miraero.domain.youthpolicy.service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -84,7 +85,8 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
                         result.getApplicationStartDate(),
                         result.getApplicationEndDate(),
                         result.getApplicationPeriodText()
-                )
+                ),
+                calculateDDay(result.getApplicationEndDate())
         );
     }
 
@@ -139,5 +141,12 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
 
     private String formatDate(LocalDate date) {
         return date.format(DateTimeFormatter.ISO_LOCAL_DATE);
+    }
+
+    private Long calculateDDay(LocalDate applicationEndDate) {
+        if (applicationEndDate == null) {
+            return null;
+        }
+        return ChronoUnit.DAYS.between(LocalDate.now(), applicationEndDate);
     }
 }

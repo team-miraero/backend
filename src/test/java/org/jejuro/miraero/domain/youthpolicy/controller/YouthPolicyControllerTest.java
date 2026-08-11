@@ -55,7 +55,8 @@ class YouthPolicyControllerTest {
                 .andExpect(jsonPath("$.data.content[0].youthPolicyId").value(1))
                 .andExpect(jsonPath("$.data.content[0].policyName").value("청년 전세 지원"))
                 .andExpect(jsonPath("$.data.content[0].applicationPeriod")
-                        .value("2026-07-28 ~ 2026-08-07"));
+                        .value("2026-07-28 ~ 2026-08-07"))
+                .andExpect(jsonPath("$.data.content[0].dDay").value(3));
 
         verify(youthPolicyService).getYouthPolicies("주거지원", "서울", "전세", 1, 10);
     }
@@ -107,7 +108,8 @@ class YouthPolicyControllerTest {
                 "청년 전세 지원",
                 "주거지원",
                 "서울특별시",
-                "2026-07-28 ~ 2026-08-07"
+                "2026-07-28 ~ 2026-08-07",
+                3L
         );
     }
 

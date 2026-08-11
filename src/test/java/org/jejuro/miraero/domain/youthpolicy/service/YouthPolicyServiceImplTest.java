@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import org.jejuro.miraero.domain.youthpolicy.domain.YouthPolicyDetailQueryResult;
@@ -96,6 +97,25 @@ class YouthPolicyServiceImplTest {
         assertEquals("~ 2026-08-07", response.getContent().get(2).getApplicationPeriod());
         assertEquals("상시", response.getContent().get(3).getApplicationPeriod());
         assertNull(response.getContent().get(4).getApplicationPeriod());
+    }
+
+    @Test
+    void getYouthPolicies_calculatesDDayFromApplicationEndDate() {
+        LocalDate applicationEndDate = LocalDate.now().plusDays(7);
+        when(youthPolicyMapper.findYouthPolicies(null, null, null, 0L, 10)).thenReturn(List.of(
+                listResult(1L, null, applicationEndDate, null),
+                listResult(2L, null, null, null)
+        ));
+        when(youthPolicyMapper.countYouthPolicies(null, null, null)).thenReturn(2L);
+
+        PageResponse<YouthPolicyListResponse> response = youthPolicyService
+                .getYouthPolicies(null, null, null, 1, 10);
+
+        assertEquals(
+                ChronoUnit.DAYS.between(LocalDate.now(), applicationEndDate),
+                response.getContent().get(0).getDDay()
+        );
+        assertNull(response.getContent().get(1).getDDay());
     }
 
     @Test
