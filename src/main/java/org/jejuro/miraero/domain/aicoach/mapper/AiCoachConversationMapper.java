@@ -31,6 +31,12 @@ public interface AiCoachConversationMapper {
             @Param("title") String title
     );
 
+    int updateConversationSummary(
+            @Param("userId") Long userId,
+            @Param("conversationId") Long conversationId,
+            @Param("conversationSummary") String conversationSummary
+    );
+
     int updateLastMessageAt(
             @Param("userId") Long userId,
             @Param("conversationId") Long conversationId,

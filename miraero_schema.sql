@@ -830,6 +830,7 @@ CREATE TABLE `ai_coach_conversation` (
     `ai_coach_conversation_id` BIGINT NOT NULL AUTO_INCREMENT,
     `user_id` BIGINT NOT NULL COMMENT '회원 ID',
     `title` VARCHAR(100) NULL,
+    `conversation_summary` TEXT NULL,
     `last_message_at` DATETIME NULL,
     `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
