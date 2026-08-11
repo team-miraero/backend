@@ -16,7 +16,7 @@
 
         <foreach collection="assets" item="asset" separator=",">
             (
-            #{asset.goalId},
+            #{goalId},
             #{asset.assetType},
             #{asset.assetId}
             )

@@ -31,24 +31,6 @@
         ORDER BY created_at ASC, ai_coach_message_id ASC
     </select>
 
-    <select id="findRecentByConversationId" resultMap="aiCoachMessageResultMap">
-        SELECT
-            ai_coach_message_id,
-            ai_coach_conversation_id,
-            sender_type,
-            content,
-            created_at
-        FROM (
-            SELECT
-                <include refid="messageColumns"/>
-            FROM ai_coach_message
-            WHERE ai_coach_conversation_id = #{conversationId}
-            ORDER BY created_at DESC, ai_coach_message_id DESC
-            LIMIT 10
-        ) recent_messages
-        ORDER BY created_at ASC, ai_coach_message_id ASC
-    </select>
-
     <insert id="save"
             parameterType="org.jejuro.miraero.domain.aicoach.domain.AiCoachMessage"
             useGeneratedKeys="true"

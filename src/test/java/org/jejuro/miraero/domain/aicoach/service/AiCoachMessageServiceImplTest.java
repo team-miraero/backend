@@ -277,9 +277,10 @@ class AiCoachMessageServiceImplTest {
         }).when(aiCoachMessageMapper).save(any(AiCoachMessage.class));
         when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
                 .thenReturn(1);
-        lenient().when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of(
+        /*
                 createMessage(100L, AiCoachMessageSenderType.USER, "질문", LocalDateTime.now())
         ));
+        */
         AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
         when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
         when(aiCoachPromptBuilder.buildPrompt(eq(context), nullable(String.class), eq("질문"), eq(true)))
@@ -330,7 +331,6 @@ class AiCoachMessageServiceImplTest {
         }).when(aiCoachMessageMapper).save(any(AiCoachMessage.class));
         when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
                 .thenReturn(1);
-        lenient().when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of());
         AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
         when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
         when(aiCoachPromptBuilder.buildPrompt(eq(context), nullable(String.class), eq("first question"), eq(true)))
@@ -363,7 +363,6 @@ class AiCoachMessageServiceImplTest {
         when(aiCoachMessageMapper.save(any(AiCoachMessage.class))).thenReturn(1);
         when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
                 .thenReturn(1);
-        lenient().when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of());
         AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
         when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
         when(aiCoachPromptBuilder.buildPrompt(eq(context), nullable(String.class), eq("fallback title"), eq(true)))
@@ -389,7 +388,6 @@ class AiCoachMessageServiceImplTest {
         when(aiCoachMessageMapper.save(any(AiCoachMessage.class))).thenReturn(1);
         when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
                 .thenReturn(1);
-        lenient().when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of());
         AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
         when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
         when(aiCoachPromptBuilder.buildPrompt(eq(context), nullable(String.class), eq("follow-up question"), eq(false)))
@@ -415,7 +413,6 @@ class AiCoachMessageServiceImplTest {
         when(aiCoachMessageMapper.save(any(AiCoachMessage.class))).thenReturn(1);
         when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
                 .thenReturn(1);
-        lenient().when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of());
         AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
         when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
         when(aiCoachPromptBuilder.buildPrompt(eq(context), nullable(String.class), eq("first question"), eq(true)))
@@ -445,7 +442,6 @@ class AiCoachMessageServiceImplTest {
         when(aiCoachMessageMapper.save(any(AiCoachMessage.class))).thenReturn(1);
         when(aiCoachConversationMapper.updateLastMessageAt(anyLong(), anyLong(), any(LocalDateTime.class)))
                 .thenReturn(1);
-        lenient().when(aiCoachMessageMapper.findRecentByConversationId(CONVERSATION_ID)).thenReturn(List.of());
         AiCoachFinancialContext context = AiCoachFinancialContext.builder().build();
         when(aiCoachFinancialContextService.getFinancialContext(USER_ID)).thenReturn(context);
         when(aiCoachPromptBuilder.buildPrompt(eq(context), nullable(String.class), eq("질문"), eq(true)))

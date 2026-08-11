@@ -10,8 +10,6 @@ public interface AiCoachMessageMapper {
 
     List<AiCoachMessage> findAllByConversationId(@Param("conversationId") Long conversationId);
 
-    List<AiCoachMessage> findRecentByConversationId(@Param("conversationId") Long conversationId);
-
     int save(AiCoachMessage message);
 
     int countByConversationId(@Param("conversationId") Long conversationId);

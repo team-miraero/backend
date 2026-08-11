@@ -6,7 +6,9 @@ import org.jejuro.miraero.domain.youthpolicy.dto.response.YouthPolicyListRespons
 import org.jejuro.miraero.domain.youthpolicy.service.YouthPolicyService;
 import org.jejuro.miraero.global.response.ApiResponse;
 import org.jejuro.miraero.global.response.PageResponse;
+import org.jejuro.miraero.global.security.AuthenticatedUser;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,6 +24,7 @@ public class YouthPolicyController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<YouthPolicyListResponse>>> getYouthPolicies(
+            @AuthenticationPrincipal AuthenticatedUser user,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String region,
             @RequestParam(required = false) String search,
@@ -29,6 +32,7 @@ public class YouthPolicyController {
             @RequestParam(defaultValue = "10") int size
     ) {
         PageResponse<YouthPolicyListResponse> response = youthPolicyService.getYouthPolicies(
+                user.getUserId(),
                 keyword,
                 region,
                 search,

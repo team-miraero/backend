@@ -16,6 +16,8 @@ public interface YouthPolicyMapper {
             @Param("keyword") String keyword,
             @Param("region") String region,
             @Param("search") String search,
+            @Param("age") Integer age,
+            @Param("monthlyIncome") Long monthlyIncome,
             @Param("offset") Long offset,
             @Param("size") Integer size
     );
@@ -23,7 +25,9 @@ public interface YouthPolicyMapper {
     long countYouthPolicies(
             @Param("keyword") String keyword,
             @Param("region") String region,
-            @Param("search") String search
+            @Param("search") String search,
+            @Param("age") Integer age,
+            @Param("monthlyIncome") Long monthlyIncome
     );
 
     YouthPolicyDetailQueryResult findYouthPolicyById(
