@@ -86,6 +86,9 @@
     INNER JOIN financial_institution fi
     ON a.financial_institution_id = fi.financial_institution_id
     WHERE a.user_id = #{userId}
+    <if test="accountType != null">
+      AND a.account_type = #{accountType}
+    </if>
     ORDER BY a.account_id
   </select>
 
@@ -106,5 +109,25 @@
     INNER JOIN financial_institution fi
     ON a.financial_institution_id = fi.financial_institution_id
     WHERE a.account_id = #{accountId}
+  </select>
+
+  <select id="findResponseByIdAndUserId" resultType="org.jejuro.miraero.domain.account.dto.response.AccountResponse">
+    SELECT
+    a.account_id AS accountId,
+    a.account_type AS accountType,
+    a.account_name AS accountName,
+    fi.financial_institution_name AS institutionName,
+    a.masked_account_number AS maskedAccountNumber,
+    a.balance AS balance,
+    a.account_status AS accountStatus,
+    a.opened_at AS openedAt,
+    a.maturity_at AS maturityAt,
+    a.interest_rate AS interestRate,
+    a.monthly_payment_limit AS monthlyPaymentLimit
+    FROM account a
+    INNER JOIN financial_institution fi
+    ON a.financial_institution_id = fi.financial_institution_id
+    WHERE a.account_id = #{accountId}
+    AND a.user_id = #{userId}
   </select>
 </mapper>

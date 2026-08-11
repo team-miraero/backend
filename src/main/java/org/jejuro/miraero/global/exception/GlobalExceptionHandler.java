@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestCookieException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
 @RestControllerAdvice
@@ -43,6 +44,20 @@ public class GlobalExceptionHandler {
         .body(ApiResponse.error(errorCode));
   }
 
+
+  /*
+    PathVariable/RequestParam 타입 변환 실패 (예: accountId=abc)
+   */
+  @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+  public ResponseEntity<ApiResponse<Void>> handleMethodArgumentTypeMismatchException(
+      MethodArgumentTypeMismatchException exception
+  ) {
+    ErrorCode errorCode = CommonErrorCode.INVALID_INPUT_VALUE;
+
+    return ResponseEntity
+        .status(errorCode.getStatus())
+        .body(ApiResponse.error(errorCode));
+  }
 
   /**
    * 처리되지 않은 서버 예외 처리

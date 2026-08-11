@@ -4,6 +4,10 @@ package org.jejuro.miraero.domain.goal.service;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.account.dto.response.AccountResponse;
 import org.jejuro.miraero.domain.account.mapper.AccountMapper;
+import org.jejuro.miraero.domain.autotransfer.domain.AutoTransfer;
+import org.jejuro.miraero.domain.autotransfer.dto.response.AutoTransferResponse;
+import org.jejuro.miraero.domain.autotransfer.dto.response.WithdrawalAccountResponse;
+import org.jejuro.miraero.domain.autotransfer.mapper.AutoTransferMapper;
 import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
@@ -28,6 +32,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
     private final GoalAssetMapper goalAssetMapper;
     private final GoalMapper goalMapper;
     private final AccountMapper accountMapper;
+    private final AutoTransferMapper autoTransferMapper;
 
 
 
@@ -123,10 +128,13 @@ public class GoalAssetServiceImpl implements GoalAssetService {
     @Override
     @Transactional(readOnly = true)
     public GoalAssetListResponse getGoalAssets(Long userId, Long goalId) {
-        Goal goal = goalMapper.findByIdAndUserId(userId, goalId);
+        Goal goal = goalMapper.findById(goalId);
 
         if (goal == null) {
             throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        }
+        if (!goal.getUserId().equals(userId)) {
+            throw new BusinessException(GoalErrorCode.GOAL_ACCESS_DENIED);
         }
 
         List<GoalAsset> goalAssets =
@@ -142,22 +150,22 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                 .build();
     }
 
-    // MONEY_BOX/LOAN은 아직 자산 서비스가 없어 assetType/assetId만 반환 (범위 밖)
+    // MONEY_BOX는 아직 자산 서비스가 없어 자체 상세(assetName 등)는 못 채우지만,
+    // 자동이체 연결 정보(autoTransfer)는 ACCOUNT와 동일하게 채운다. LOAN은 자동이체 대상이 아니라 범위 밖.
     private GoalAssetResponse convertResponse(
             GoalAsset goalAsset
     ){
-        if (goalAsset.getAssetType() == AssetType.ACCOUNT) {
+        AssetType assetType = goalAsset.getAssetType();
+
+        if (assetType == AssetType.ACCOUNT) {
             AccountResponse account = accountMapper.findResponseById(goalAsset.getAssetId());
 
             if (account == null) {
-                return GoalAssetResponse.builder()
-                        .assetType(goalAsset.getAssetType())
-                        .assetId(goalAsset.getAssetId())
-                        .build();
+                return minimalResponse(goalAsset);
             }
 
             return GoalAssetResponse.builder()
-                    .assetType(goalAsset.getAssetType())
+                    .assetType(assetType)
                     .assetId(account.getAccountId())
                     .assetName(account.getAccountName())
                     .bankName(account.getInstitutionName())
@@ -167,12 +175,49 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                             .interestRate(account.getInterestRate())
                             .maturityDate(account.getMaturityAt())
                             .build())
+                    .autoTransfer(resolveAutoTransfer(assetType, goalAsset.getAssetId()))
                     .build();
         }
 
+        if (assetType == AssetType.MONEY_BOX) {
+            return GoalAssetResponse.builder()
+                    .assetType(assetType)
+                    .assetId(goalAsset.getAssetId())
+                    .autoTransfer(resolveAutoTransfer(assetType, goalAsset.getAssetId()))
+                    .build();
+        }
+
+        return minimalResponse(goalAsset);
+    }
+
+    private GoalAssetResponse minimalResponse(GoalAsset goalAsset) {
         return GoalAssetResponse.builder()
                 .assetType(goalAsset.getAssetType())
                 .assetId(goalAsset.getAssetId())
+                .build();
+    }
+
+    // 자동이체가 설정 안 된 자산도 있을 수 있어 null 허용
+    private AutoTransferResponse resolveAutoTransfer(AssetType assetType, Long assetId) {
+        AutoTransfer autoTransfer = autoTransferMapper.findByAsset(assetType, assetId);
+        if (autoTransfer == null) {
+            return null;
+        }
+
+        AccountResponse withdrawalAccount =
+                accountMapper.findResponseById(autoTransfer.getWithdrawalAccountId());
+
+        return AutoTransferResponse.from(autoTransfer, toWithdrawalAccountResponse(withdrawalAccount));
+    }
+
+    private WithdrawalAccountResponse toWithdrawalAccountResponse(AccountResponse account) {
+        if (account == null) {
+            return null;
+        }
+        return WithdrawalAccountResponse.builder()
+                .accountId(account.getAccountId())
+                .bankName(account.getInstitutionName())
+                .accountNumberMasked(account.getMaskedAccountNumber())
                 .build();
     }
 
