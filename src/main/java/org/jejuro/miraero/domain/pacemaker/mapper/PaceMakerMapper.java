@@ -18,6 +18,13 @@ public interface PaceMakerMapper {
 
   AutoSaving findByUserId(@Param("userId") Long userId);
 
+  int insertAutoSaving(
+      @Param("userId") Long userId,
+      @Param("moneyBoxId") Long moneyBoxId,
+      @Param("accountId") Long accountId,
+      @Param("maxAmount") Long maxAmount
+  );
+
   /**
    * 적립 대상인 페이스메이커 설정 목록.
    *
