@@ -2,6 +2,9 @@ package org.jejuro.miraero.domain.autotransfer.controller;
 
 import java.time.LocalDate;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.autotransfer.dto.response.AutoTransferExecutionResponse;
 import org.jejuro.miraero.domain.autotransfer.exception.AutoTransferErrorCode;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auto-transfers")
 @RequiredArgsConstructor
+@Api(tags = "자동 이체")
 public class AutoTransferController {
 
     private final AutoTransferExecutionService autoTransferExecutionService;
@@ -32,9 +36,10 @@ public class AutoTransferController {
      * 본인 저금통만 대상이라 다른 사용자의 데이터에는 영향이 없다.
      */
     @PostMapping("/execute")
+    @ApiOperation(value = "자동 이체 즉시 실행", notes = "로그인 사용자의 실행 대상 자동 이체를 지정한 날짜 기준으로 즉시 실행합니다. date를 생략하면 서버의 오늘 날짜를 사용하며, 미래 날짜는 지정할 수 없습니다.")
     public ResponseEntity<ApiResponse<AutoTransferExecutionResponse>> execute(
             @AuthenticationPrincipal AuthenticatedUser user,
-            @RequestParam(required = false)
+            @ApiParam(value = "실행 기준일(yyyy-MM-dd). 생략 시 오늘", example = "2026-08-12") @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
         LocalDate executionDate = date == null ? LocalDate.now() : date;
