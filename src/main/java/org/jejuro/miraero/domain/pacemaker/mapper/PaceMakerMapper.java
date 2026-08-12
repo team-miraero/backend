@@ -18,6 +18,13 @@ public interface PaceMakerMapper {
 
   AutoSaving findByUserId(@Param("userId") Long userId);
 
+  /**
+   * 적립 대상인 페이스메이커 설정 목록.
+   *
+   * userId가 주어지면 그 사용자 것만 조회한다(시연용 수동 실행).
+   */
+  List<AutoSaving> findActiveAutoSavings(@Param("userId") Long userId);
+
   int updateStatus(
       @Param("userId") Long userId,
       @Param("autoSavingId") Long autoSavingId,

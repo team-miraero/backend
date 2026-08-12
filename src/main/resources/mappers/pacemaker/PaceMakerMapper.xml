@@ -42,6 +42,23 @@
     WHERE a.user_id = #{userId}
   </select>
 
+  <!-- 적립 대상. 상태가 ACTIVE인 건만 실행한다. -->
+  <select id="findActiveAutoSavings"
+    resultType="org.jejuro.miraero.domain.pacemaker.domain.AutoSaving">
+    SELECT auto_saving_id     AS autoSavingId,
+           user_id            AS userId,
+           money_box_id       AS moneyBoxId,
+           account_id         AS accountId,
+           max_amount         AS maxAmount,
+           auto_saving_status AS autoSavingStatus
+    FROM auto_saving
+    WHERE auto_saving_status = 'ACTIVE'
+    <if test="userId != null">
+      AND user_id = #{userId}
+    </if>
+    ORDER BY auto_saving_id
+  </select>
+
   <select id="countMonthlySuccess"
     parameterType="long"
     resultType="int">

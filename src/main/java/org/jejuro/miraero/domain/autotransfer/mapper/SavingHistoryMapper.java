@@ -24,4 +24,18 @@ public interface SavingHistoryMapper {
       @Param("transactedAt") LocalDate transactedAt,
       @Param("transferStatus") TransferStatus transferStatus
   );
+
+  /**
+   * 페이스메이커 적립 이력. 대시보드·연속적립일 조회가 auto_saving_id로 필터하므로
+   * 목표 자동이체와 달리 이 값을 반드시 채운다.
+   *
+   * @return 실제로 기록된 행 수. 이미 실행된 건이면 0
+   */
+  int insertPaceMakerIgnoreDuplicate(
+      @Param("moneyBoxId") Long moneyBoxId,
+      @Param("autoSavingId") Long autoSavingId,
+      @Param("amount") Long amount,
+      @Param("transactedAt") LocalDate transactedAt,
+      @Param("transferStatus") TransferStatus transferStatus
+  );
 }
