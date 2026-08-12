@@ -1,5 +1,8 @@
 package org.jejuro.miraero.domain.aicoach.controller;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import java.util.List;
 import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,13 +24,15 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/ai-coach/conversations")
+@Api(tags = "AI 코치 - 메시지")
 public class AiCoachMessageController {
 
     private final AiCoachMessageService aiCoachMessageService;
 
     @GetMapping("/{conversationId}/messages")
+    @ApiOperation(value = "AI 코치 메시지 목록 조회", notes = "로그인 사용자가 소유한 대화의 메시지를 조회합니다. senderType이 USER면 사용자 메시지, ASSISTANT면 AI 응답입니다.")
     public ResponseEntity<ApiResponse<List<AiCoachMessageResponse>>> getMessages(
-            @PathVariable Long conversationId,
+            @ApiParam(value = "AI 코치 대화 ID", example = "1", required = true) @PathVariable Long conversationId,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
         List<AiCoachMessageResponse> responses = aiCoachMessageService.getMessages(
@@ -38,8 +43,9 @@ public class AiCoachMessageController {
     }
 
     @PostMapping("/{conversationId}/messages")
+    @ApiOperation(value = "AI 코치에게 질문 전송", notes = "사용자 질문을 저장한 뒤 금융 현황을 반영해 AI 응답을 생성합니다. 응답은 생성된 ASSISTANT 메시지입니다. AI 응답 생성에 실패해도 사용자 질문은 이미 저장될 수 있으므로, 실패 시 메시지 목록을 다시 조회해 상태를 동기화하세요.")
     public ResponseEntity<ApiResponse<AiCoachMessageResponse>> sendQuestion(
-            @PathVariable Long conversationId,
+            @ApiParam(value = "AI 코치 대화 ID", example = "1", required = true) @PathVariable Long conversationId,
             @Valid @RequestBody AiCoachMessageCreateRequest request,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {

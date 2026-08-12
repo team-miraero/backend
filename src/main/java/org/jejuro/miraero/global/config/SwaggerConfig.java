@@ -46,8 +46,8 @@ public class SwaggerConfig implements WebMvcConfigurer {
 
     private ApiInfo apiInfo() {
         return new ApiInfoBuilder()
-                .title("Miraero API")
-                .description("Miraero backend API documentation")
+                .title("미래로(Miraero) API 문서")
+                .description("프론트엔드 연동을 위한 미래로 백엔드 API 명세입니다. 인증이 필요한 API는 우측 Authorize 버튼에서 `Bearer {accessToken}` 형식의 Authorization 헤더를 설정한 뒤 호출하세요.")
                 .version("1.0")
                 .build();
     }

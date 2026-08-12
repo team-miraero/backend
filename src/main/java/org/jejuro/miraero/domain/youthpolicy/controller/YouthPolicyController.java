@@ -1,5 +1,8 @@
 package org.jejuro.miraero.domain.youthpolicy.controller;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.youthpolicy.dto.response.YouthPolicyDetailResponse;
 import org.jejuro.miraero.domain.youthpolicy.dto.response.YouthPolicyListResponse;
@@ -18,18 +21,20 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/youth-policies")
 @RequiredArgsConstructor
+@Api(tags = "청년 정책")
 public class YouthPolicyController {
 
     private final YouthPolicyService youthPolicyService;
 
     @GetMapping
+    @ApiOperation(value = "청년 정책 목록 조회", notes = "키워드·지역·통합 검색어로 청년 정책을 조회합니다. page는 1부터 시작하며, dDay는 신청 마감일까지 남은 일수입니다.")
     public ResponseEntity<ApiResponse<PageResponse<YouthPolicyListResponse>>> getYouthPolicies(
             @AuthenticationPrincipal AuthenticatedUser user,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) String region,
-            @RequestParam(required = false) String search,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size
+            @ApiParam(value = "정책 키워드", example = "주거") @RequestParam(required = false) String keyword,
+            @ApiParam(value = "지역명", example = "서울") @RequestParam(required = false) String region,
+            @ApiParam(value = "정책명·내용 통합 검색어", example = "청년 월세") @RequestParam(required = false) String search,
+            @ApiParam(value = "페이지 번호. 1부터 시작", example = "1") @RequestParam(defaultValue = "1") int page,
+            @ApiParam(value = "페이지당 항목 수", example = "10") @RequestParam(defaultValue = "10") int size
     ) {
         PageResponse<YouthPolicyListResponse> response = youthPolicyService.getYouthPolicies(
                 user.getUserId(),
@@ -44,8 +49,9 @@ public class YouthPolicyController {
     }
 
     @GetMapping("/{youthPolicyId}")
+    @ApiOperation(value = "청년 정책 상세 조회", notes = "정책 소개, 지원 내용, 신청 기간, 연령·소득 조건, 신청 방법 및 관련 URL을 조회합니다.")
     public ResponseEntity<ApiResponse<YouthPolicyDetailResponse>> getYouthPolicyDetail(
-            @PathVariable Long youthPolicyId
+            @ApiParam(value = "청년 정책 ID", example = "1", required = true) @PathVariable Long youthPolicyId
     ) {
         YouthPolicyDetailResponse response = youthPolicyService.getYouthPolicyDetail(youthPolicyId);
 
