@@ -54,8 +54,7 @@
             transfer_day,
             start_date,
             end_date,
-            auto_transfer_status,
-            synced_at
+            auto_transfer_status
         FROM auto_transfer
         WHERE
             (
