@@ -27,6 +27,7 @@ import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.exception.GlobalExceptionHandler;
 import org.jejuro.miraero.global.response.PageResponse;
+import org.jejuro.miraero.domain.pacemaker.service.PaceMakerSavingService;
 import org.jejuro.miraero.global.security.AuthenticatedUser;
 import org.jejuro.miraero.global.security.JwtAuthenticationToken;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,11 +51,14 @@ class PaceMakerControllerTest {
     @Mock
     private PaceMakerService paceMakerService;
 
+    @Mock
+    private PaceMakerSavingService paceMakerSavingService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
-        PaceMakerController paceMakerController = new PaceMakerController(paceMakerService);
+        PaceMakerController paceMakerController = new PaceMakerController(paceMakerService, paceMakerSavingService);
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
 
