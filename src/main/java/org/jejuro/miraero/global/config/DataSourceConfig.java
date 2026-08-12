@@ -11,7 +11,10 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
-@PropertySource("classpath:application.properties")
+@PropertySource({
+    "classpath:application.properties",
+    "classpath:application-${spring.profiles.active:local}.properties"
+})
 public class DataSourceConfig {
 
   private final Environment environment;
