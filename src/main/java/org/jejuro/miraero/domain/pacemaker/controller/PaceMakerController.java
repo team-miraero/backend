@@ -27,6 +27,13 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import java.time.LocalDate;
+import org.jejuro.miraero.domain.autotransfer.exception.AutoTransferErrorCode;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerSavingExecutionResponse;
+import org.jejuro.miraero.domain.pacemaker.service.PaceMakerSavingService;
+import org.jejuro.miraero.global.exception.BusinessException;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -38,6 +45,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class PaceMakerController {
 
   private final PaceMakerService paceMakerService;
+  private final PaceMakerSavingService paceMakerSavingService;
 
   @GetMapping
   @ApiOperation(value = "페이스메이커 조회", notes = "로그인 사용자의 자동 저축 페이스메이커 설정을 조회합니다.")
@@ -128,5 +136,40 @@ public class PaceMakerController {
     );
 
     return ResponseEntity.ok(ApiResponse.success(response));
+  }
+
+  /**
+   * 페이스메이커 적립을 즉시 실행한다.
+   *
+   * 스케줄러는 매일 08:00에만 돌아 시연 중에 보여줄 수 없어서 둔 엔드포인트다.
+   * date를 주면 그날 구간을 정산해 지난 날짜들을 순서대로 재생할 수 있다.
+   * 본인 페이스메이커만 대상이라 다른 사용자의 데이터에는 영향이 없다.
+   */
+  @PostMapping("/savings/execute")
+  @ApiOperation(
+      value = "페이스메이커 적립 즉시 실행",
+      notes = "시연·검증용입니다. 지정한 영업일(08:00~다음날 08:00)에 쓰고 남은 여유자금을 저금통에 적립합니다."
+  )
+  public ResponseEntity<ApiResponse<PaceMakerSavingExecutionResponse>> executeSaving(
+      @AuthenticationPrincipal AuthenticatedUser user,
+      @ApiParam(value = "정산 기준 영업일(yyyy-MM-dd). 생략 시 어제", example = "2026-08-11")
+      @RequestParam(required = false)
+      @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+  ) {
+    // 기본값은 어제. 오늘 구간은 아직 진행 중이라 정산 대상이 아니다.
+    LocalDate businessDate = date == null ? LocalDate.now().minusDays(1) : date;
+
+    if (businessDate.isAfter(LocalDate.now())) {
+      throw new BusinessException(AutoTransferErrorCode.FUTURE_EXECUTION_DATE);
+    }
+
+    int savedCount = paceMakerSavingService.saveAll(businessDate, user.getUserId());
+
+    return ResponseEntity.ok(ApiResponse.success(
+        PaceMakerSavingExecutionResponse.builder()
+            .businessDate(businessDate)
+            .savedCount(savedCount)
+            .build()
+    ));
   }
 }
