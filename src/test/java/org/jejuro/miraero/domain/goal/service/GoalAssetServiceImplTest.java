@@ -53,6 +53,9 @@ class GoalAssetServiceImplTest {
     @Mock
     private MoneyBoxMapper moneyBoxMapper;
 
+    @Mock
+    private org.jejuro.miraero.domain.mydata.service.AccountTransferService accountTransferService;
+
     @InjectMocks
     private GoalAssetServiceImpl goalAssetService;
 
@@ -455,5 +458,108 @@ class GoalAssetServiceImplTest {
         verify(moneyBoxMapper).deleteById(30L);
         // 연결된 예적금 계좌는 사용자 자산이므로 삭제 대상이 아니다
         verify(moneyBoxMapper, never()).deleteById(10L);
+    }
+
+    @Test
+    @DisplayName("저금통이 연결된 목표는 그 저금통이 속한 계좌로 끌어쓴다")
+    void pullFunds_toMoneyBox() {
+        Long sourceAccountId = 50L;
+        MoneyBox moneyBox = MoneyBox.builder().moneyBoxId(30L).accountId(60L).build();
+        org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest request =
+                pullRequest(sourceAccountId, 100_000L);
+
+        given(goalMapper.findByIdAndUserId(USER_ID, GOAL_ID))
+                .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
+        given(accountMapper.findResponseByIdAndUserId(sourceAccountId, USER_ID))
+                .willReturn(AccountResponse.builder().accountId(sourceAccountId).balance(500_000L).build());
+        given(goalAssetMapper.existsByAsset(AssetType.ACCOUNT, sourceAccountId)).willReturn(false);
+        given(goalAssetMapper.findByGoalId(GOAL_ID))
+                .willReturn(List.of(
+                        GoalAsset.builder().goalId(GOAL_ID).assetType(AssetType.MONEY_BOX).assetId(30L).build()));
+        given(moneyBoxMapper.findById(30L)).willReturn(moneyBox);
+        given(moneyBoxMapper.findBalanceById(30L)).willReturn(200_000L);
+
+        var response = goalAssetService.pullFunds(USER_ID, GOAL_ID, request);
+
+        assertEquals(100_000L, response.getPulledAmount());
+        verify(accountMapper).decreaseBalance(sourceAccountId, USER_ID, 100_000L);
+        verify(accountTransferService).transfer(USER_ID, sourceAccountId, 60L, 100_000L);
+        verify(moneyBoxMapper).increaseBalance(30L, 100_000L);
+    }
+
+    @Test
+    @DisplayName("예적금이 연결된 목표는 그 계좌로 바로 끌어쓴다")
+    void pullFunds_toAccount() {
+        Long sourceAccountId = 50L;
+        Long targetAccountId = 70L;
+        org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest request =
+                pullRequest(sourceAccountId, 100_000L);
+
+        given(goalMapper.findByIdAndUserId(USER_ID, GOAL_ID))
+                .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
+        given(accountMapper.findResponseByIdAndUserId(sourceAccountId, USER_ID))
+                .willReturn(AccountResponse.builder().accountId(sourceAccountId).balance(500_000L).build());
+        given(goalAssetMapper.existsByAsset(AssetType.ACCOUNT, sourceAccountId)).willReturn(false);
+        given(goalAssetMapper.findByGoalId(GOAL_ID))
+                .willReturn(List.of(
+                        GoalAsset.builder().goalId(GOAL_ID).assetType(AssetType.ACCOUNT).assetId(targetAccountId).build()));
+        given(accountMapper.findResponseById(targetAccountId))
+                .willReturn(AccountResponse.builder().accountId(targetAccountId).balance(1_000_000L).build());
+
+        goalAssetService.pullFunds(USER_ID, GOAL_ID, request);
+
+        verify(accountTransferService).transfer(USER_ID, sourceAccountId, targetAccountId, 100_000L);
+        verify(accountMapper).increaseBalance(targetAccountId, USER_ID, 100_000L);
+    }
+
+    @Test
+    @DisplayName("이미 다른 목표에 연결된 계좌는 끌어쓰기 출처로 쓸 수 없다")
+    void pullFunds_sourceAlreadyLinked_throws() {
+        Long sourceAccountId = 50L;
+        org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest request =
+                pullRequest(sourceAccountId, 100_000L);
+
+        given(goalMapper.findByIdAndUserId(USER_ID, GOAL_ID))
+                .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
+        given(accountMapper.findResponseByIdAndUserId(sourceAccountId, USER_ID))
+                .willReturn(AccountResponse.builder().accountId(sourceAccountId).balance(500_000L).build());
+        given(goalAssetMapper.existsByAsset(AssetType.ACCOUNT, sourceAccountId)).willReturn(true);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> goalAssetService.pullFunds(USER_ID, GOAL_ID, request));
+
+        assertEquals(org.jejuro.miraero.domain.goal.exception.GoalErrorCode.PULL_SOURCE_ACCOUNT_LINKED,
+                exception.getErrorCode());
+        verify(accountTransferService, never()).transfer(anyLong(), anyLong(), anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("출처 계좌 잔액이 부족하면 끌어쓸 수 없다")
+    void pullFunds_insufficientBalance_throws() {
+        Long sourceAccountId = 50L;
+        org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest request =
+                pullRequest(sourceAccountId, 100_000L);
+
+        given(goalMapper.findByIdAndUserId(USER_ID, GOAL_ID))
+                .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
+        given(accountMapper.findResponseByIdAndUserId(sourceAccountId, USER_ID))
+                .willReturn(AccountResponse.builder().accountId(sourceAccountId).balance(50_000L).build());
+        given(goalAssetMapper.existsByAsset(AssetType.ACCOUNT, sourceAccountId)).willReturn(false);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> goalAssetService.pullFunds(USER_ID, GOAL_ID, request));
+
+        assertEquals(org.jejuro.miraero.domain.goal.exception.GoalErrorCode.PULL_INSUFFICIENT_BALANCE,
+                exception.getErrorCode());
+        verify(accountTransferService, never()).transfer(anyLong(), anyLong(), anyLong(), anyLong());
+    }
+
+    private org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest pullRequest(
+            Long sourceAccountId, Long amount) {
+        org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest request =
+                new org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest();
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "sourceAccountId", sourceAccountId);
+        org.springframework.test.util.ReflectionTestUtils.setField(request, "amount", amount);
+        return request;
     }
 }
