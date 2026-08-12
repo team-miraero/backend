@@ -19,6 +19,7 @@ import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBoxType;
 import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
 import org.jejuro.miraero.domain.moneybox.service.MoneyBoxService;
+import org.jejuro.miraero.domain.mydata.service.AccountTransferService;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerCreateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerGoalDepositRequest;
@@ -70,6 +71,9 @@ class PaceMakerServiceImplTest {
     @Mock
     private TransactionQueryService transactionQueryService;
 
+    @Mock
+    private AccountTransferService accountTransferService;
+
     private PaceMakerService paceMakerService;
 
     @BeforeEach
@@ -79,7 +83,8 @@ class PaceMakerServiceImplTest {
                 moneyBoxMapper,
                 accountMapper,
                 moneyBoxService,
-                transactionQueryService
+                transactionQueryService,
+                accountTransferService
         );
     }
 
@@ -527,10 +532,12 @@ class PaceMakerServiceImplTest {
     @DisplayName("Deposit pace maker balance to goal deposit account")
     void depositToGoal_success() {
         Long accountId = 8L;
+        Long moneyBoxAccountId = 10L;
         PaceMakerGoalDepositRequest request = new PaceMakerGoalDepositRequest(3L, accountId, 270_000L);
         MoneyBox paceMakerMoneyBox = MoneyBox.builder()
                 .moneyBoxId(3L)
                 .userId(USER_ID)
+                .accountId(moneyBoxAccountId)
                 .balance(300_000L)
                 .build();
 
@@ -549,6 +556,8 @@ class PaceMakerServiceImplTest {
         verify(moneyBoxMapper).findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID);
         verify(paceMakerMapper).existsGoalDepositAccountByUserIdAndAccountId(USER_ID, accountId);
         verify(moneyBoxMapper).decreaseBalance(3L, USER_ID, 270_000L);
+        // 저금통이 속한 계좌와 목표 계좌는 항상 다른 물리 계좌라 실제 이체를 거쳐야 한다
+        verify(accountTransferService).transfer(USER_ID, moneyBoxAccountId, accountId, 270_000L);
         verify(accountMapper).increaseBalance(accountId, USER_ID, 270_000L);
     }
 

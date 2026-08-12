@@ -12,6 +12,7 @@ import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBoxType;
 import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
 import org.jejuro.miraero.domain.moneybox.service.MoneyBoxService;
+import org.jejuro.miraero.domain.mydata.service.AccountTransferService;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerCreateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerGoalDepositRequest;
@@ -52,6 +53,7 @@ public class PaceMakerServiceImpl implements PaceMakerService {
   private final AccountMapper accountMapper;
   private final MoneyBoxService moneyBoxService;
   private final TransactionQueryService transactionQueryService;
+  private final AccountTransferService accountTransferService;
 
   @Override
   @Transactional
@@ -339,6 +341,15 @@ public class PaceMakerServiceImpl implements PaceMakerService {
     moneyBoxMapper.decreaseBalance(
         savingMoneyBox.getMoneyBoxId(),
         userId,
+        request.getAmount()
+    );
+
+    // 저금통이 속한 계좌와 목표 계좌는 항상 다른 물리 계좌라 실제 이체가 필요하다.
+    // 로컬 잔액만 올리면 다음 마이데이터 동기화 때 mock 서버의 옛 값으로 덮어써져 돈이 증발한다.
+    accountTransferService.transfer(
+        userId,
+        savingMoneyBox.getAccountId(),
+        request.getAccountId(),
         request.getAmount()
     );
 
