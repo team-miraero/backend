@@ -130,4 +130,9 @@
         ) temp
     </select>
 
+    <delete id="deleteByMoneyBoxId">
+        DELETE FROM auto_transfer
+        WHERE money_box_id = #{moneyBoxId}
+    </delete>
+
 </mapper>

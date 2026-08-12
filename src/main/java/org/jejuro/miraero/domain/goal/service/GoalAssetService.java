@@ -31,4 +31,21 @@ public interface GoalAssetService {
      * @param assetId 자산 ID
      */
     void deleteGoalAsset(Long userId, Long goalId, AssetType assetType, Long assetId);
+
+    /**
+     * 목표 생성 시 사용자가 이미 담아둔 금액을 연결된 저금통 잔액으로 반영한다.
+     *
+     * @param goalId 목표 ID
+     * @param startAmount 목표 시작 금액
+     */
+    void applyStartAmount(Long goalId, Long startAmount);
+
+    /**
+     * 목표 삭제 시 연결된 저금통과 자동이체를 정리한다.
+     *
+     * 저금통이 사라지면 묶여 있던 금액이 소속 계좌 잔액으로 돌아온다.
+     *
+     * @param goalId 목표 ID
+     */
+    void releaseGoalAssets(Long goalId);
 }

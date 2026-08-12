@@ -13,6 +13,14 @@ public interface TransactionQueryService {
     List<LocalDateTime> getLatestSalaryDateTimes(Long userId, int limit);
 
     /**
+     * 사용자의 급여가 입금되는 계좌 ID를 조회한다.
+     *
+     * @param userId 사용자 ID
+     * @return 급여 입금 계좌 ID. 급여 거래를 찾지 못하면 null
+     */
+    Long getSalaryAccountId(Long userId);
+
+    /**
      * 특정 기간 내 고정 지출 금액 합계를 조회한다
      *
      * @param userId 사용자 ID

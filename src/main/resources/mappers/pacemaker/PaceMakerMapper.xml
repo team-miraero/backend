@@ -25,7 +25,7 @@
            a.max_amount,
            m.money_box_id,
            m.balance,
-           m.masked_account_number,
+           mba.masked_account_number,
            CASE
              WHEN h.auto_saving_history_id IS NULL THEN FALSE
              ELSE TRUE
@@ -34,6 +34,8 @@
     FROM auto_saving a
            INNER JOIN money_box m
                       ON a.money_box_id = m.money_box_id
+           LEFT JOIN account mba
+                     ON m.account_id = mba.account_id
            LEFT JOIN auto_saving_history h
                      ON a.auto_saving_id = h.auto_saving_id
                        AND h.transacted_at = CURDATE()
@@ -141,11 +143,12 @@
            ga.asset_id,
            CASE
              WHEN ga.asset_type = 'ACCOUNT' THEN fi.financial_institution_name
+             WHEN ga.asset_type = 'MONEY_BOX' THEN mbfi.financial_institution_name
              ELSE NULL
              END AS financial_institution_name,
            CASE
              WHEN ga.asset_type = 'ACCOUNT' THEN a.masked_account_number
-             WHEN ga.asset_type = 'MONEY_BOX' THEN m.masked_account_number
+             WHEN ga.asset_type = 'MONEY_BOX' THEN mba.masked_account_number
              ELSE NULL
              END AS masked_account_number,
            CASE
@@ -164,6 +167,11 @@
            LEFT JOIN money_box m
                      ON ga.asset_type = 'MONEY_BOX'
                        AND ga.asset_id = m.money_box_id
+           <!-- 저금통은 자체 계좌번호가 없어 소속 통장의 번호·은행명을 보여준다 -->
+           LEFT JOIN account mba
+                     ON m.account_id = mba.account_id
+           LEFT JOIN financial_institution mbfi
+                     ON mba.financial_institution_id = mbfi.financial_institution_id
     WHERE g.user_id = #{userId}
       AND g.goal_status = 'ACTIVE'
       AND ga.asset_type IN ('ACCOUNT', 'MONEY_BOX')
