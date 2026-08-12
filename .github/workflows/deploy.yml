@@ -7,20 +7,22 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: production-deploy
+  group: dev-deploy
   cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
+
     permissions:
       contents: read
 
     steps:
+      # 1. GitHub main 코드 가져오기
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2. Java 17 설정
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -28,32 +30,76 @@ jobs:
           java-version: "17"
           cache: gradle
 
+      # 3. WAR 빌드
+      # 현재 GitHub Actions에는 테스트용 DB/Redis 환경이 없으므로 test 제외
       - name: Build WAR
         run: |
           chmod +x gradlew
-          ./gradlew clean test war
+          ./gradlew clean war -x test
           cp build/libs/miraero-1.0-SNAPSHOT.war miraero.war
 
+      # 4. SSH 설정
       - name: Configure SSH
         env:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
         run: |
           install -m 700 -d ~/.ssh
+
           printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/id_ec2
           chmod 600 ~/.ssh/id_ec2
-          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
 
+          ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      # 5. WAR 파일을 EC2 임시 디렉터리로 업로드
       - name: Upload WAR
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
-        run: scp -i ~/.ssh/id_ec2 miraero.war "$EC2_USER@$EC2_HOST:/tmp/miraero.war"
+        run: |
+          scp -i ~/.ssh/id_ec2 \
+            miraero.war \
+            "$EC2_USER@$EC2_HOST:/tmp/miraero.war"
 
+      # 6. Tomcat에 WAR 배포 후 재시작
       - name: Deploy WAR
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
         run: |
+          ssh -i ~/.ssh/id_ec2 "$EC2_USER@$EC2_HOST" << 'EOF'
+            set -e
+
+            TOMCAT_HOME="/home/ubuntu/apache-tomcat-9.0.120"
+
+            echo "Deploying WAR..."
+
+            sudo rm -rf "$TOMCAT_HOME/webapps/miraero"
+            sudo rm -f "$TOMCAT_HOME/webapps/miraero.war"
+
+            sudo cp /tmp/miraero.war \
+              "$TOMCAT_HOME/webapps/miraero.war"
+
+            sudo chown ubuntu:ubuntu \
+              "$TOMCAT_HOME/webapps/miraero.war"
+
+            echo "Restarting Tomcat..."
+
+            sudo systemctl restart tomcat
+
+            echo "Checking Tomcat..."
+
+            sudo systemctl is-active --quiet tomcat
+
+            echo "Deploy complete."
+          EOF
+
+      # 7. 배포 결과 확인
+      - name: Check Tomcat status
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
           ssh -i ~/.ssh/id_ec2 "$EC2_USER@$EC2_HOST" \
-            'sudo install -o tomcat -g tomcat -m 640 /tmp/miraero.war /var/lib/tomcat9/webapps/miraero.war && sudo systemctl restart tomcat9 && sudo systemctl is-active --quiet tomcat9'
+            "sudo systemctl --no-pager --full status tomcat"
