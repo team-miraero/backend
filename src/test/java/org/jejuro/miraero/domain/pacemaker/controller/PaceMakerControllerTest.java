@@ -79,6 +79,7 @@ class PaceMakerControllerTest {
     void getPaceMaker_active() throws Exception {
         PaceMakerResponse response = PaceMakerResponse.builder()
                 .autoSavingId(21L)
+                .moneyBoxId(3L)
                 .registered(true)
                 .status("ACTIVE")
                 .enabled(true)
@@ -89,6 +90,7 @@ class PaceMakerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.autoSavingId").value(21L))
+                .andExpect(jsonPath("$.data.moneyBoxId").value(3L))
                 .andExpect(jsonPath("$.data.registered").value(true))
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.data.enabled").value(true));

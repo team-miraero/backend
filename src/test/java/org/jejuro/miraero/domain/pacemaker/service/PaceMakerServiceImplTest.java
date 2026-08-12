@@ -174,6 +174,7 @@ class PaceMakerServiceImplTest {
         PaceMakerResponse response = paceMakerService.getPaceMaker(USER_ID);
 
         assertEquals(21L, response.getAutoSavingId());
+        assertEquals(3L, response.getMoneyBoxId());
         assertTrue(response.isRegistered());
         assertEquals("ACTIVE", response.getStatus());
         assertTrue(response.isEnabled());
@@ -203,6 +204,7 @@ class PaceMakerServiceImplTest {
         PaceMakerResponse response = paceMakerService.getPaceMaker(USER_ID);
 
         assertNull(response.getAutoSavingId());
+        assertNull(response.getMoneyBoxId());
         assertFalse(response.isRegistered());
         assertNull(response.getStatus());
         assertFalse(response.isEnabled());
