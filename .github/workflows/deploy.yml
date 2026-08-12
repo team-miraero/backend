@@ -4,11 +4,15 @@ on:
   push:
     branches:
       - main
+      # Remove this branch after validating the security group workflow.
+      - bug/145-deploy-workflow
   workflow_dispatch:
 
+# The main and test branches deploy to the same DEV instance. Serialize deployments
+# and let each run reach its security group cleanup step.
 concurrency:
   group: dev-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -16,13 +20,12 @@ jobs:
 
     permissions:
       contents: read
+      id-token: write
 
     steps:
-      # 1. GitHub main 코드 가져오기
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Java 17 설정
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -30,15 +33,57 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      # 3. WAR 빌드
-      # 현재 GitHub Actions에는 테스트용 DB/Redis 환경이 없으므로 test 제외
       - name: Build WAR
         run: |
           chmod +x gradlew
           ./gradlew clean war -x test
           cp build/libs/miraero-1.0-SNAPSHOT.war miraero.war
 
-      # 4. SSH 설정
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Get runner public IP
+        id: runner-ip
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RUNNER_IP="$(curl --fail --silent --show-error https://checkip.amazonaws.com | tr -d '[:space:]')"
+
+          if [[ ! "$RUNNER_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            echo "Invalid runner IPv4 address: $RUNNER_IP" >&2
+            exit 1
+          fi
+
+          echo "cidr=$RUNNER_IP/32" >> "$GITHUB_OUTPUT"
+
+      - name: Allow runner SSH access
+        id: allow-ssh
+        shell: bash
+        env:
+          SECURITY_GROUP_ID: ${{ vars.EC2_SECURITY_GROUP_ID }}
+          RUNNER_CIDR: ${{ steps.runner-ip.outputs.cidr }}
+        run: |
+          set -euo pipefail
+          echo "rule-added=false" >> "$GITHUB_OUTPUT"
+
+          RULE_ID="$(aws ec2 authorize-security-group-ingress \
+            --group-id "$SECURITY_GROUP_ID" \
+            --protocol tcp \
+            --port 22 \
+            --cidr "$RUNNER_CIDR" \
+            --query 'SecurityGroupRules[0].SecurityGroupRuleId' \
+            --output text)"
+
+          echo "rule-id=$RULE_ID" >> "$GITHUB_OUTPUT"
+          echo "rule-added=true" >> "$GITHUB_OUTPUT"
+
+          # Allow a short window for the ingress rule to propagate before SSH.
+          sleep 5
+
       - name: Configure SSH
         env:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
@@ -52,7 +97,6 @@ jobs:
           ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      # 5. WAR 파일을 EC2 임시 디렉터리로 업로드
       - name: Upload WAR
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -62,7 +106,6 @@ jobs:
             miraero.war \
             "$EC2_USER@$EC2_HOST:/tmp/miraero.war"
 
-      # 6. Tomcat에 WAR 배포 후 재시작
       - name: Deploy WAR
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -95,7 +138,6 @@ jobs:
             echo "Deploy complete."
           EOF
 
-      # 7. 배포 결과 확인
       - name: Check Tomcat status
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -103,3 +145,14 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_ec2 "$EC2_USER@$EC2_HOST" \
             "sudo systemctl --no-pager --full status tomcat"
+
+      - name: Revoke runner SSH access
+        if: ${{ always() && steps.allow-ssh.outputs.rule-added == 'true' }}
+        shell: bash
+        env:
+          SECURITY_GROUP_ID: ${{ vars.EC2_SECURITY_GROUP_ID }}
+          SECURITY_GROUP_RULE_ID: ${{ steps.allow-ssh.outputs.rule-id }}
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id "$SECURITY_GROUP_ID" \
+            --security-group-rule-ids "$SECURITY_GROUP_RULE_ID"
