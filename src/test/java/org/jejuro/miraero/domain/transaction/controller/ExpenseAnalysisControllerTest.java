@@ -1,12 +1,12 @@
 package org.jejuro.miraero.domain.transaction.controller;
 
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.YearMonth;
 import java.util.Collections;
 import org.jejuro.miraero.domain.transaction.dto.response.CategoryMonthChangeResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.CategoryThreeMonthAverageResponse;
@@ -14,8 +14,6 @@ import org.jejuro.miraero.domain.transaction.dto.response.ExpenseDashboardRespon
 import org.jejuro.miraero.domain.transaction.dto.response.PeerAverageCategoryResponse;
 import org.jejuro.miraero.domain.transaction.dto.response.PeerAverageResponse;
 import org.jejuro.miraero.domain.transaction.service.ExpenseAnalysisService;
-import org.jejuro.miraero.global.exception.BusinessException;
-import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.exception.GlobalExceptionHandler;
 import org.jejuro.miraero.global.security.AuthenticatedUser;
 import org.jejuro.miraero.global.security.JwtAuthenticationToken;
@@ -46,34 +44,36 @@ class ExpenseAnalysisControllerTest {
 
     @Test
     void getDashboard_successAndEmptyData() throws Exception {
-        given(service.getDashboard(USER_ID, 2026, 7)).willReturn(new ExpenseDashboardResponse(
-                2026,
-                7,
+        YearMonth currentMonth = YearMonth.now();
+        given(service.getDashboard(USER_ID, currentMonth.getYear(), currentMonth.getMonthValue())).willReturn(new ExpenseDashboardResponse(
+                currentMonth.getYear(),
+                currentMonth.getMonthValue(),
                 new CategoryThreeMonthAverageResponse("2026-04", "2026-06", Collections.emptyList()),
                 new PeerAverageResponse(Collections.singletonList(
                         new PeerAverageCategoryResponse(1L, "Food", 285_000L)
                 )),
                 Collections.emptyList()
         ));
-        mockMvc.perform(get("/api/expense-analysis/dashboard").param("year", "2026").param("month", "7"))
+        mockMvc.perform(get("/api/expense-analysis/dashboard"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.success").value(true)).andExpect(jsonPath("$.data.recentTransactions").doesNotExist())
                 .andExpect(jsonPath("$.data.categoryThreeMonthAverages.startMonth").value("2026-04"))
                 .andExpect(jsonPath("$.data.peerCategoryAverages.categories[0].categoryId").value(1))
                 .andExpect(jsonPath("$.data.peerCategoryAverages.categories[0].peerAverageAmount").value(285000));
-        verify(service).getDashboard(USER_ID, 2026, 7);
+        verify(service).getDashboard(USER_ID, currentMonth.getYear(), currentMonth.getMonthValue());
     }
 
     @Test
     void getDashboard_returnsCategoryMonthChanges() throws Exception {
-        given(service.getDashboard(USER_ID, 2026, 7)).willReturn(new ExpenseDashboardResponse(
-                2026,
-                7,
+        YearMonth currentMonth = YearMonth.now();
+        given(service.getDashboard(USER_ID, currentMonth.getYear(), currentMonth.getMonthValue())).willReturn(new ExpenseDashboardResponse(
+                currentMonth.getYear(),
+                currentMonth.getMonthValue(),
                 new CategoryThreeMonthAverageResponse("2026-04", "2026-06", Collections.emptyList()),
                 new PeerAverageResponse(Collections.emptyList()),
                 Collections.singletonList(new CategoryMonthChangeResponse(1L, "food", 250000L, 280000L, 30000L))
         ));
 
-        mockMvc.perform(get("/api/expense-analysis/dashboard").param("year", "2026").param("month", "7"))
+        mockMvc.perform(get("/api/expense-analysis/dashboard"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.categoryMonthChanges[0].categoryId").value(1))
                 .andExpect(jsonPath("$.data.categoryMonthChanges[0].previousMonthAmount").value(250000))
@@ -81,16 +81,4 @@ class ExpenseAnalysisControllerTest {
                 .andExpect(jsonPath("$.data.categoryMonthChanges[0].changeAmount").value(30000));
     }
 
-    @Test
-    void getDashboard_invalidMonthReturnsGlobalError() throws Exception {
-        given(service.getDashboard(eq(USER_ID), eq(2026), eq(13))).willThrow(new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE));
-        mockMvc.perform(get("/api/expense-analysis/dashboard").param("year", "2026").param("month", "13"))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.code").value("COMMON_002"));
-    }
-
-    @Test
-    void getDashboard_requiresYearAndMonth() throws Exception {
-        given(service.getDashboard(USER_ID, 2026, null)).willThrow(new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE));
-        mockMvc.perform(get("/api/expense-analysis/dashboard").param("year", "2026")).andExpect(status().isBadRequest());
-    }
 }

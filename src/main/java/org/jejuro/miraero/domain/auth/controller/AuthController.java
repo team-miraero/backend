@@ -1,5 +1,7 @@
 package org.jejuro.miraero.domain.auth.controller;
 
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Api(tags = "인증")
 public class AuthController {
 
   private static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
@@ -36,6 +39,7 @@ public class AuthController {
   private final AuthService authService;
 
   @PostMapping("/signup")
+  @ApiOperation(value = "회원가입", notes = "이메일과 비밀번호로 회원가입합니다. 이메일은 중복될 수 없으며, 비밀번호는 8자 이상이어야 합니다.")
   public ResponseEntity<ApiResponse<SignUpResponse>> signUp(
       @Valid @RequestBody SignUpRequest request
   ) {
@@ -47,6 +51,7 @@ public class AuthController {
   }
 
   @PostMapping("/login")
+  @ApiOperation(value = "로그인", notes = "응답 본문의 token.accessToken을 이후 인증 API의 Authorization 헤더에 `Bearer {accessToken}` 형식으로 사용합니다. Refresh Token은 응답 본문에 포함되지 않고 HttpOnly 쿠키로 설정됩니다.")
   public ResponseEntity<ApiResponse<LoginResponse>> login(
       @Valid @RequestBody LoginRequest request,
       HttpServletResponse httpServletResponse
@@ -63,6 +68,7 @@ public class AuthController {
   }
 
   @PostMapping("/reissue")
+  @ApiOperation(value = "Access Token 재발급", notes = "로그인 시 설정된 refreshToken HttpOnly 쿠키로 Access Token을 재발급합니다. 프론트는 쿠키를 직접 전달하거나 읽지 않으며, 요청 시 쿠키 포함 설정(withCredentials)이 필요할 수 있습니다.")
   public ResponseEntity<ApiResponse<TokenReissueResponse>> reissue(
       @CookieValue(value = REFRESH_TOKEN_COOKIE_NAME, required = false) String refreshToken,
       HttpServletResponse httpServletResponse
@@ -83,6 +89,7 @@ public class AuthController {
   }
 
   @PostMapping("/logout")
+  @ApiOperation(value = "로그아웃", notes = "인증된 사용자의 Refresh Token을 무효화하고 refreshToken 쿠키를 만료시킵니다. 성공 시 응답 본문 없이 204 No Content를 반환합니다.")
   public ResponseEntity<Void> logout(
       @AuthenticationPrincipal AuthenticatedUser authenticatedUser,
       HttpServletResponse httpServletResponse
