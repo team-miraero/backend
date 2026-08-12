@@ -37,6 +37,12 @@ public enum MyDataErrorCode implements ErrorCode {
       HttpStatus.INTERNAL_SERVER_ERROR,
       "MYDATA_005",
       "등록되지 않은 금융기관 코드입니다."
+  ),
+
+  MYDATA_TRANSFER_FAILED(
+      HttpStatus.BAD_GATEWAY,
+      "MYDATA_006",
+      "계좌 이체에 실패했습니다."
   );
 
   private final HttpStatus status;
