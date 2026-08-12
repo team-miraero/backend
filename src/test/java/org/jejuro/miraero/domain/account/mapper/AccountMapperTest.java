@@ -8,8 +8,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import org.jejuro.miraero.domain.account.domain.Account;
 import org.jejuro.miraero.domain.account.dto.response.AccountResponse;
+import org.jejuro.miraero.domain.goal.domain.AssetType;
+import org.jejuro.miraero.domain.goal.domain.Goal;
+import org.jejuro.miraero.domain.goal.domain.GoalStatus;
+import org.jejuro.miraero.domain.goal.domain.GoalType;
+import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
+import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
+import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBoxType;
 import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
@@ -46,6 +54,12 @@ class AccountMapperTest {
 
   @Autowired
   private MoneyBoxMapper moneyBoxMapper;
+
+  @Autowired
+  private GoalMapper goalMapper;
+
+  @Autowired
+  private GoalAssetMapper goalAssetMapper;
 
   private Long userId;
   private Long financialInstitutionId;
@@ -100,7 +114,7 @@ class AccountMapperTest {
   void findAllByUserId_includesInstitutionName() {
     accountMapper.upsert(createAccount(3400000L));
 
-    java.util.List<AccountResponse> accounts = accountMapper.findAllByUserId(userId, null);
+    java.util.List<AccountResponse> accounts = accountMapper.findAllByUserId(userId, null, false);
 
     assertTrue(accounts.stream().anyMatch(a ->
         "KB 입출금통장".equals(a.getAccountName()) && a.getInstitutionName() != null));
@@ -111,8 +125,8 @@ class AccountMapperTest {
   void findAllByUserId_filtersByAccountType() {
     accountMapper.upsert(createAccount(3400000L));
 
-    java.util.List<AccountResponse> checking = accountMapper.findAllByUserId(userId, "CHECKING");
-    java.util.List<AccountResponse> savings = accountMapper.findAllByUserId(userId, "SAVINGS");
+    java.util.List<AccountResponse> checking = accountMapper.findAllByUserId(userId, "CHECKING", false);
+    java.util.List<AccountResponse> savings = accountMapper.findAllByUserId(userId, "SAVINGS", false);
 
     assertTrue(checking.stream().anyMatch(a -> "KB 입출금통장".equals(a.getAccountName())));
     assertTrue(savings.stream().noneMatch(a -> "KB 입출금통장".equals(a.getAccountName())));
@@ -176,12 +190,76 @@ class AccountMapperTest {
         .userId(userId).accountId(accountId).balance(500_000L)
         .moneyBoxType(MoneyBoxType.SAVING).build());
 
-    AccountResponse account = accountMapper.findAllByUserId(userId, null).stream()
+    AccountResponse account = accountMapper.findAllByUserId(userId, null, false).stream()
         .filter(a -> accountId.equals(a.getAccountId()))
         .findFirst()
         .orElseThrow();
 
     assertEquals(1_900_000L, account.getBalance());
+  }
+
+  @Test
+  @DisplayName("잔액을 넘는 금액은 차감되지 않는다")
+  void decreaseBalance_insufficientAmount_notApplied() {
+    accountMapper.upsert(createAccount(10_000L));
+    Long accountId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
+
+    int updated = accountMapper.decreaseBalance(accountId, userId, 20_000L);
+
+    assertEquals(0, updated);
+    assertEquals(10_000L, accountMapper.findByIdAndUserId(accountId, userId).getBalance());
+  }
+
+  @Test
+  @DisplayName("잔액 범위 안이면 차감된다")
+  void decreaseBalance_success() {
+    accountMapper.upsert(createAccount(10_000L));
+    Long accountId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
+
+    int updated = accountMapper.decreaseBalance(accountId, userId, 4_000L);
+
+    assertEquals(1, updated);
+    assertEquals(6_000L, accountMapper.findByIdAndUserId(accountId, userId).getBalance());
+  }
+
+  @Test
+  @DisplayName("excludeGoalLinked면 목표에 연결된 계좌는 빠진다")
+  void findAllByUserId_excludeGoalLinked() {
+    Long linkedExAccountId = 999202L;
+    Long freeExAccountId = 999203L;
+    accountMapper.upsert(exAccount(linkedExAccountId, "hash-999202", "1111*****11"));
+    accountMapper.upsert(exAccount(freeExAccountId, "hash-999203", "2222*****22"));
+    Long linkedAccountId = accountMapper.findAccountIdByExAccountId(linkedExAccountId);
+    Long freeAccountId = accountMapper.findAccountIdByExAccountId(freeExAccountId);
+
+    Goal goal = Goal.builder()
+        .userId(userId)
+        .goalType(GoalType.WEDDING)
+        .goalName("결혼 자금")
+        .goalAmount(10_000_000L)
+        .startAmount(0L)
+        .goalDate(LocalDate.of(2027, 1, 1))
+        .startDate(LocalDate.of(2026, 1, 1))
+        .goalStatus(GoalStatus.ACTIVE)
+        .isCollected(false)
+        .build();
+    goalMapper.save(goal);
+    goalAssetMapper.saveAll(goal.getGoalId(), List.of(
+        GoalAssetRequest.builder().assetType(AssetType.ACCOUNT).assetId(linkedAccountId).build()
+    ));
+
+    List<AccountResponse> free = accountMapper.findAllByUserId(userId, "CHECKING", true);
+
+    assertTrue(free.stream().anyMatch(a -> freeAccountId.equals(a.getAccountId())));
+    assertFalse(free.stream().anyMatch(a -> linkedAccountId.equals(a.getAccountId())));
+  }
+
+  private Account exAccount(Long exAccountId, String hash, String masked) {
+    return Account.of(
+        userId, financialInstitutionId, exAccountId, "CHECKING", "KB 입출금통장",
+        new byte[]{1, 2, 3}, hash, masked, 1_000_000L, "ACTIVE",
+        LocalDate.of(2020, 1, 1), null, new BigDecimal("0.1000"), null
+    );
   }
 
   private Account createAccount(Long balance) {

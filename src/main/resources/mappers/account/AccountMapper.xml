@@ -22,6 +22,14 @@
     AND user_id = #{userId}
   </update>
 
+  <update id="decreaseBalance">
+    UPDATE account
+    SET balance = balance - #{amount}
+    WHERE account_id = #{accountId}
+    AND user_id = #{userId}
+    AND balance >= #{amount}
+  </update>
+
   <!-- ex_account_id UNIQUE 제약 기준 upsert. 신규면 INSERT, 이미 있으면 UPDATE절만 갱신 -->
   <insert id="upsert"
     parameterType="org.jejuro.miraero.domain.account.domain.Account">
@@ -91,6 +99,16 @@
     WHERE a.user_id = #{userId}
     <if test="accountType != null">
       AND a.account_type = #{accountType}
+    </if>
+    <!-- 끌어쓰기 출처 후보 조회용. 이미 목표에 직접 연결된 계좌는 그 목표를 위한 돈이라 제외한다 -->
+    <if test="excludeGoalLinked">
+      AND NOT EXISTS (
+        SELECT 1 FROM goal_asset ga
+        JOIN goal g ON ga.goal_id = g.goal_id
+        WHERE g.user_id = #{userId}
+          AND ga.asset_type = 'ACCOUNT'
+          AND ga.asset_id = a.account_id
+      )
     </if>
     ORDER BY a.account_id
   </select>
