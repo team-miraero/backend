@@ -1,9 +1,13 @@
 package org.jejuro.miraero.domain.autotransfer.mapper;
 
 
+import java.time.LocalDate;
+import java.util.List;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.autotransfer.domain.AutoTransfer;
+import org.jejuro.miraero.domain.autotransfer.domain.AutoTransferTarget;
 import org.jejuro.miraero.domain.goal.domain.AssetType;
 
 @Mapper
@@ -31,4 +35,14 @@ public interface AutoTransferMapper {
 
 
     void deleteByMoneyBoxId(@Param("moneyBoxId") Long moneyBoxId);
+
+    /**
+     * 지정한 날짜에 실행할 자동이체 목록을 조회한다.
+     *
+     * userId가 주어지면 그 사용자 것만 조회한다(시연용 수동 실행).
+     */
+    List<AutoTransferTarget> findExecutionTargets(
+            @Param("executionDate") LocalDate executionDate,
+            @Param("userId") Long userId
+    );
 }
