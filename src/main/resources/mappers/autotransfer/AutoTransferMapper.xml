@@ -69,6 +69,39 @@
     </select>
 
     <!--
+        실행 대상 조회.
+        transfer_day가 그달 말일보다 크면(예: 31일 설정 + 2월) 말일에 실행한다.
+        availableBalance는 계좌 잔액에서 그 계좌의 저금통 합계를 뺀 값이다.
+    -->
+    <select id="findExecutionTargets"
+            resultType="org.jejuro.miraero.domain.autotransfer.domain.AutoTransferTarget">
+        SELECT
+            at.auto_transfer_id                                     AS autoTransferId,
+            mb.money_box_id                                         AS moneyBoxId,
+            mb.account_id                                           AS accountId,
+            mb.user_id                                              AS userId,
+            at.transfer_amount                                      AS transferAmount,
+            a.balance - COALESCE((SELECT SUM(other.balance)
+                                  FROM money_box other
+                                  WHERE other.account_id = a.account_id), 0) AS availableBalance
+        FROM auto_transfer at
+            JOIN money_box mb
+                ON at.money_box_id = mb.money_box_id
+            JOIN account a
+                ON mb.account_id = a.account_id
+        WHERE at.auto_transfer_status = 'ACTIVE'
+            AND (
+                at.transfer_day = DAY(#{executionDate})
+                OR (at.transfer_day <![CDATA[>]]> DAY(LAST_DAY(#{executionDate}))
+                    AND DAY(#{executionDate}) = DAY(LAST_DAY(#{executionDate})))
+            )
+            <if test="userId != null">
+                AND mb.user_id = #{userId}
+            </if>
+        ORDER BY at.auto_transfer_id
+    </select>
+
+    <!--
         현재 목표 자동이체 금액
         ACCOUNT + MONEY_BOX 모두 조회
     -->
