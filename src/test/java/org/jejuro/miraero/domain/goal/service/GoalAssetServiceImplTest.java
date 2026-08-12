@@ -11,6 +11,8 @@ import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetResponse;
 import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
 import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
+import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
+import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -48,6 +50,9 @@ class GoalAssetServiceImplTest {
     @Mock
     private AutoTransferMapper autoTransferMapper;
 
+    @Mock
+    private MoneyBoxMapper moneyBoxMapper;
+
     @InjectMocks
     private GoalAssetServiceImpl goalAssetService;
 
@@ -65,8 +70,8 @@ class GoalAssetServiceImplTest {
 
         given(goalMapper.findByIdAndUserId(USER_ID, GOAL_ID))
                 .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
-        when(accountMapper.existsByIdAndUserId(10L, USER_ID))
-                .thenReturn(true);
+        when(accountMapper.findResponseByIdAndUserId(10L, USER_ID))
+                .thenReturn(AccountResponse.builder().accountId(10L).accountType("SAVINGS").build());
 
         goalAssetService.saveGoalAssets(
                 USER_ID,
@@ -91,8 +96,8 @@ class GoalAssetServiceImplTest {
 
         given(goalMapper.findByIdAndUserId(USER_ID, GOAL_ID))
                 .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
-        when(accountMapper.existsByIdAndUserId(10L, USER_ID))
-                .thenReturn(false);
+        when(accountMapper.findResponseByIdAndUserId(10L, USER_ID))
+                .thenReturn(null);
 
         assertThrows(
                 BusinessException.class,
@@ -139,8 +144,8 @@ class GoalAssetServiceImplTest {
 
         given(goalMapper.findByIdAndUserId(USER_ID, GOAL_ID))
                 .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
-        when(accountMapper.existsByIdAndUserId(10L, USER_ID))
-                .thenReturn(true);
+        when(accountMapper.findResponseByIdAndUserId(10L, USER_ID))
+                .thenReturn(AccountResponse.builder().accountId(10L).accountType("SAVINGS").build());
         when(goalAssetMapper.existsByAsset(
                 AssetType.ACCOUNT,
                 10L
@@ -220,6 +225,8 @@ class GoalAssetServiceImplTest {
                 .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
         when(goalAssetMapper.findByGoalId(GOAL_ID))
                 .thenReturn(assets);
+        when(moneyBoxMapper.findById(30L))
+                .thenReturn(MoneyBox.builder().moneyBoxId(30L).accountId(1L).balance(500_000L).build());
         when(autoTransferMapper.findByAsset(AssetType.MONEY_BOX, 30L))
                 .thenReturn(null);
 
@@ -230,8 +237,8 @@ class GoalAssetServiceImplTest {
     }
 
     @Test
-    @DisplayName("MONEY_BOX 자산은 자동이체가 설정되어 있으면 autoTransfer를 채우되 자산 상세는 채우지 않는다")
-    void getGoalAssets_moneyBox_withAutoTransfer_fillsAutoTransferOnly() {
+    @DisplayName("MONEY_BOX 자산은 잔액과 소속 통장 정보, 자동이체를 함께 채운다")
+    void getGoalAssets_moneyBox_withAutoTransfer_fillsBalanceAndOwnerAccount() {
 
         List<GoalAsset> assets = List.of(
                 GoalAsset.builder()
@@ -245,6 +252,8 @@ class GoalAssetServiceImplTest {
                 .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
         when(goalAssetMapper.findByGoalId(GOAL_ID))
                 .thenReturn(assets);
+        when(moneyBoxMapper.findById(30L))
+                .thenReturn(MoneyBox.builder().moneyBoxId(30L).accountId(1L).balance(500_000L).build());
         when(autoTransferMapper.findByAsset(AssetType.MONEY_BOX, 30L))
                 .thenReturn(AutoTransfer.builder()
                         .withdrawalAccountId(20L)
@@ -257,16 +266,22 @@ class GoalAssetServiceImplTest {
                         .institutionName("국민은행")
                         .maskedAccountNumber("456*****12")
                         .build());
+        when(accountMapper.findResponseById(1L))
+                .thenReturn(AccountResponse.builder()
+                        .accountId(1L)
+                        .institutionName("국민은행")
+                        .maskedAccountNumber("123*****90")
+                        .build());
 
         var response = goalAssetService.getGoalAssets(USER_ID, GOAL_ID);
 
         assertEquals(1, response.getAssets().size());
         GoalAssetResponse asset = response.getAssets().get(0);
+        assertEquals(500_000L, asset.getBalance());
+        assertEquals("123*****90", asset.getAccountNumberMasked());
         assertEquals(50_000L, asset.getAutoTransfer().getAmount());
         assertEquals(25, asset.getAutoTransfer().getTransferDay());
         assertEquals("456*****12", asset.getAutoTransfer().getWithdrawalAccount().getAccountNumberMasked());
-        assertNull(asset.getAssetName());
-        assertNull(asset.getBalance());
     }
 
     @Test
@@ -337,5 +352,108 @@ class GoalAssetServiceImplTest {
                         assetType,
                         assetId
                 );
+    }
+
+    @Test
+    @DisplayName("입출금통장은 목표 자산으로 연결할 수 없다")
+    void saveGoalAssets_checkingAccount_fail() {
+
+        List<GoalAssetRequest> assets = List.of(
+                GoalAssetRequest.builder()
+                        .assetId(10L)
+                        .assetType(AssetType.ACCOUNT)
+                        .build()
+        );
+
+        given(goalMapper.findByIdAndUserId(USER_ID, GOAL_ID))
+                .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
+        when(accountMapper.findResponseByIdAndUserId(10L, USER_ID))
+                .thenReturn(AccountResponse.builder().accountId(10L).accountType("CHECKING").build());
+
+        assertThrows(
+                BusinessException.class,
+                () -> goalAssetService.saveGoalAssets(USER_ID, GOAL_ID, assets)
+        );
+
+        verify(goalAssetMapper, never()).saveAll(anyLong(), anyList());
+    }
+
+    @Test
+    @DisplayName("내 저금통이 아니면 목표에 연결할 수 없다")
+    void saveGoalAssets_moneyBoxNotOwned_fail() {
+
+        List<GoalAssetRequest> assets = List.of(
+                GoalAssetRequest.builder()
+                        .assetId(30L)
+                        .assetType(AssetType.MONEY_BOX)
+                        .build()
+        );
+
+        given(goalMapper.findByIdAndUserId(USER_ID, GOAL_ID))
+                .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
+        when(moneyBoxMapper.existsByIdAndUserId(30L, USER_ID))
+                .thenReturn(false);
+
+        assertThrows(
+                BusinessException.class,
+                () -> goalAssetService.saveGoalAssets(USER_ID, GOAL_ID, assets)
+        );
+
+        verify(goalAssetMapper, never()).saveAll(anyLong(), anyList());
+    }
+
+    @Test
+    @DisplayName("진행률은 연결된 저금통 잔액을 합산한다")
+    void calculateCurrentAmount_includesMoneyBoxBalance() {
+
+        when(goalAssetMapper.findByGoalId(GOAL_ID))
+                .thenReturn(List.of(
+                        GoalAsset.builder().goalId(GOAL_ID).assetType(AssetType.MONEY_BOX).assetId(30L).build()
+                ));
+        when(moneyBoxMapper.findBalanceById(30L))
+                .thenReturn(700_000L);
+
+        assertEquals(700_000L, goalAssetService.calculateCurrentAmount(GOAL_ID));
+    }
+
+    @Test
+    @DisplayName("시작 금액을 연결된 저금통 잔액에 반영한다")
+    void applyStartAmount_depositsIntoMoneyBox() {
+
+        when(goalAssetMapper.findByGoalId(GOAL_ID))
+                .thenReturn(List.of(
+                        GoalAsset.builder().goalId(GOAL_ID).assetType(AssetType.MONEY_BOX).assetId(30L).build()
+                ));
+
+        goalAssetService.applyStartAmount(GOAL_ID, 3_000_000L);
+
+        verify(moneyBoxMapper).increaseBalance(30L, 3_000_000L);
+    }
+
+    @Test
+    @DisplayName("시작 금액이 0이면 저금통을 건드리지 않는다")
+    void applyStartAmount_zero_doesNothing() {
+
+        goalAssetService.applyStartAmount(GOAL_ID, 0L);
+
+        verify(moneyBoxMapper, never()).increaseBalance(anyLong(), anyLong());
+    }
+
+    @Test
+    @DisplayName("목표 삭제 시 연결된 저금통과 자동이체를 함께 정리한다")
+    void releaseGoalAssets_deletesMoneyBoxAndAutoTransfer() {
+
+        when(goalAssetMapper.findByGoalId(GOAL_ID))
+                .thenReturn(List.of(
+                        GoalAsset.builder().goalId(GOAL_ID).assetType(AssetType.MONEY_BOX).assetId(30L).build(),
+                        GoalAsset.builder().goalId(GOAL_ID).assetType(AssetType.ACCOUNT).assetId(10L).build()
+                ));
+
+        goalAssetService.releaseGoalAssets(GOAL_ID);
+
+        verify(autoTransferMapper).deleteByMoneyBoxId(30L);
+        verify(moneyBoxMapper).deleteById(30L);
+        // 연결된 예적금 계좌는 사용자 자산이므로 삭제 대상이 아니다
+        verify(moneyBoxMapper, never()).deleteById(10L);
     }
 }

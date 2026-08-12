@@ -55,7 +55,8 @@
             start_date,
             end_date,
             auto_transfer_status,
-            synced_at
+            created_at,
+            updated_at
         FROM auto_transfer
         WHERE
             (
@@ -129,5 +130,10 @@
                 AND at.auto_transfer_status = 'ACTIVE'
         ) temp
     </select>
+
+    <delete id="deleteByMoneyBoxId">
+        DELETE FROM auto_transfer
+        WHERE money_box_id = #{moneyBoxId}
+    </delete>
 
 </mapper>

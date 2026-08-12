@@ -15,10 +15,9 @@ public class MoneyBox {
 
   private Long moneyBoxId;
   private Long userId;
+  // 저금통이 속한 입출금통장. 저금통 잔액은 이 계좌 안에 있는 돈이다.
+  private Long accountId;
   private Long balance;
-  private String accountNumberHash;
-  private byte[] accountNumber;
-  private String maskedAccountNumber;
   private MoneyBoxType moneyBoxType;
   private LocalDateTime createdAt;
   private LocalDateTime updatedAt;

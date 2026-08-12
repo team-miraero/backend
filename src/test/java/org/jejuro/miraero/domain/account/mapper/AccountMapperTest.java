@@ -10,7 +10,14 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import org.jejuro.miraero.domain.account.domain.Account;
 import org.jejuro.miraero.domain.account.dto.response.AccountResponse;
+import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
+import org.jejuro.miraero.domain.moneybox.domain.MoneyBoxType;
+import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
+import org.jejuro.miraero.domain.mydata.mapper.ReferenceDataMapper;
+import org.jejuro.miraero.domain.user.domain.User;
+import org.jejuro.miraero.domain.user.mapper.UserMapper;
 import org.jejuro.miraero.global.config.RootConfig;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,9 +33,34 @@ import org.springframework.transaction.annotation.Transactional;
 class AccountMapperTest {
 
   private static final Long EX_ACCOUNT_ID = 999201L;
+  private static final String KB_CODE = "004";
 
   @Autowired
   private AccountMapper accountMapper;
+
+  @Autowired
+  private UserMapper userMapper;
+
+  @Autowired
+  private ReferenceDataMapper referenceDataMapper;
+
+  @Autowired
+  private MoneyBoxMapper moneyBoxMapper;
+
+  private Long userId;
+  private Long financialInstitutionId;
+
+  // DB에 미리 있는 사용자에 기대면 초기화된 환경에서 FK 위반으로 깨진다. @Rollback이라 매 테스트 후 사라진다.
+  @BeforeEach
+  void setUp() {
+    User user = User.create(
+        "계좌테스트", LocalDate.of(2000, 1, 1), "테스트회사", 3_000_000L,
+        "account-mapper-test@test.com", "hash", null
+    );
+    userMapper.save(user);
+    this.userId = user.getUserId();
+    this.financialInstitutionId = referenceDataMapper.findFinancialInstitutionIdByCode(KB_CODE);
+  }
 
   @Test
   @DisplayName("같은 ex_account_id로 두 번 upsert해도 한 건만 남는다")
@@ -49,8 +81,8 @@ class AccountMapperTest {
     accountMapper.upsert(createAccount(3400000L));
     Long accountId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
 
-    assertNotNull(accountMapper.findByIdAndUserId(accountId, 1L));
-    assertNull(accountMapper.findByIdAndUserId(accountId, 999L));
+    assertNotNull(accountMapper.findByIdAndUserId(accountId, userId));
+    assertNull(accountMapper.findByIdAndUserId(accountId, userId + 999L));
   }
 
   @Test
@@ -59,8 +91,8 @@ class AccountMapperTest {
     accountMapper.upsert(createAccount(3400000L));
     Long accountId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
 
-    assertTrue(accountMapper.existsByIdAndUserId(accountId, 1L));
-    assertFalse(accountMapper.existsByIdAndUserId(accountId, 999L));
+    assertTrue(accountMapper.existsByIdAndUserId(accountId, userId));
+    assertFalse(accountMapper.existsByIdAndUserId(accountId, userId + 999L));
   }
 
   @Test
@@ -68,7 +100,7 @@ class AccountMapperTest {
   void findAllByUserId_includesInstitutionName() {
     accountMapper.upsert(createAccount(3400000L));
 
-    java.util.List<AccountResponse> accounts = accountMapper.findAllByUserId(1L, null);
+    java.util.List<AccountResponse> accounts = accountMapper.findAllByUserId(userId, null);
 
     assertTrue(accounts.stream().anyMatch(a ->
         "KB 입출금통장".equals(a.getAccountName()) && a.getInstitutionName() != null));
@@ -79,8 +111,8 @@ class AccountMapperTest {
   void findAllByUserId_filtersByAccountType() {
     accountMapper.upsert(createAccount(3400000L));
 
-    java.util.List<AccountResponse> checking = accountMapper.findAllByUserId(1L, "CHECKING");
-    java.util.List<AccountResponse> savings = accountMapper.findAllByUserId(1L, "SAVINGS");
+    java.util.List<AccountResponse> checking = accountMapper.findAllByUserId(userId, "CHECKING");
+    java.util.List<AccountResponse> savings = accountMapper.findAllByUserId(userId, "SAVINGS");
 
     assertTrue(checking.stream().anyMatch(a -> "KB 입출금통장".equals(a.getAccountName())));
     assertTrue(savings.stream().noneMatch(a -> "KB 입출금통장".equals(a.getAccountName())));
@@ -92,8 +124,8 @@ class AccountMapperTest {
     accountMapper.upsert(createAccount(3400000L));
     Long accountId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
 
-    AccountResponse own = accountMapper.findResponseByIdAndUserId(accountId, 1L);
-    AccountResponse other = accountMapper.findResponseByIdAndUserId(accountId, 999L);
+    AccountResponse own = accountMapper.findResponseByIdAndUserId(accountId, userId);
+    AccountResponse other = accountMapper.findResponseByIdAndUserId(accountId, userId + 999L);
 
     assertNotNull(own);
     assertEquals(3400000L, own.getBalance());
@@ -113,10 +145,49 @@ class AccountMapperTest {
     assertNotNull(response.getInstitutionName());
   }
 
+  @Test
+  @DisplayName("저금통이 달린 계좌는 조회 잔액에서 저금통 금액이 빠진다")
+  void findResponseById_excludesMoneyBoxBalance() {
+    accountMapper.upsert(createAccount(3_400_000L));
+    Long accountId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
+
+    moneyBoxMapper.insert(MoneyBox.builder()
+        .userId(userId)
+        .accountId(accountId)
+        .balance(1_000_000L)
+        .moneyBoxType(MoneyBoxType.GOAL)
+        .build());
+
+    assertEquals(2_400_000L, accountMapper.findResponseById(accountId).getBalance());
+    assertEquals(2_400_000L,
+        accountMapper.findResponseByIdAndUserId(accountId, userId).getBalance());
+  }
+
+  @Test
+  @DisplayName("한 계좌에 저금통이 여러 개면 합계만큼 빠진다")
+  void findAllByUserId_excludesAllMoneyBoxBalances() {
+    accountMapper.upsert(createAccount(3_400_000L));
+    Long accountId = accountMapper.findAccountIdByExAccountId(EX_ACCOUNT_ID);
+
+    moneyBoxMapper.insert(MoneyBox.builder()
+        .userId(userId).accountId(accountId).balance(1_000_000L)
+        .moneyBoxType(MoneyBoxType.GOAL).build());
+    moneyBoxMapper.insert(MoneyBox.builder()
+        .userId(userId).accountId(accountId).balance(500_000L)
+        .moneyBoxType(MoneyBoxType.SAVING).build());
+
+    AccountResponse account = accountMapper.findAllByUserId(userId, null).stream()
+        .filter(a -> accountId.equals(a.getAccountId()))
+        .findFirst()
+        .orElseThrow();
+
+    assertEquals(1_900_000L, account.getBalance());
+  }
+
   private Account createAccount(Long balance) {
     return Account.of(
-        1L,
-        1L,
+        userId,
+        financialInstitutionId,
         EX_ACCOUNT_ID,
         "CHECKING",
         "KB 입출금통장",

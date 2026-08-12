@@ -1,17 +1,12 @@
 package org.jejuro.miraero.domain.autotransfer.service;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
-import org.jejuro.miraero.domain.account.domain.Account;
-import org.jejuro.miraero.domain.account.mapper.AccountMapper;
 import org.jejuro.miraero.domain.autotransfer.domain.AutoTransfer;
+import org.jejuro.miraero.domain.autotransfer.domain.AutoTransferStatus;
 import org.jejuro.miraero.domain.autotransfer.dto.request.AutoTransferCreateRequest;
 import org.jejuro.miraero.domain.autotransfer.mapper.AutoTransferMapper;
-import org.jejuro.miraero.global.exception.BusinessException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,50 +26,42 @@ class AutoTransferServiceImplTest {
   @Mock
   private AutoTransferMapper autoTransferMapper;
 
-  @Mock
-  private AccountMapper accountMapper;
-
   @InjectMocks
   private AutoTransferServiceImpl autoTransferService;
 
   @Test
-  @DisplayName("출금계좌가 내 소유면 자동이체 설정을 저장한다")
+  @DisplayName("전달받은 출금계좌와 저금통으로 자동이체 설정을 저장한다")
   void createMoneyBoxAutoTransfer_success() {
-    when(accountMapper.findByIdAndUserId(WITHDRAWAL_ACCOUNT_ID, USER_ID))
-        .thenReturn(Account.of(
-            USER_ID, 1L, 999L, "CHECKING", "KB 입출금통장",
-            new byte[]{1}, "hash", "123*****90", 100_000L, "ACTIVE",
-            null, null, null, null
-        ));
-
     autoTransferService.createMoneyBoxAutoTransfer(
-        USER_ID, MONEY_BOX_ID, "999*****90", createRequest()
+        USER_ID, MONEY_BOX_ID, WITHDRAWAL_ACCOUNT_ID, "123*****90", createRequest()
     );
 
     ArgumentCaptor<AutoTransfer> captor = ArgumentCaptor.forClass(AutoTransfer.class);
     verify(autoTransferMapper).save(captor.capture());
-    org.junit.jupiter.api.Assertions.assertEquals(
-        WITHDRAWAL_ACCOUNT_ID, captor.getValue().getWithdrawalAccountId());
-    org.junit.jupiter.api.Assertions.assertEquals(MONEY_BOX_ID, captor.getValue().getMoneyBoxId());
+
+    AutoTransfer saved = captor.getValue();
+    assertEquals(WITHDRAWAL_ACCOUNT_ID, saved.getWithdrawalAccountId());
+    assertEquals(MONEY_BOX_ID, saved.getMoneyBoxId());
+    assertEquals(300_000L, saved.getTransferAmount());
+    assertEquals(5, saved.getTransferDay());
+    assertEquals(AutoTransferStatus.ACTIVE, saved.getAutoTransferStatus());
   }
 
   @Test
-  @DisplayName("출금계좌가 내 소유가 아니면 예외를 던지고 저장하지 않는다")
-  void createMoneyBoxAutoTransfer_notOwned_fail() {
-    when(accountMapper.findByIdAndUserId(WITHDRAWAL_ACCOUNT_ID, USER_ID))
-        .thenReturn(null);
+  @DisplayName("입금 대상 표시는 저금통 소속 통장의 마스킹 번호를 그대로 저장한다")
+  void createMoneyBoxAutoTransfer_usesOwnerAccountMaskedNumber() {
+    autoTransferService.createMoneyBoxAutoTransfer(
+        USER_ID, MONEY_BOX_ID, WITHDRAWAL_ACCOUNT_ID, "123*****90", createRequest()
+    );
 
-    assertThrows(BusinessException.class, () ->
-        autoTransferService.createMoneyBoxAutoTransfer(
-            USER_ID, MONEY_BOX_ID, "999*****90", createRequest()
-        ));
+    ArgumentCaptor<AutoTransfer> captor = ArgumentCaptor.forClass(AutoTransfer.class);
+    verify(autoTransferMapper).save(captor.capture());
 
-    verify(autoTransferMapper, never()).save(any());
+    assertEquals("123*****90", captor.getValue().getMaskedDepositAccount());
   }
 
   private AutoTransferCreateRequest createRequest() {
     AutoTransferCreateRequest request = new AutoTransferCreateRequest();
-    ReflectionTestUtils.setField(request, "withdrawalAccountId", WITHDRAWAL_ACCOUNT_ID);
     ReflectionTestUtils.setField(request, "amount", 300_000L);
     ReflectionTestUtils.setField(request, "transferDay", 5);
     return request;

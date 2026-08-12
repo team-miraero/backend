@@ -20,7 +20,6 @@ public class AutoTransfer {
     private LocalDate startDate;
     private LocalDate endDate;
     private AutoTransferStatus autoTransferStatus;
-    private LocalDateTime syncedAt;
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

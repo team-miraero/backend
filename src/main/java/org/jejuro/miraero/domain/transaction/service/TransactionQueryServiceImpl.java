@@ -20,6 +20,11 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
     }
 
     @Override
+    public Long getSalaryAccountId(Long userId) {
+        return transactionMapper.findLatestSalaryAccountId(userId);
+    }
+
+    @Override
     public Long getFixedExpenseSum(Long userId, LocalDateTime startDate, LocalDateTime endDate) {
         Long sum = transactionMapper.findFixedExpenseSum(userId, startDate, endDate);
         return sum == null ? 0L : sum;
