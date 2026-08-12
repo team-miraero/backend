@@ -16,10 +16,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.jejuro.miraero.domain.account.mapper.AccountMapper;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
+import org.jejuro.miraero.domain.moneybox.domain.MoneyBoxType;
 import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
+import org.jejuro.miraero.domain.moneybox.service.MoneyBoxService;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
+import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerCreateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerGoalDepositRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerCreateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositAssetRowResponse;
@@ -31,8 +35,10 @@ import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerHistoryResponse
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerMaxAmountUpdateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWeeklyStreakResponse;
+import org.jejuro.miraero.domain.moneybox.exception.MoneyBoxErrorCode;
 import org.jejuro.miraero.domain.pacemaker.exception.PaceMakerErrorCode;
 import org.jejuro.miraero.domain.pacemaker.mapper.PaceMakerMapper;
+import org.jejuro.miraero.domain.transaction.service.TransactionQueryService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.response.PageResponse;
@@ -58,6 +64,12 @@ class PaceMakerServiceImplTest {
     @Mock
     private MoneyBoxMapper moneyBoxMapper;
 
+    @Mock
+    private MoneyBoxService moneyBoxService;
+
+    @Mock
+    private TransactionQueryService transactionQueryService;
+
     private PaceMakerService paceMakerService;
 
     @BeforeEach
@@ -65,8 +77,87 @@ class PaceMakerServiceImplTest {
         paceMakerService = new PaceMakerServiceImpl(
                 paceMakerMapper,
                 moneyBoxMapper,
-                accountMapper
+                accountMapper,
+                moneyBoxService,
+                transactionQueryService
         );
+    }
+
+    @Test
+    @DisplayName("페이스메이커 개설 시 저금통과 자동 적립 설정을 함께 만든다")
+    void createPaceMaker_createsMoneyBoxAndAutoSaving() {
+        when(paceMakerMapper.findByUserId(USER_ID))
+                .thenReturn(null)
+                .thenReturn(createAutoSaving(21L, "ACTIVE"));
+        when(moneyBoxService.createMoneyBox(USER_ID, 10L, MoneyBoxType.SAVING)).thenReturn(55L);
+
+        PaceMakerCreateResponse response =
+                paceMakerService.createPaceMaker(USER_ID, createRequest(10L, 30_000L));
+
+        assertEquals(21L, response.getAutoSavingId());
+        verify(moneyBoxService).validateAutoWithdrawalAccount(USER_ID, 10L);
+        verify(paceMakerMapper).insertAutoSaving(USER_ID, 55L, 10L, 30_000L);
+    }
+
+    @Test
+    @DisplayName("이미 페이스메이커가 있으면 개설할 수 없다")
+    void createPaceMaker_alreadyRegistered() {
+        when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(createAutoSaving(21L, "ACTIVE"));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> paceMakerService.createPaceMaker(USER_ID, createRequest(10L, null)));
+
+        assertEquals(PaceMakerErrorCode.ALREADY_REGISTERED, exception.getErrorCode());
+        verify(paceMakerMapper, never()).insertAutoSaving(anyLong(), anyLong(), anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("급여 통장이 아니면 저금통을 만들지 않는다")
+    void createPaceMaker_notSalaryAccount() {
+        when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(null);
+        org.mockito.Mockito.doThrow(new BusinessException(MoneyBoxErrorCode.AUTO_TRANSFER_NOT_SALARY_ACCOUNT))
+                .when(moneyBoxService).validateAutoWithdrawalAccount(USER_ID, 10L);
+
+        assertThrows(BusinessException.class,
+                () -> paceMakerService.createPaceMaker(USER_ID, createRequest(10L, null)));
+
+        verify(moneyBoxService, never()).createMoneyBox(anyLong(), anyLong(), any());
+        verify(paceMakerMapper, never()).insertAutoSaving(anyLong(), anyLong(), anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("계좌를 생략하면 급여 통장에 개설한다")
+    void createPaceMaker_noAccountId_usesSalaryAccount() {
+        when(paceMakerMapper.findByUserId(USER_ID))
+                .thenReturn(null)
+                .thenReturn(createAutoSaving(21L, "ACTIVE"));
+        when(transactionQueryService.getSalaryAccountId(USER_ID)).thenReturn(77L);
+        when(moneyBoxService.createMoneyBox(USER_ID, 77L, MoneyBoxType.SAVING)).thenReturn(55L);
+
+        paceMakerService.createPaceMaker(USER_ID, createRequest(null, 30_000L));
+
+        verify(moneyBoxService).validateAutoWithdrawalAccount(USER_ID, 77L);
+        verify(paceMakerMapper).insertAutoSaving(USER_ID, 55L, 77L, 30_000L);
+    }
+
+    @Test
+    @DisplayName("계좌를 생략했는데 급여 통장을 찾을 수 없으면 개설할 수 없다")
+    void createPaceMaker_noSalaryAccount() {
+        when(paceMakerMapper.findByUserId(USER_ID)).thenReturn(null);
+        when(transactionQueryService.getSalaryAccountId(USER_ID)).thenReturn(null);
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> paceMakerService.createPaceMaker(USER_ID, createRequest(null, null)));
+
+        assertEquals(PaceMakerErrorCode.SALARY_ACCOUNT_NOT_FOUND, exception.getErrorCode());
+        verify(paceMakerMapper, never()).insertAutoSaving(anyLong(), anyLong(), anyLong(), any());
+    }
+
+    private PaceMakerCreateRequest createRequest(Long accountId, Long maxAmount) {
+        PaceMakerCreateRequest request = new PaceMakerCreateRequest();
+        ReflectionTestUtils.setField(request, "accountId", accountId);
+        ReflectionTestUtils.setField(request, "maxAmount", maxAmount);
+        return request;
     }
 
     @Test
