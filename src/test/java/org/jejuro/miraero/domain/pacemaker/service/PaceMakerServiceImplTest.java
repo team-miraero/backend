@@ -344,6 +344,32 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
+    @DisplayName("조회할 월을 지정하면 그달 이력을 조회한다")
+    void getHistories_withYearMonth() {
+        PaceMakerHistorySearchCondition condition = new PaceMakerHistorySearchCondition();
+        condition.setYearMonth("2026-06");
+        LocalDateTime startDateTime = LocalDate.of(2026, 6, 1).atStartOfDay();
+        LocalDateTime endDateTime = startDateTime.plusMonths(1);
+        when(paceMakerMapper.findHistories(USER_ID, startDateTime, endDateTime, 0L, 10))
+                .thenReturn(List.of());
+        when(paceMakerMapper.countHistories(USER_ID, startDateTime, endDateTime)).thenReturn(0L);
+
+        paceMakerService.getHistories(USER_ID, condition);
+
+        verify(paceMakerMapper).findHistories(USER_ID, startDateTime, endDateTime, 0L, 10);
+    }
+
+    @Test
+    @DisplayName("월 형식이 잘못되면 조회할 수 없다")
+    void getHistories_invalidYearMonth() {
+        PaceMakerHistorySearchCondition condition = new PaceMakerHistorySearchCondition();
+        condition.setYearMonth("2026/06");
+
+        assertThrows(BusinessException.class,
+                () -> paceMakerService.getHistories(USER_ID, condition));
+    }
+
+    @Test
     @DisplayName("Get histories")
     void getHistories_success() {
         PaceMakerHistorySearchCondition condition = new PaceMakerHistorySearchCondition();

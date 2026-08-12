@@ -177,9 +177,7 @@ public class PaceMakerServiceImpl implements PaceMakerService {
   ) {
     condition.validate();
 
-    LocalDateTime startDateTime = LocalDate.now()
-        .withDayOfMonth(1)
-        .atStartOfDay();
+    LocalDateTime startDateTime = condition.resolveYearMonth().atDay(1).atStartOfDay();
 
     LocalDateTime endDateTime = startDateTime.plusMonths(1);
 
