@@ -132,6 +132,38 @@
     </select>
 
     <!--
+        목표 구분 없는 전체 자동이체 금액.
+        목표별로 나누는 위 두 쿼리와 달리 사용자 기준으로 한 번에 합산한다.
+    -->
+    <select id="findTotalAutoTransferAmount"
+            resultType="long">
+        SELECT COALESCE(SUM(amount), 0)
+        FROM (
+            <!-- ACCOUNT -->
+            SELECT at.transfer_amount AS amount
+            FROM goal_asset ga
+                JOIN goal g
+                    ON ga.goal_id = g.goal_id
+                JOIN auto_transfer at
+                    ON at.deposit_account_id = ga.asset_id
+            WHERE g.user_id = #{userId}
+                AND ga.asset_type = 'ACCOUNT'
+                AND at.auto_transfer_status = 'ACTIVE'
+        UNION ALL
+            <!-- MONEY_BOX -->
+            SELECT at.transfer_amount AS amount
+            FROM goal_asset ga
+                JOIN goal g
+                    ON ga.goal_id = g.goal_id
+                JOIN auto_transfer at
+                    ON at.money_box_id = ga.asset_id
+            WHERE g.user_id = #{userId}
+                AND ga.asset_type = 'MONEY_BOX'
+                AND at.auto_transfer_status = 'ACTIVE'
+        ) temp
+    </select>
+
+    <!--
         실행 대상 조회.
         transfer_day가 그달 말일보다 크면(예: 31일 설정 + 2월) 말일에 실행한다.
         availableBalance는 계좌 잔액에서 그 계좌의 저금통 합계를 뺀 값이다.
