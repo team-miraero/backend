@@ -37,6 +37,18 @@ public enum PaceMakerErrorCode implements ErrorCode {
       HttpStatus.FORBIDDEN,
       "PACEMAKER_005",
       "Account is not connected to user's goal."
+  ),
+
+  ALREADY_REGISTERED(
+      HttpStatus.CONFLICT,
+      "PACEMAKER_006",
+      "페이스메이커는 사용자당 하나만 개설할 수 있습니다."
+  ),
+
+  SALARY_ACCOUNT_NOT_FOUND(
+      HttpStatus.BAD_REQUEST,
+      "PACEMAKER_007",
+      "급여 통장을 찾을 수 없습니다. 저금통을 만들 계좌를 직접 선택해 주세요."
   );
 
   private final HttpStatus status;

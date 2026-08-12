@@ -5,10 +5,12 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerCreateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerGoalDepositRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerMaxAmountUpdateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerStatusUpdateRequest;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerCreateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalListResponse;
@@ -19,13 +21,13 @@ import org.jejuro.miraero.domain.pacemaker.service.PaceMakerService;
 import org.jejuro.miraero.global.response.ApiResponse;
 import org.jejuro.miraero.global.response.PageResponse;
 import org.jejuro.miraero.global.security.AuthenticatedUser;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import java.time.LocalDate;
 import org.jejuro.miraero.domain.autotransfer.exception.AutoTransferErrorCode;
@@ -46,6 +48,19 @@ public class PaceMakerController {
 
   private final PaceMakerService paceMakerService;
   private final PaceMakerSavingService paceMakerSavingService;
+
+  @PostMapping
+  @ApiOperation(
+      value = "페이스메이커 개설",
+      notes = "적립용 저금통과 자동 적립 설정을 함께 만듭니다. 사용자당 하나만 개설할 수 있습니다."
+  )
+  public ResponseEntity<ApiResponse<PaceMakerCreateResponse>> createPaceMaker(
+      @AuthenticationPrincipal AuthenticatedUser user,
+      @Valid @RequestBody PaceMakerCreateRequest request
+  ) {
+    return ResponseEntity.status(HttpStatus.CREATED)
+        .body(ApiResponse.success(paceMakerService.createPaceMaker(user.getUserId(), request)));
+  }
 
   @GetMapping
   @ApiOperation(value = "페이스메이커 조회", notes = "로그인 사용자의 자동 저축 페이스메이커 설정을 조회합니다.")
