@@ -25,11 +25,17 @@ public class AccountServiceImpl implements AccountService {
 
   @Override
   public AccountListResponse getAccounts(Long userId, String accountType) {
+    return getAccounts(userId, accountType, false);
+  }
+
+  @Override
+  public AccountListResponse getAccounts(Long userId, String accountType, boolean excludeGoalLinked) {
     if (accountType != null && !VALID_ACCOUNT_TYPES.contains(accountType)) {
       throw new BusinessException(AccountErrorCode.INVALID_ACCOUNT_TYPE);
     }
 
-    List<AccountResponse> accounts = accountMapper.findAllByUserId(userId, accountType);
+    List<AccountResponse> accounts =
+        accountMapper.findAllByUserId(userId, accountType, excludeGoalLinked);
     long totalBalance = accounts.stream()
         .mapToLong(AccountResponse::getBalance)
         .sum();

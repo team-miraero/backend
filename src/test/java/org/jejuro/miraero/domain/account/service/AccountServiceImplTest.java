@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -38,7 +39,7 @@ class AccountServiceImplTest {
         AccountResponse.builder().accountId(1L).accountType("CHECKING").balance(3_000_000L).build(),
         AccountResponse.builder().accountId(2L).accountType("SAVINGS").balance(5_000_000L).build()
     );
-    when(accountMapper.findAllByUserId(USER_ID, null)).thenReturn(accounts);
+    when(accountMapper.findAllByUserId(USER_ID, null, false)).thenReturn(accounts);
 
     AccountListResponse response = accountService.getAccounts(USER_ID, null);
 
@@ -49,11 +50,11 @@ class AccountServiceImplTest {
   @Test
   @DisplayName("accountType이 주어지면 그대로 매퍼에 전달한다")
   void getAccounts_passesAccountTypeFilter() {
-    when(accountMapper.findAllByUserId(USER_ID, "SAVINGS")).thenReturn(List.of());
+    when(accountMapper.findAllByUserId(USER_ID, "SAVINGS", false)).thenReturn(List.of());
 
     accountService.getAccounts(USER_ID, "SAVINGS");
 
-    verify(accountMapper).findAllByUserId(USER_ID, "SAVINGS");
+    verify(accountMapper).findAllByUserId(USER_ID, "SAVINGS", false);
   }
 
   @Test
@@ -61,7 +62,7 @@ class AccountServiceImplTest {
   void getAccounts_invalidAccountType_throws() {
     assertThrows(BusinessException.class, () -> accountService.getAccounts(USER_ID, "INVALID"));
 
-    verify(accountMapper, never()).findAllByUserId(any(), any());
+    verify(accountMapper, never()).findAllByUserId(any(), any(), anyBoolean());
   }
 
   @Test
