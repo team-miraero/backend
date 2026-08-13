@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerGoalDepositAssetRowResponse;
@@ -75,8 +76,9 @@ public interface PaceMakerMapper {
       @Param("userId") Long userId
   );
 
-  boolean existsGoalDepositAccountByUserIdAndAccountId(
+  boolean existsGoalDepositAssetByUserIdAndAsset(
       @Param("userId") Long userId,
-      @Param("accountId") Long accountId
+      @Param("assetType") AssetType assetType,
+      @Param("assetId") Long assetId
   );
 }

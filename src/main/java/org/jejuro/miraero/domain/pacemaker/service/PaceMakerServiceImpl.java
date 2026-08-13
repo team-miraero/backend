@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.account.mapper.AccountMapper;
+import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBoxType;
 import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
@@ -313,6 +314,12 @@ public class PaceMakerServiceImpl implements PaceMakerService {
       throw new BusinessException(PaceMakerErrorCode.INVALID_DEPOSIT_AMOUNT);
     }
 
+    // 목표 자산에는 LOAN도 있을 수 있지만 저축금을 넣을 대상이 아니다
+    if (request.getAssetType() != AssetType.ACCOUNT
+        && request.getAssetType() != AssetType.MONEY_BOX) {
+      throw new BusinessException(PaceMakerErrorCode.FORBIDDEN_GOAL_ACCOUNT);
+    }
+
     MoneyBox savingMoneyBox = moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(
         request.getMoneyBoxId(),
         userId
@@ -322,13 +329,14 @@ public class PaceMakerServiceImpl implements PaceMakerService {
       throw new BusinessException(PaceMakerErrorCode.NOT_REGISTERED);
     }
 
-    boolean existsGoalDepositAccount =
-        paceMakerMapper.existsGoalDepositAccountByUserIdAndAccountId(
+    boolean existsGoalDepositAsset =
+        paceMakerMapper.existsGoalDepositAssetByUserIdAndAsset(
             userId,
-            request.getAccountId()
+            request.getAssetType(),
+            request.getAssetId()
         );
 
-    if (!existsGoalDepositAccount) {
+    if (!existsGoalDepositAsset) {
       throw new BusinessException(PaceMakerErrorCode.FORBIDDEN_GOAL_ACCOUNT);
     }
 
@@ -344,25 +352,45 @@ public class PaceMakerServiceImpl implements PaceMakerService {
         request.getAmount()
     );
 
-    // 저금통이 속한 계좌와 목표 계좌는 항상 다른 물리 계좌라 실제 이체가 필요하다.
-    // 로컬 잔액만 올리면 다음 마이데이터 동기화 때 mock 서버의 옛 값으로 덮어써져 돈이 증발한다.
-    accountTransferService.transfer(
-        userId,
-        savingMoneyBox.getAccountId(),
-        request.getAccountId(),
-        request.getAmount()
-    );
-
-    accountMapper.increaseBalance(
-        request.getAccountId(),
-        userId,
-        request.getAmount()
-    );
+    if (request.getAssetType() == AssetType.MONEY_BOX) {
+      depositToMoneyBox(userId, savingMoneyBox, request.getAssetId(), request.getAmount());
+    } else {
+      depositToAccount(userId, savingMoneyBox, request.getAssetId(), request.getAmount());
+    }
 
     return PaceMakerGoalDepositResponse.builder()
-        .accountId(request.getAccountId())
+        .assetType(request.getAssetType())
+        .assetId(request.getAssetId())
         .depositedAmount(request.getAmount())
         .remainingBalance(balance - request.getAmount())
         .build();
+  }
+
+  private void depositToAccount(
+      Long userId, MoneyBox savingMoneyBox, Long targetAccountId, Long amount) {
+    // 저금통이 속한 계좌와 목표 계좌는 항상 다른 물리 계좌라 실제 이체가 필요하다.
+    // 로컬 잔액만 올리면 다음 마이데이터 동기화 때 mock 서버의 옛 값으로 덮어써져 돈이 증발한다.
+    accountTransferService.transfer(
+        userId, savingMoneyBox.getAccountId(), targetAccountId, amount);
+    accountMapper.increaseBalance(targetAccountId, userId, amount);
+  }
+
+  private void depositToMoneyBox(
+      Long userId, MoneyBox savingMoneyBox, Long targetMoneyBoxId, Long amount) {
+    MoneyBox targetMoneyBox = moneyBoxMapper.findById(targetMoneyBoxId);
+
+    if (targetMoneyBox == null) {
+      throw new BusinessException(PaceMakerErrorCode.FORBIDDEN_GOAL_ACCOUNT);
+    }
+
+    // 두 저금통이 같은 계좌 소속이면 계좌를 나가는 돈이 없다. 서브 레저 안에서
+    // 몫만 옮기면 되므로 실이체를 거치지 않는다.
+    if (!targetMoneyBox.getAccountId().equals(savingMoneyBox.getAccountId())) {
+      accountTransferService.transfer(
+          userId, savingMoneyBox.getAccountId(), targetMoneyBox.getAccountId(), amount);
+      accountMapper.increaseBalance(targetMoneyBox.getAccountId(), userId, amount);
+    }
+
+    moneyBoxMapper.increaseBalance(targetMoneyBoxId, amount);
   }
 }

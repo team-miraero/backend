@@ -140,7 +140,11 @@ public class PaceMakerController {
   }
 
   @PostMapping("/deposits")
-  @ApiOperation(value = "목표에 저축금 입금", notes = "페이스메이커를 통해 선택한 목표에 저축금을 입금합니다.")
+  @ApiOperation(
+      value = "목표에 저축금 입금",
+      notes = "페이스메이커를 통해 선택한 목표에 저축금을 입금합니다. "
+          + "목표 연결 자산이 예적금(ACCOUNT)이든 저금통(MONEY_BOX)이든 입금할 수 있습니다."
+  )
   public ResponseEntity<ApiResponse<PaceMakerGoalDepositResponse>> depositToGoal(
       @Valid @RequestBody PaceMakerGoalDepositRequest request,
       @AuthenticationPrincipal AuthenticatedUser user
