@@ -117,10 +117,10 @@ public class MilestoneServiceImpl implements MilestoneService {
                 continue;
             }
 
-            milestoneReportService.generateReport(
-                    milestone.getMilestoneId(),
-                    goalId
-            );
+//            milestoneReportService.generateReport(
+//                    milestone.getMilestoneId(),
+//                    goalId
+//            );
         }
     }
 

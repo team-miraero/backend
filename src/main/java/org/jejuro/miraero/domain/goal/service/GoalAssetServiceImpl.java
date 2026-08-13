@@ -12,6 +12,7 @@ import org.jejuro.miraero.domain.autotransfer.mapper.AutoTransferMapper;
 import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
+import org.jejuro.miraero.domain.goal.domain.GoalType;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest;
 import org.jejuro.miraero.domain.goal.dto.response.GoalPullFundsResponse;
@@ -68,7 +69,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
             return;
         }
 
-        validateAssets(userId, assets);
+        validateAssets(userId,goal ,assets);
 
         validateDuplicateAssets(assets);
 
@@ -116,7 +117,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
 
         return GoalPullFundsResponse.builder()
                 .pulledAmount(amount)
-                .currentAmount(calculateCurrentAmount(goalId))
+                .currentAmount(calculateCurrentAmount(userId,goalId))
                 .build();
     }
 
@@ -162,8 +163,18 @@ public class GoalAssetServiceImpl implements GoalAssetService {
 
 
 
-    private void validateAssets(Long userId, List<GoalAssetRequest> assets) {
+    private void validateAssets(
+            Long userId,
+            Goal goal,
+            List<GoalAssetRequest> assets) {
+
+
         for (GoalAssetRequest asset : assets) {
+
+            //대출 목표가 아니면 LOAN 자산 연결 불가
+            if(asset.getAssetType() == AssetType.LOAN && goal.getGoalType() != GoalType.LOAN){
+                throw new BusinessException(GoalErrorCode.INVALID_GOAL_ASSET);
+            }
 
             boolean exists = switch (asset.getAssetType()) {
                 case ACCOUNT -> isConnectableAccount(asset.getAssetId(), userId);
@@ -172,8 +183,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
             };
 
             if (!exists) {
-                throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
-                //throw new BusinessException(AssetErrorCode.ASSET_NOT_FOUND);
+                throw new BusinessException(GoalErrorCode.INVALID_GOAL_ASSET);
             }
         }
     }
@@ -209,8 +219,12 @@ public class GoalAssetServiceImpl implements GoalAssetService {
 
     @Override
     @Transactional(readOnly = true)
-    public Long calculateCurrentAmount(Long goalId) {
+    public Long calculateCurrentAmount(Long userId, Long goalId) {
         List<GoalAsset> assets = goalAssetMapper.findByGoalId(goalId);
+        Goal goal = goalMapper.findByIdAndUserId(userId, goalId);
+
+        if(goal == null) throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+
         long totalAmount = 0L;
 
         for (GoalAsset asset : assets) {
@@ -254,6 +268,9 @@ public class GoalAssetServiceImpl implements GoalAssetService {
 
         List<GoalAsset> goalAssets =
                 goalAssetMapper.findByGoalId(goalId);
+
+        //잘못된 LOAN 연결 데이터 검증
+        validateGoalAssetTypes(userId,goal, goalAssets);
 
         List<GoalAssetResponse> assets
                 = goalAssets.stream()
@@ -347,6 +364,72 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                 .bankName(account.getInstitutionName())
                 .accountNumberMasked(account.getMaskedAccountNumber())
                 .build();
+    }
+
+    private void validateGoalAssetTypes(
+            Long userId,
+            Goal goal,
+            List<GoalAsset> goalAssets
+    ) {
+        if (goal == null) {
+            throw new BusinessException(
+                    GoalErrorCode.GOAL_NOT_FOUND
+            );
+        }
+
+        if (goalAssets == null || goalAssets.isEmpty()) {
+            return;
+        }
+
+        for (GoalAsset asset : goalAssets) {
+
+            if (asset == null || asset.getAssetType() == null) {
+                throw new BusinessException(
+                        GoalErrorCode.INVALID_GOAL_ASSET
+                );
+            }
+
+            switch (asset.getAssetType()) {
+
+                case ACCOUNT -> {
+                    AccountResponse account =
+                            accountMapper.findResponseByIdAndUserId(
+                                    asset.getAssetId(),
+                                    userId
+                            );
+
+                    if (account == null) {
+                        throw new BusinessException(
+                                GoalErrorCode.INVALID_GOAL_ASSET
+                        );
+                    }
+                }
+
+                case MONEY_BOX -> {
+                    boolean exists =
+                            moneyBoxMapper.existsByIdAndUserId(
+                                    asset.getAssetId(),
+                                    userId
+                            );
+
+                    if (!exists) {
+                        throw new BusinessException(
+                                GoalErrorCode.INVALID_GOAL_ASSET
+                        );
+                    }
+                }
+
+                case LOAN -> {
+                    if (goal.getGoalType() != GoalType.LOAN) {
+                        throw new BusinessException(
+                                GoalErrorCode.INVALID_GOAL_ASSET
+                        );
+                    }
+
+                    // loanMapper.existsByIdAndUserId()가 생기면 여기서 검증
+                }
+            }
+        }
     }
 
     @Override

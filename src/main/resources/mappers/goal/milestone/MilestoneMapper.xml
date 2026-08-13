@@ -85,10 +85,10 @@
             achieved
         )
         VALUES (
-            #{goalId},
-            #{milestonePercentage},
-            #{milestoneAmount},
-            #{achieved}
+            #{milestone.goalId},
+            #{milestone.milestonePercentage},
+            #{milestone.milestoneAmount},
+            #{milestone.achieved}
         )
 
     </insert>
@@ -130,9 +130,9 @@
 
         UPDATE milestone
         SET
-            achieved = #{achieved},
-            achieved_at = #{achievedAt}
-        WHERE milestone_id = #{milestoneId}
+            achieved = #{milestone.achieved},
+            achieved_at = #{milestone.achievedAt}
+        WHERE milestone_id = #{milestone.milestoneId}
         AND achieved = FALSE
 
     </update>

@@ -4,7 +4,10 @@ import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.autotransfer.domain.AutoTransfer;
 import org.jejuro.miraero.domain.autotransfer.domain.AutoTransferStatus;
 import org.jejuro.miraero.domain.autotransfer.dto.request.AutoTransferCreateRequest;
+import org.jejuro.miraero.domain.autotransfer.exception.AutoTransferErrorCode;
 import org.jejuro.miraero.domain.autotransfer.mapper.AutoTransferMapper;
+import org.jejuro.miraero.global.exception.BusinessException;
+import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,29 @@ public class AutoTransferServiceImpl implements AutoTransferService {
             String maskedDepositAccount,
             AutoTransferCreateRequest request
     ){
+
+        if (moneyBoxId == null
+                || withdrawalAccountId == null
+                || request == null) {
+            throw new BusinessException(
+                    CommonErrorCode.INVALID_INPUT_VALUE
+            );
+        }
+
+        if (request.getAmount() == null || request.getAmount() <= 0) {
+            throw new BusinessException(
+                    AutoTransferErrorCode.INVALID_TRANSFER_AMOUNT
+            );
+        }
+
+        if (request.getTransferDay() == null
+                || request.getTransferDay() < 1
+                || request.getTransferDay() > 31) {
+            throw new BusinessException(
+                    AutoTransferErrorCode.INVALID_TRANSFER_DAY
+            );
+        }
+
         AutoTransfer autoTransfer =
                 AutoTransfer.builder()
                         .withdrawalAccountId(
