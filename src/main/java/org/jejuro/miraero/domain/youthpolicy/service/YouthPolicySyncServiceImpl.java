@@ -30,6 +30,15 @@ public class YouthPolicySyncServiceImpl implements YouthPolicySyncService {
     private static final DateTimeFormatter APPLICATION_DATE_FORMATTER = DateTimeFormatter.BASIC_ISO_DATE;
     private static final Pattern APPLICATION_PERIOD_PATTERN = Pattern.compile("^(\\d{8})\\s*~\\s*(\\d{8})$");
     private static final String QUALIFICATION_SEPARATOR = "\n";
+    private static final List<String> TARGET_POLICY_KEYWORDS = List.of(
+            "대출",
+            "보조금",
+            "바우처",
+            "금리혜택",
+            "신용회복",
+            "공공임대주택",
+            "주거지원"
+    );
 
     private final YouthPolicyApiClient youthPolicyApiClient;
     private final YouthPolicyMapper youthPolicyMapper;
@@ -41,29 +50,38 @@ public class YouthPolicySyncServiceImpl implements YouthPolicySyncService {
     }
 
     @Override
-    @Transactional
     public void syncYouthPolicies() {
-        log.info("청년정책 전체 동기화를 시작합니다.");
+        log.info("금융·주거 청년정책 동기화를 시작합니다.");
 
         try {
-            YouthPolicyApiResult firstResult = getYouthPolicyApiResult(1);
-            int totalPages = calculateTotalPages(firstResult.getPagging());
-            int syncedCount = syncYouthPolicyItems(firstResult.getYouthPolicyList());
+            int syncedCount = 0;
 
-            for (int pageNum = 2; pageNum <= totalPages; pageNum++) {
-                YouthPolicyApiResult result = getYouthPolicyApiResult(pageNum);
-                syncedCount += syncYouthPolicyItems(result.getYouthPolicyList());
+            for (String policyKeyword : TARGET_POLICY_KEYWORDS) {
+                syncedCount += syncYouthPoliciesByKeyword(policyKeyword);
             }
 
-            log.info("청년정책 전체 동기화를 완료했습니다. 저장 건수: {}", syncedCount);
+            log.info("금융·주거 청년정책 동기화를 완료했습니다. 저장 건수: {}", syncedCount);
         } catch (RuntimeException exception) {
-            log.error("청년정책 전체 동기화 중 오류가 발생했습니다.", exception);
+            log.error("금융·주거 청년정책 동기화 중 오류가 발생했습니다.", exception);
             throw exception;
         }
     }
 
-    private YouthPolicyApiResult getYouthPolicyApiResult(int pageNum) {
-        YouthPolicyApiResponse response = youthPolicyApiClient.getYouthPolicies(pageNum);
+    private int syncYouthPoliciesByKeyword(String policyKeyword) {
+        YouthPolicyApiResult firstResult = getYouthPolicyApiResult(1, policyKeyword);
+        int totalPages = calculateTotalPages(firstResult.getPagging());
+        int syncedCount = syncYouthPolicyItems(firstResult.getYouthPolicyList());
+
+        for (int pageNum = 2; pageNum <= totalPages; pageNum++) {
+            YouthPolicyApiResult result = getYouthPolicyApiResult(pageNum, policyKeyword);
+            syncedCount += syncYouthPolicyItems(result.getYouthPolicyList());
+        }
+
+        return syncedCount;
+    }
+
+    private YouthPolicyApiResult getYouthPolicyApiResult(int pageNum, String policyKeyword) {
+        YouthPolicyApiResponse response = youthPolicyApiClient.getYouthPolicies(pageNum, policyKeyword);
         if (response == null || response.getResult() == null
                 || response.getResult().getPagging() == null
                 || response.getResult().getYouthPolicyList() == null) {
