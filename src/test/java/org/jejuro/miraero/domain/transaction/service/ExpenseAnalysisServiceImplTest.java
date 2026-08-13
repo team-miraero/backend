@@ -15,8 +15,6 @@ import org.jejuro.miraero.domain.transaction.domain.CategoryMonthExpenseQueryRes
 import org.jejuro.miraero.domain.transaction.domain.CategoryThreeMonthExpenseQueryResult;
 import org.jejuro.miraero.domain.transaction.dto.request.ExpenseAnalysisSearchCondition;
 import org.jejuro.miraero.domain.transaction.dto.response.ExpenseDashboardResponse;
-import org.jejuro.miraero.domain.transaction.dto.response.PeerAverageCategoryResponse;
-import org.jejuro.miraero.domain.transaction.dto.response.PeerAverageResponse;
 import org.jejuro.miraero.domain.transaction.mapper.ExpenseAnalysisMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.junit.jupiter.api.Test;
@@ -30,11 +28,8 @@ class ExpenseAnalysisServiceImplTest {
 
     @Mock
     private ExpenseAnalysisMapper mapper;
-    @Mock
-    private PeerAverageService peerAverageService;
-
     @Test
-    void getDashboard_returnsThreeMonthAndPeerCategoryAverages() {
+    void getDashboard_returnsThreeMonthAveragesAndMonthChanges() {
         ExpenseAnalysisService service = service();
         when(mapper.findCategoryThreeMonthExpenses(eq(1L), any())).thenReturn(List.of(
                 new CategoryThreeMonthExpenseQueryResult(1L, "식비", 660_000L)
@@ -44,21 +39,15 @@ class ExpenseAnalysisServiceImplTest {
                 new CategoryMonthExpenseQueryResult(1L, "food", 250_000L, 280_000L),
                 new CategoryMonthExpenseQueryResult(2L, "cafe", 0L, 0L)
         ));
-        when(peerAverageService.getPeerAverages(1L, 2026, 7)).thenReturn(new PeerAverageResponse(List.of(
-                new PeerAverageCategoryResponse(1L, "Food", 285_000L)
-        )));
-
         ExpenseDashboardResponse response = service.getDashboard(1L, 2026, 7);
 
         assertEquals("2026-04", response.getCategoryThreeMonthAverages().getStartMonth());
         assertEquals("2026-06", response.getCategoryThreeMonthAverages().getEndMonth());
         assertEquals(220_000L, response.getCategoryThreeMonthAverages().getCategories().get(0).getAverageMonthlyAmount());
-        assertEquals(285_000L, response.getPeerCategoryAverages().getCategories().get(0).getPeerAverageAmount());
         assertEquals(30_000L, response.getCategoryMonthChanges().get(0).getChangeAmount());
         assertEquals(0L, response.getCategoryMonthChanges().get(1).getPreviousMonthAmount());
         assertEquals(0L, response.getCategoryMonthChanges().get(1).getCurrentMonthAmount());
         assertEquals(0L, response.getCategoryMonthChanges().get(1).getChangeAmount());
-        verify(peerAverageService).getPeerAverages(1L, 2026, 7);
     }
 
     @Test
@@ -123,8 +112,6 @@ class ExpenseAnalysisServiceImplTest {
     }
 
     private ExpenseAnalysisService service() {
-        lenient().when(peerAverageService.getPeerAverages(any(), any(), any()))
-                .thenReturn(new PeerAverageResponse(Collections.emptyList()));
-        return new ExpenseAnalysisServiceImpl(mapper, peerAverageService);
+        return new ExpenseAnalysisServiceImpl(mapper);
     }
 }
