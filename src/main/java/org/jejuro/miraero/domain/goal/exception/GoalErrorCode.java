@@ -16,12 +16,6 @@ public enum GoalErrorCode implements ErrorCode {
             "목표를 찾을 수 없습니다."
     ),
 
-    GOAL_ACCESS_DENIED(
-            HttpStatus.FORBIDDEN,
-            "GOAL_007",
-            "다른 사용자의 목표입니다."
-    ),
-
     GOAL_NOT_COMPLETED(
             HttpStatus.BAD_REQUEST,
             "GOAL_002",
@@ -52,6 +46,12 @@ public enum GoalErrorCode implements ErrorCode {
         "변경할 수 없는 목표 상태입니다."
     ),
 
+    GOAL_ACCESS_DENIED(
+            HttpStatus.FORBIDDEN,
+            "GOAL_007",
+                    "다른 사용자의 목표입니다."
+    ),
+
     PULL_SOURCE_ACCOUNT_LINKED(
             HttpStatus.BAD_REQUEST,
         "GOAL_008",
@@ -68,8 +68,47 @@ public enum GoalErrorCode implements ErrorCode {
             HttpStatus.BAD_REQUEST,
         "GOAL_010",
         "끌어올 수 있는 목표 자산(예적금, 저금통)이 연결되어 있지 않습니다."
-    );
+    ),
+    INVALID_GOAL_AMOUNT(
+            HttpStatus.BAD_REQUEST,
+            "GOAL_011",
+            "목표 금액은 0보다 커야 합니다."
+    ),
 
+    INVALID_START_AMOUNT(
+            HttpStatus.BAD_REQUEST,
+            "GOAL_012",
+            "시작 금액은 0 이상이어야 합니다."
+    ),
+
+    INVALID_GOAL_MONTHS(
+            HttpStatus.BAD_REQUEST,
+            "GOAL_013",
+            "목표 기간은 1개월 이상이어야 합니다."
+    ),
+
+    INVALID_GOAL_NAME(
+            HttpStatus.BAD_REQUEST,
+            "GOAL_014",
+            "목표 이름은 비어 있을 수 없습니다."
+    ),
+
+    START_AMOUNT_EXCEEDS_GOAL_AMOUNT(
+            HttpStatus.BAD_REQUEST,
+            "GOAL_015",
+            "시작 금액은 목표 금액보다 클 수 없습니다."
+    ),
+
+    INVALID_GOAL_ASSET(
+            HttpStatus.BAD_REQUEST,
+            "GOAL_016",
+            "연결할 수 없는 자산입니다."
+    ),
+    INVALID_GOAL_TYPE(
+            HttpStatus.BAD_REQUEST,
+            "GOAL_017",
+            "목표 유형은 INDEPENDENCE, EMERGENCY, WEDDING, LOAN만 가능합니다."
+    );
 
 
 

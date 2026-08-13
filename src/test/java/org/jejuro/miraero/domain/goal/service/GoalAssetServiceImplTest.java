@@ -129,7 +129,7 @@ class GoalAssetServiceImplTest {
                 .thenReturn(AccountResponse.builder().accountId(10L).balance(500_000L).build());
 
         Long result =
-                goalAssetService.calculateCurrentAmount(GOAL_ID);
+                goalAssetService.calculateCurrentAmount(1L,GOAL_ID);
 
         assertEquals(500_000L, result);
     }
@@ -416,7 +416,7 @@ class GoalAssetServiceImplTest {
         when(moneyBoxMapper.findBalanceById(30L))
                 .thenReturn(700_000L);
 
-        assertEquals(700_000L, goalAssetService.calculateCurrentAmount(GOAL_ID));
+        assertEquals(700_000L, goalAssetService.calculateCurrentAmount(1L,GOAL_ID));
     }
 
     @Test

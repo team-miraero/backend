@@ -59,6 +59,9 @@ public class GoalServiceImpl implements GoalService{
             Long userId
             )
     {
+        if(request == null){
+            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
 
         MonthlyAvailableMoneyResponse availableMoney =
                 availableMoneyService.getMonthlyAvailableMoney(userId, null);
@@ -125,6 +128,15 @@ public class GoalServiceImpl implements GoalService{
     @Transactional
     public GoalCreateResponse createGoal(Long userId, GoalCreateRequest request) {
 
+        if(request == null){
+            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        validateGoalInput(
+                request.getGoalAmount(),
+                request.getStartAmount(),
+                request.getGoalMonths()
+        );
 
         //1. 목표 생성
         LocalDate startDate = LocalDate.now();
@@ -187,6 +199,7 @@ public class GoalServiceImpl implements GoalService{
         return goals.stream()
                 .map(goal -> {
                     Long currentAmount = goalAssetService.calculateCurrentAmount(
+                            userId,
                             goal.getGoalId()
                     );
 
@@ -243,7 +256,7 @@ public class GoalServiceImpl implements GoalService{
 
         // 연결된 자산들의 현재 금액 계산
         Long currentAmount = Optional.ofNullable(
-                goalAssetService.calculateCurrentAmount(goalId)
+                goalAssetService.calculateCurrentAmount(userId, goalId)
         ).orElse(0L);
 
         // 마일스톤
@@ -378,15 +391,19 @@ public class GoalServiceImpl implements GoalService{
     ) {
 
         if (goalAmount == null || goalAmount <= 0) {
-            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(GoalErrorCode.INVALID_GOAL_AMOUNT);
         }
 
         if (startAmount == null || startAmount < 0) {
-            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(GoalErrorCode.INVALID_START_AMOUNT);
         }
 
         if (goalMonths == null || goalMonths <= 0) {
-            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+            throw new BusinessException(GoalErrorCode.INVALID_GOAL_MONTHS);
+        }
+
+        if ( startAmount > goalAmount){
+            throw new BusinessException(GoalErrorCode.START_AMOUNT_EXCEEDS_GOAL_AMOUNT);
         }
     }
 
@@ -411,7 +428,7 @@ public class GoalServiceImpl implements GoalService{
             throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
         }
 
-        validateUpdateRequest(request);
+        validateUpdateRequest(goal,request);
 
         Long previousGoalAmount = goal.getGoalAmount();
 
@@ -441,14 +458,19 @@ public class GoalServiceImpl implements GoalService{
         }
     }
 
-    private void validateUpdateRequest(GoalUpdateRequest request) {
+    private void validateUpdateRequest(Goal goal, GoalUpdateRequest request) {
+
+        if (request == null) {
+            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
 
         if (request.getGoalAmount() != null
                 && request.getGoalAmount() <= 0) {
             throw new BusinessException(
-                    CommonErrorCode.INVALID_INPUT_VALUE
+                    GoalErrorCode.INVALID_GOAL_AMOUNT
             );
         }
+
 
         if (request.getGoalName() != null
                 && request.getGoalName().isBlank()) {
@@ -457,11 +479,17 @@ public class GoalServiceImpl implements GoalService{
             );
         }
 
-        Integer goalMonths = request.getGoalMonths();
-
-        if (goalMonths != null && goalMonths <= 0) {
+        if (request.getGoalMonths() != null
+                && request.getGoalMonths() <= 0) {
             throw new BusinessException(
-                    CommonErrorCode.INVALID_INPUT_VALUE
+                    GoalErrorCode.INVALID_GOAL_MONTHS
+            );
+        }
+
+        if (request.getGoalAmount() != null
+                && goal.getStartAmount() > request.getGoalAmount()) {
+            throw new BusinessException(
+                    GoalErrorCode.START_AMOUNT_EXCEEDS_GOAL_AMOUNT
             );
         }
     }
@@ -544,6 +572,12 @@ public class GoalServiceImpl implements GoalService{
 
         if(goal == null){
             throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        }
+
+        if (status == null) {
+            throw new BusinessException(
+                    GoalErrorCode.INVALID_STATUS_CHANGE
+            );
         }
 
         if(goal.getGoalStatus() == GoalStatus.COMPLETED){

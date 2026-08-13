@@ -186,8 +186,8 @@ class GoalServiceImplTest {
 
 
         // 연결 자산에서 계산된 현재 금액 Mock
-        when(goalAssetService.calculateCurrentAmount(1L)).thenReturn(500_000L);
-        when(goalAssetService.calculateCurrentAmount(2L)).thenReturn(200_000L);
+        when(goalAssetService.calculateCurrentAmount(1L,1L)).thenReturn(500_000L);
+        when(goalAssetService.calculateCurrentAmount(1L,2L)).thenReturn(200_000L);
 
         // when
         List<GoalListResponse> result =
@@ -206,10 +206,10 @@ class GoalServiceImplTest {
 
         verify(goalMapper).findGoalsByUserId(userId);
         verify(goalAssetService)
-                .calculateCurrentAmount(1L);
+                .calculateCurrentAmount(1L,1L);
 
         verify(goalAssetService)
-                .calculateCurrentAmount(2L);
+                .calculateCurrentAmount(1L,2L);
     }
 
     @Test
@@ -235,7 +235,7 @@ class GoalServiceImplTest {
         when(goalMapper.findByIdAndUserId(userId, goalId))
                 .thenReturn(goal);
 
-        when(goalAssetService.calculateCurrentAmount(goalId))
+        when(goalAssetService.calculateCurrentAmount(1L,goalId))
                 .thenReturn(5_000_000L);
 
 
@@ -375,7 +375,7 @@ class GoalServiceImplTest {
                 .willReturn(goal);
 
         // 현재 금액 = 목표 금액 → 달성률 100%
-        given(goalAssetService.calculateCurrentAmount(goalId))
+        given(goalAssetService.calculateCurrentAmount(1L,goalId))
                 .willReturn(1_000_000L);
 
 
