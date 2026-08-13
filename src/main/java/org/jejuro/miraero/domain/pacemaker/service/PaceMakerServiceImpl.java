@@ -9,10 +9,14 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.account.mapper.AccountMapper;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
+import org.jejuro.miraero.domain.moneybox.domain.MoneyBoxType;
 import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
+import org.jejuro.miraero.domain.moneybox.service.MoneyBoxService;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
+import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerCreateRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerGoalDepositRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
+import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerCreateResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDashboardSummaryResponse;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerDepositAssetResponse;
@@ -31,6 +35,7 @@ import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWeeklyStreakRes
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerWithdrawalAccountResponse;
 import org.jejuro.miraero.domain.pacemaker.exception.PaceMakerErrorCode;
 import org.jejuro.miraero.domain.pacemaker.mapper.PaceMakerMapper;
+import org.jejuro.miraero.domain.transaction.service.TransactionQueryService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.response.PageResponse;
@@ -45,6 +50,47 @@ public class PaceMakerServiceImpl implements PaceMakerService {
   private final PaceMakerMapper paceMakerMapper;
   private final MoneyBoxMapper moneyBoxMapper;
   private final AccountMapper accountMapper;
+  private final MoneyBoxService moneyBoxService;
+  private final TransactionQueryService transactionQueryService;
+
+  @Override
+  @Transactional
+  public PaceMakerCreateResponse createPaceMaker(Long userId, PaceMakerCreateRequest request) {
+
+    // 사용자당 1개(uk_auto_saving_user). 먼저 걸러 DB 예외 대신 409로 응답한다.
+    if (paceMakerMapper.findByUserId(userId) != null) {
+      throw new BusinessException(PaceMakerErrorCode.ALREADY_REGISTERED);
+    }
+
+    Long accountId = resolveAccountId(userId, request.getAccountId());
+
+    // 매일 여유자금을 적립하므로 급여가 들어오는 통장이 아니면 잔액이 고갈된다
+    moneyBoxService.validateAutoWithdrawalAccount(userId, accountId);
+
+    Long moneyBoxId = moneyBoxService.createMoneyBox(userId, accountId, MoneyBoxType.SAVING);
+
+    // 서브 레저라 출금과 입금이 같은 계좌 안에서 일어난다
+    paceMakerMapper.insertAutoSaving(userId, moneyBoxId, accountId, request.getMaxAmount());
+
+    return PaceMakerCreateResponse.from(paceMakerMapper.findByUserId(userId));
+  }
+
+  /**
+   * 어차피 급여 통장에만 만들 수 있어서, 화면이 계좌를 묻지 않으면 서버가 찾아 쓴다.
+   */
+  private Long resolveAccountId(Long userId, Long requestedAccountId) {
+    if (requestedAccountId != null) {
+      return requestedAccountId;
+    }
+
+    Long salaryAccountId = transactionQueryService.getSalaryAccountId(userId);
+
+    if (salaryAccountId == null) {
+      throw new BusinessException(PaceMakerErrorCode.SALARY_ACCOUNT_NOT_FOUND);
+    }
+
+    return salaryAccountId;
+  }
 
   @Override
   public PaceMakerResponse getPaceMaker(Long userId) {
@@ -131,9 +177,7 @@ public class PaceMakerServiceImpl implements PaceMakerService {
   ) {
     condition.validate();
 
-    LocalDateTime startDateTime = LocalDate.now()
-        .withDayOfMonth(1)
-        .atStartOfDay();
+    LocalDateTime startDateTime = condition.resolveYearMonth().atDay(1).atStartOfDay();
 
     LocalDateTime endDateTime = startDateTime.plusMonths(1);
 

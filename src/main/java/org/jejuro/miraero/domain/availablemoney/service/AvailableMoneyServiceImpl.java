@@ -103,6 +103,41 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
                 .build();
     }
 
+    /**
+     * 조회용 메서드와 두 가지가 다르다.
+     * 기준일을 밖에서 받아 지난 날짜도 정산할 수 있고, 목표를 구분하지 않고
+     * 전체 자동이체를 차감한다(페이스메이커는 특정 목표에 속하지 않으므로).
+     */
+    @Override
+    public Long getRemainingMoneyOf(Long userId, LocalDate businessDate) {
+        List<LocalDateTime> salaryDateTimes =
+                transactionQueryService.getLatestSalaryDateTimes(userId, 3);
+        PaydayPeriod period = resolvePaydayPeriod(salaryDateTimes);
+
+        Long monthlyAvailableMoney = calculator.calculateMonthlyAvailableMoney(
+                userService.getMonthlyIncome(userId),
+                transactionQueryService.getFixedExpenseSum(userId, period.startDate, period.endDate),
+                transactionQueryService.getVariableExpenseSum(userId, period.startDate, period.endDate),
+                autoTransferQueryService.getTotalTransferAmount(userId),
+                0L
+        );
+
+        long remainingDays =
+                ChronoUnit.DAYS.between(businessDate, period.endDate.toLocalDate()) + 1;
+        if (remainingDays <= 0) remainingDays = 1;
+
+        Long dailyAvailableMoney =
+                calculator.calculateDailyAvailableMoney(monthlyAvailableMoney, remainingDays);
+
+        Long expense = transactionQueryService.getTodayExpenseSum(
+                userId,
+                businessDate.atTime(8, 0),
+                businessDate.plusDays(1).atTime(8, 0)
+        );
+
+        return calculator.calculateRemainingMoney(dailyAvailableMoney, expense);
+    }
+
     private PaydayPeriod resolvePaydayPeriod(List<LocalDateTime> salaryDateTimes) {
 
         if (salaryDateTimes == null || salaryDateTimes.isEmpty()) {

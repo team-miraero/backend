@@ -27,4 +27,27 @@
         )
     </insert>
 
+    <!--
+        페이스메이커 적립. 대시보드 조회가 auto_saving_id로 조인하므로 함께 기록한다.
+        중복 방지는 목표 자동이체와 동일하게 (money_box_id, transacted_at) UNIQUE가 담당한다.
+    -->
+    <insert id="insertPaceMakerIgnoreDuplicate">
+        INSERT IGNORE INTO auto_saving_history
+        (
+            money_box_id,
+            auto_saving_id,
+            amount,
+            transacted_at,
+            transfer_status
+        )
+        VALUES
+        (
+            #{moneyBoxId},
+            #{autoSavingId},
+            #{amount},
+            #{transactedAt},
+            #{transferStatus}
+        )
+    </insert>
+
 </mapper>

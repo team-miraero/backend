@@ -26,4 +26,13 @@ public class AutoTransferQueryServiceImpl implements AutoTransferQueryService {
 
         return amount == null ? 0L : amount;
     }
+
+    @Override
+    public Long getTotalTransferAmount(Long userId) {
+        if (userId == null) return 0L;
+
+        Long amount = autoTransferMapper.findTotalAutoTransferAmount(userId);
+
+        return amount == null ? 0L : amount;
+    }
 }

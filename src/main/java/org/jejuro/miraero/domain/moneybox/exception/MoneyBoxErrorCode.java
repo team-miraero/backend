@@ -25,6 +25,12 @@ public enum MoneyBoxErrorCode implements ErrorCode {
       HttpStatus.BAD_REQUEST,
       "MONEY_BOX_003",
       "자동이체는 급여가 입금되는 통장의 저금통에만 설정할 수 있습니다."
+  ),
+
+  SAVING_TYPE_NOT_ALLOWED(
+      HttpStatus.BAD_REQUEST,
+      "MONEY_BOX_004",
+      "페이스메이커 저금통은 페이스메이커 개설 API로 만들어야 합니다."
   );
 
   private final HttpStatus status;

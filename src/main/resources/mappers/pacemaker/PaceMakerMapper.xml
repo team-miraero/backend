@@ -4,6 +4,27 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="org.jejuro.miraero.domain.pacemaker.mapper.PaceMakerMapper">
+
+  <!-- 사용자당 1개 제약(uk_auto_saving_user)은 DB가 최종적으로 보장한다 -->
+  <insert id="insertAutoSaving">
+    INSERT INTO auto_saving
+    (
+        user_id,
+        money_box_id,
+        account_id,
+        max_amount,
+        auto_saving_status
+    )
+    VALUES
+    (
+        #{userId},
+        #{moneyBoxId},
+        #{accountId},
+        #{maxAmount},
+        'ACTIVE'
+    )
+  </insert>
+
   <select id="findByUserId"
     parameterType="long"
     resultType="org.jejuro.miraero.domain.pacemaker.domain.AutoSaving">
@@ -40,6 +61,23 @@
                      ON a.auto_saving_id = h.auto_saving_id
                        AND h.transacted_at = CURDATE()
     WHERE a.user_id = #{userId}
+  </select>
+
+  <!-- 적립 대상. 상태가 ACTIVE인 건만 실행한다. -->
+  <select id="findActiveAutoSavings"
+    resultType="org.jejuro.miraero.domain.pacemaker.domain.AutoSaving">
+    SELECT auto_saving_id     AS autoSavingId,
+           user_id            AS userId,
+           money_box_id       AS moneyBoxId,
+           account_id         AS accountId,
+           max_amount         AS maxAmount,
+           auto_saving_status AS autoSavingStatus
+    FROM auto_saving
+    WHERE auto_saving_status = 'ACTIVE'
+    <if test="userId != null">
+      AND user_id = #{userId}
+    </if>
+    ORDER BY auto_saving_id
   </select>
 
   <select id="countMonthlySuccess"
