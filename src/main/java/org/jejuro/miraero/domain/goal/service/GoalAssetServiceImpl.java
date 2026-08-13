@@ -117,7 +117,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
 
         return GoalPullFundsResponse.builder()
                 .pulledAmount(amount)
-                .currentAmount(calculateCurrentAmount(goalId))
+                .currentAmount(calculateCurrentAmount(userId,goalId))
                 .build();
     }
 
