@@ -27,7 +27,8 @@ public interface AccountMapper {
 
   List<AccountResponse> findAllByUserId(
       @Param("userId") Long userId,
-      @Param("accountType") String accountType
+      @Param("accountType") String accountType,
+      @Param("excludeGoalLinked") boolean excludeGoalLinked
   );
 
   // 소유권 확인이 끝난 뒤(예: goal_asset 조회) 은행명까지 포함한 상세 조회용
@@ -40,6 +41,12 @@ public interface AccountMapper {
   );
 
   int increaseBalance(
+      @Param("accountId") Long accountId,
+      @Param("userId") Long userId,
+      @Param("amount") Long amount
+  );
+
+  int decreaseBalance(
       @Param("accountId") Long accountId,
       @Param("userId") Long userId,
       @Param("amount") Long amount

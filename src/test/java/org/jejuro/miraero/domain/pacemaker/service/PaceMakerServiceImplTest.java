@@ -19,8 +19,10 @@ import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBoxType;
 import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
 import org.jejuro.miraero.domain.moneybox.service.MoneyBoxService;
+import org.jejuro.miraero.domain.mydata.service.AccountTransferService;
 import org.jejuro.miraero.domain.pacemaker.domain.AutoSaving;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerCreateRequest;
+import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerGoalDepositRequest;
 import org.jejuro.miraero.domain.pacemaker.dto.request.PaceMakerHistorySearchCondition;
 import org.jejuro.miraero.domain.pacemaker.dto.response.PaceMakerCreateResponse;
@@ -70,6 +72,9 @@ class PaceMakerServiceImplTest {
     @Mock
     private TransactionQueryService transactionQueryService;
 
+    @Mock
+    private AccountTransferService accountTransferService;
+
     private PaceMakerService paceMakerService;
 
     @BeforeEach
@@ -79,7 +84,8 @@ class PaceMakerServiceImplTest {
                 moneyBoxMapper,
                 accountMapper,
                 moneyBoxService,
-                transactionQueryService
+                transactionQueryService,
+                accountTransferService
         );
     }
 
@@ -169,6 +175,7 @@ class PaceMakerServiceImplTest {
         PaceMakerResponse response = paceMakerService.getPaceMaker(USER_ID);
 
         assertEquals(21L, response.getAutoSavingId());
+        assertEquals(3L, response.getMoneyBoxId());
         assertTrue(response.isRegistered());
         assertEquals("ACTIVE", response.getStatus());
         assertTrue(response.isEnabled());
@@ -198,6 +205,7 @@ class PaceMakerServiceImplTest {
         PaceMakerResponse response = paceMakerService.getPaceMaker(USER_ID);
 
         assertNull(response.getAutoSavingId());
+        assertNull(response.getMoneyBoxId());
         assertFalse(response.isRegistered());
         assertNull(response.getStatus());
         assertFalse(response.isEnabled());
@@ -524,38 +532,96 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
-    @DisplayName("Deposit pace maker balance to goal deposit account")
-    void depositToGoal_success() {
+    @DisplayName("Deposit pace maker balance to a goal deposit account")
+    void depositToGoal_toAccount_success() {
         Long accountId = 8L;
-        PaceMakerGoalDepositRequest request = new PaceMakerGoalDepositRequest(3L, accountId, 270_000L);
+        Long moneyBoxAccountId = 10L;
+        PaceMakerGoalDepositRequest request =
+                new PaceMakerGoalDepositRequest(3L, AssetType.ACCOUNT, accountId, 270_000L);
         MoneyBox paceMakerMoneyBox = MoneyBox.builder()
                 .moneyBoxId(3L)
                 .userId(USER_ID)
+                .accountId(moneyBoxAccountId)
                 .balance(300_000L)
                 .build();
 
         when(moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID))
                 .thenReturn(paceMakerMoneyBox);
-        when(paceMakerMapper.existsGoalDepositAccountByUserIdAndAccountId(USER_ID, accountId))
+        when(paceMakerMapper.existsGoalDepositAssetByUserIdAndAsset(USER_ID, AssetType.ACCOUNT, accountId))
                 .thenReturn(true);
         when(moneyBoxMapper.decreaseBalance(3L, USER_ID, 270_000L)).thenReturn(1);
         when(accountMapper.increaseBalance(accountId, USER_ID, 270_000L)).thenReturn(1);
 
         PaceMakerGoalDepositResponse response = paceMakerService.depositToGoal(USER_ID, request);
 
-        assertEquals(accountId, response.getAccountId());
+        assertEquals(AssetType.ACCOUNT, response.getAssetType());
+        assertEquals(accountId, response.getAssetId());
         assertEquals(270_000L, response.getDepositedAmount());
         assertEquals(30_000L, response.getRemainingBalance());
         verify(moneyBoxMapper).findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID);
-        verify(paceMakerMapper).existsGoalDepositAccountByUserIdAndAccountId(USER_ID, accountId);
+        verify(paceMakerMapper).existsGoalDepositAssetByUserIdAndAsset(USER_ID, AssetType.ACCOUNT, accountId);
         verify(moneyBoxMapper).decreaseBalance(3L, USER_ID, 270_000L);
+        // 저금통이 속한 계좌와 목표 계좌는 항상 다른 물리 계좌라 실제 이체를 거쳐야 한다
+        verify(accountTransferService).transfer(USER_ID, moneyBoxAccountId, accountId, 270_000L);
         verify(accountMapper).increaseBalance(accountId, USER_ID, 270_000L);
+    }
+
+    @Test
+    @DisplayName("Deposit to a goal money box on a different account transfers first")
+    void depositToGoal_toMoneyBox_differentAccount_transfers() {
+        Long sourceAccountId = 10L;
+        Long targetAccountId = 20L;
+        Long targetMoneyBoxId = 55L;
+        PaceMakerGoalDepositRequest request =
+                new PaceMakerGoalDepositRequest(3L, AssetType.MONEY_BOX, targetMoneyBoxId, 100_000L);
+        MoneyBox paceMakerMoneyBox = MoneyBox.builder()
+                .moneyBoxId(3L).userId(USER_ID).accountId(sourceAccountId).balance(300_000L).build();
+        MoneyBox targetMoneyBox = MoneyBox.builder()
+                .moneyBoxId(targetMoneyBoxId).accountId(targetAccountId).build();
+
+        when(moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID))
+                .thenReturn(paceMakerMoneyBox);
+        when(paceMakerMapper.existsGoalDepositAssetByUserIdAndAsset(
+                USER_ID, AssetType.MONEY_BOX, targetMoneyBoxId)).thenReturn(true);
+        when(moneyBoxMapper.findById(targetMoneyBoxId)).thenReturn(targetMoneyBox);
+
+        paceMakerService.depositToGoal(USER_ID, request);
+
+        verify(accountTransferService).transfer(USER_ID, sourceAccountId, targetAccountId, 100_000L);
+        verify(accountMapper).increaseBalance(targetAccountId, USER_ID, 100_000L);
+        verify(moneyBoxMapper).increaseBalance(targetMoneyBoxId, 100_000L);
+    }
+
+    @Test
+    @DisplayName("Deposit to a goal money box on the same account skips the transfer")
+    void depositToGoal_toMoneyBox_sameAccount_skipsTransfer() {
+        Long sharedAccountId = 10L;
+        Long targetMoneyBoxId = 55L;
+        PaceMakerGoalDepositRequest request =
+                new PaceMakerGoalDepositRequest(3L, AssetType.MONEY_BOX, targetMoneyBoxId, 100_000L);
+        MoneyBox paceMakerMoneyBox = MoneyBox.builder()
+                .moneyBoxId(3L).userId(USER_ID).accountId(sharedAccountId).balance(300_000L).build();
+        MoneyBox targetMoneyBox = MoneyBox.builder()
+                .moneyBoxId(targetMoneyBoxId).accountId(sharedAccountId).build();
+
+        when(moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID))
+                .thenReturn(paceMakerMoneyBox);
+        when(paceMakerMapper.existsGoalDepositAssetByUserIdAndAsset(
+                USER_ID, AssetType.MONEY_BOX, targetMoneyBoxId)).thenReturn(true);
+        when(moneyBoxMapper.findById(targetMoneyBoxId)).thenReturn(targetMoneyBox);
+
+        paceMakerService.depositToGoal(USER_ID, request);
+
+        verify(accountTransferService, never()).transfer(any(), any(), any(), any());
+        verify(accountMapper, never()).increaseBalance(anyLong(), anyLong(), anyLong());
+        verify(moneyBoxMapper).increaseBalance(targetMoneyBoxId, 100_000L);
     }
 
     @Test
     @DisplayName("Deposit fails when amount is invalid")
     void depositToGoal_invalidAmount() {
-        PaceMakerGoalDepositRequest request = new PaceMakerGoalDepositRequest(3L, 8L, 0L);
+        PaceMakerGoalDepositRequest request =
+                new PaceMakerGoalDepositRequest(3L, AssetType.ACCOUNT, 8L, 0L);
 
         BusinessException exception = assertThrows(
                 BusinessException.class,
@@ -569,9 +635,25 @@ class PaceMakerServiceImplTest {
     }
 
     @Test
+    @DisplayName("Deposit fails when asset type is LOAN")
+    void depositToGoal_loanAsset_rejected() {
+        PaceMakerGoalDepositRequest request =
+                new PaceMakerGoalDepositRequest(3L, AssetType.LOAN, 8L, 10_000L);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> paceMakerService.depositToGoal(USER_ID, request)
+        );
+
+        assertEquals(PaceMakerErrorCode.FORBIDDEN_GOAL_ACCOUNT, exception.getErrorCode());
+        verify(moneyBoxMapper, never()).findPaceMakerMoneyBoxByIdAndUserIdForUpdate(anyLong(), anyLong());
+    }
+
+    @Test
     @DisplayName("Deposit fails when pace maker is not registered")
     void depositToGoal_notRegistered() {
-        PaceMakerGoalDepositRequest request = new PaceMakerGoalDepositRequest(3L, 8L, 10_000L);
+        PaceMakerGoalDepositRequest request =
+                new PaceMakerGoalDepositRequest(3L, AssetType.ACCOUNT, 8L, 10_000L);
         when(moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID)).thenReturn(null);
 
         BusinessException exception = assertThrows(
@@ -581,16 +663,18 @@ class PaceMakerServiceImplTest {
 
         assertEquals(PaceMakerErrorCode.NOT_REGISTERED, exception.getErrorCode());
         verify(moneyBoxMapper).findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID);
-        verify(paceMakerMapper, never()).existsGoalDepositAccountByUserIdAndAccountId(anyLong(), anyLong());
+        verify(paceMakerMapper, never())
+                .existsGoalDepositAssetByUserIdAndAsset(anyLong(), any(), anyLong());
         verify(moneyBoxMapper, never()).decreaseBalance(anyLong(), anyLong(), anyLong());
         verify(accountMapper, never()).increaseBalance(anyLong(), anyLong(), anyLong());
     }
 
     @Test
-    @DisplayName("Deposit fails when account is not connected to user's goal")
+    @DisplayName("Deposit fails when asset is not connected to user's goal")
     void depositToGoal_forbiddenGoalAccount() {
         Long accountId = 8L;
-        PaceMakerGoalDepositRequest request = new PaceMakerGoalDepositRequest(3L, accountId, 10_000L);
+        PaceMakerGoalDepositRequest request =
+                new PaceMakerGoalDepositRequest(3L, AssetType.ACCOUNT, accountId, 10_000L);
         MoneyBox paceMakerMoneyBox = MoneyBox.builder()
                 .moneyBoxId(3L)
                 .userId(USER_ID)
@@ -598,7 +682,7 @@ class PaceMakerServiceImplTest {
                 .build();
         when(moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID))
                 .thenReturn(paceMakerMoneyBox);
-        when(paceMakerMapper.existsGoalDepositAccountByUserIdAndAccountId(USER_ID, accountId))
+        when(paceMakerMapper.existsGoalDepositAssetByUserIdAndAsset(USER_ID, AssetType.ACCOUNT, accountId))
                 .thenReturn(false);
 
         BusinessException exception = assertThrows(
@@ -615,7 +699,8 @@ class PaceMakerServiceImplTest {
     @DisplayName("Deposit fails when pace maker balance is insufficient")
     void depositToGoal_insufficientBalance() {
         Long accountId = 8L;
-        PaceMakerGoalDepositRequest request = new PaceMakerGoalDepositRequest(3L, accountId, 270_000L);
+        PaceMakerGoalDepositRequest request =
+                new PaceMakerGoalDepositRequest(3L, AssetType.ACCOUNT, accountId, 270_000L);
         MoneyBox paceMakerMoneyBox = MoneyBox.builder()
                 .moneyBoxId(3L)
                 .userId(USER_ID)
@@ -623,7 +708,7 @@ class PaceMakerServiceImplTest {
                 .build();
         when(moneyBoxMapper.findPaceMakerMoneyBoxByIdAndUserIdForUpdate(3L, USER_ID))
                 .thenReturn(paceMakerMoneyBox);
-        when(paceMakerMapper.existsGoalDepositAccountByUserIdAndAccountId(USER_ID, accountId))
+        when(paceMakerMapper.existsGoalDepositAssetByUserIdAndAsset(USER_ID, AssetType.ACCOUNT, accountId))
                 .thenReturn(true);
 
         BusinessException exception = assertThrows(

@@ -2,6 +2,8 @@ package org.jejuro.miraero.domain.goal.service;
 
 import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
+import org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest;
+import org.jejuro.miraero.domain.goal.dto.response.GoalPullFundsResponse;
 import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetListResponse;
 
 import java.util.List;
@@ -9,6 +11,15 @@ import java.util.List;
 public interface GoalAssetService {
 
     void saveGoalAssets(Long userId, Long goalId, List<GoalAssetRequest> assets);
+
+    /**
+     * 여유자금 부족으로 밀린 목표에 다른 입출금 계좌의 돈을 끌어다 채운다.
+     *
+     * @param userId 사용자 ID
+     * @param goalId 목표 ID
+     * @param request 출처 계좌와 금액
+     */
+    GoalPullFundsResponse pullFunds(Long userId, Long goalId, GoalPullFundsRequest request);
 
     /**
      * 목표에 연결된 자산의 현재 금액을 계산한다

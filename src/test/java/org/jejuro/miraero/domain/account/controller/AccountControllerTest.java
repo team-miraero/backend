@@ -68,7 +68,7 @@ class AccountControllerTest {
                 .build()
         ))
         .build();
-    given(accountService.getAccounts(eq(USER_ID), isNull())).willReturn(response);
+    given(accountService.getAccounts(eq(USER_ID), isNull(), eq(false))).willReturn(response);
 
     mockMvc.perform(get("/api/accounts"))
         .andExpect(status().isOk())
@@ -86,7 +86,7 @@ class AccountControllerTest {
         .totalBalance(0L)
         .accounts(List.of())
         .build();
-    given(accountService.getAccounts(USER_ID, "SAVINGS")).willReturn(response);
+    given(accountService.getAccounts(USER_ID, "SAVINGS", false)).willReturn(response);
 
     mockMvc.perform(get("/api/accounts").param("accountType", "SAVINGS"))
         .andExpect(status().isOk())
@@ -116,7 +116,7 @@ class AccountControllerTest {
   @Test
   @DisplayName("허용되지 않은 accountType이면 400을 반환한다")
   void getAccounts_invalidAccountType_returns400() throws Exception {
-    given(accountService.getAccounts(USER_ID, "INVALID"))
+    given(accountService.getAccounts(USER_ID, "INVALID", false))
         .willThrow(new BusinessException(AccountErrorCode.INVALID_ACCOUNT_TYPE));
 
     mockMvc.perform(get("/api/accounts").param("accountType", "INVALID"))

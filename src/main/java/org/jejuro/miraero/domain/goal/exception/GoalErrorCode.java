@@ -50,6 +50,24 @@ public enum GoalErrorCode implements ErrorCode {
             HttpStatus.BAD_REQUEST,
         "GOAL_006",
         "변경할 수 없는 목표 상태입니다."
+    ),
+
+    PULL_SOURCE_ACCOUNT_LINKED(
+            HttpStatus.BAD_REQUEST,
+        "GOAL_008",
+        "이미 목표에 연결된 계좌는 끌어쓰기 출처로 쓸 수 없습니다."
+    ),
+
+    PULL_INSUFFICIENT_BALANCE(
+            HttpStatus.BAD_REQUEST,
+        "GOAL_009",
+        "출처 계좌 잔액이 부족합니다."
+    ),
+
+    PULL_TARGET_NOT_SUPPORTED(
+            HttpStatus.BAD_REQUEST,
+        "GOAL_010",
+        "끌어올 수 있는 목표 자산(예적금, 저금통)이 연결되어 있지 않습니다."
     );
 
 

@@ -79,6 +79,7 @@ class PaceMakerControllerTest {
     void getPaceMaker_active() throws Exception {
         PaceMakerResponse response = PaceMakerResponse.builder()
                 .autoSavingId(21L)
+                .moneyBoxId(3L)
                 .registered(true)
                 .status("ACTIVE")
                 .enabled(true)
@@ -89,6 +90,7 @@ class PaceMakerControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.autoSavingId").value(21L))
+                .andExpect(jsonPath("$.data.moneyBoxId").value(3L))
                 .andExpect(jsonPath("$.data.registered").value(true))
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"))
                 .andExpect(jsonPath("$.data.enabled").value(true));
@@ -343,7 +345,8 @@ class PaceMakerControllerTest {
     @DisplayName("Deposit pace maker balance to goal")
     void depositToGoal_success() throws Exception {
         PaceMakerGoalDepositResponse response = PaceMakerGoalDepositResponse.builder()
-                .accountId(8L)
+                .assetType(org.jejuro.miraero.domain.goal.domain.AssetType.ACCOUNT)
+                .assetId(8L)
                 .depositedAmount(270_000L)
                 .remainingBalance(0L)
                 .build();
@@ -352,10 +355,11 @@ class PaceMakerControllerTest {
 
         mockMvc.perform(post("/api/pace-maker/deposits")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"moneyBoxId\":3,\"accountId\":8,\"amount\":270000}"))
+                        .content("{\"moneyBoxId\":3,\"assetType\":\"ACCOUNT\",\"assetId\":8,\"amount\":270000}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.accountId").value(8L))
+                .andExpect(jsonPath("$.data.assetType").value("ACCOUNT"))
+                .andExpect(jsonPath("$.data.assetId").value(8L))
                 .andExpect(jsonPath("$.data.depositedAmount").value(270_000L))
                 .andExpect(jsonPath("$.data.remainingBalance").value(0L));
 
@@ -367,7 +371,7 @@ class PaceMakerControllerTest {
     void depositToGoal_invalidAmount() throws Exception {
         mockMvc.perform(post("/api/pace-maker/deposits")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"moneyBoxId\":3,\"accountId\":8,\"amount\":0}"))
+                        .content("{\"moneyBoxId\":3,\"assetType\":\"ACCOUNT\",\"assetId\":8,\"amount\":0}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("COMMON_002"));
@@ -381,7 +385,7 @@ class PaceMakerControllerTest {
 
         mockMvc.perform(post("/api/pace-maker/deposits")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"moneyBoxId\":3,\"accountId\":8,\"amount\":270000}"))
+                        .content("{\"moneyBoxId\":3,\"assetType\":\"ACCOUNT\",\"assetId\":8,\"amount\":270000}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("PACEMAKER_002"));

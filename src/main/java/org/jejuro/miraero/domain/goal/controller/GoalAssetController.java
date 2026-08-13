@@ -6,6 +6,8 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
+import org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest;
+import org.jejuro.miraero.domain.goal.dto.response.GoalPullFundsResponse;
 import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetListResponse;
 import org.jejuro.miraero.domain.goal.service.GoalAssetService;
 import org.jejuro.miraero.global.response.ApiResponse;
@@ -57,6 +59,20 @@ public class GoalAssetController {
                         goalAssetService.getGoalAssets(user.getUserId(), goalId)
                 )
         );
+    }
+
+    @PostMapping("/{goalId}/pull-funds")
+    @ApiOperation(
+            value = "끌어쓰기",
+            notes = "여유자금 부족 등으로 목표가 밀렸을 때, 목표에 연결되지 않은 다른 입출금 계좌의 돈을 목표 자산에 채웁니다."
+    )
+    public ResponseEntity<ApiResponse<GoalPullFundsResponse>> pullFunds(
+            @ApiParam(value = "목표 ID", example = "1", required = true) @PathVariable Long goalId,
+            @Valid @RequestBody GoalPullFundsRequest request,
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                goalAssetService.pullFunds(user.getUserId(), goalId, request)));
     }
 
     @DeleteMapping("/{goalId}/assets/{assetType}/{assetId}")

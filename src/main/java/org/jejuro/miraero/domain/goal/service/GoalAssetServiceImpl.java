@@ -3,6 +3,7 @@ package org.jejuro.miraero.domain.goal.service;
 
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.account.dto.response.AccountResponse;
+import org.jejuro.miraero.domain.account.exception.AccountErrorCode;
 import org.jejuro.miraero.domain.account.mapper.AccountMapper;
 import org.jejuro.miraero.domain.autotransfer.domain.AutoTransfer;
 import org.jejuro.miraero.domain.autotransfer.dto.response.AutoTransferResponse;
@@ -12,6 +13,8 @@ import org.jejuro.miraero.domain.goal.domain.AssetType;
 import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.GoalAsset;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
+import org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest;
+import org.jejuro.miraero.domain.goal.dto.response.GoalPullFundsResponse;
 import org.jejuro.miraero.domain.goal.dto.response.asset.AssetDetailResponse;
 import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetListResponse;
 import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetResponse;
@@ -20,12 +23,14 @@ import org.jejuro.miraero.domain.goal.mapper.GoalAssetMapper;
 import org.jejuro.miraero.domain.goal.mapper.GoalMapper;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
 import org.jejuro.miraero.domain.moneybox.mapper.MoneyBoxMapper;
+import org.jejuro.miraero.domain.mydata.service.AccountTransferService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +43,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
     private final AccountMapper accountMapper;
     private final AutoTransferMapper autoTransferMapper;
     private final MoneyBoxMapper moneyBoxMapper;
+    private final AccountTransferService accountTransferService;
 
 
 
@@ -67,6 +73,76 @@ public class GoalAssetServiceImpl implements GoalAssetService {
         validateDuplicateAssets(assets);
 
         goalAssetMapper.saveAll(goalId, assets);
+    }
+
+    @Override
+    @Transactional
+    public GoalPullFundsResponse pullFunds(Long userId, Long goalId, GoalPullFundsRequest request) {
+        Goal goal = goalMapper.findByIdAndUserId(userId, goalId);
+
+        if (goal == null) {
+            throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        }
+
+        Long sourceAccountId = request.getSourceAccountId();
+        Long amount = request.getAmount();
+
+        AccountResponse sourceAccount =
+                accountMapper.findResponseByIdAndUserId(sourceAccountId, userId);
+
+        if (sourceAccount == null) {
+            throw new BusinessException(AccountErrorCode.ACCOUNT_NOT_FOUND);
+        }
+
+        // 이미 다른 목표의 자산으로 쓰이는 계좌는 그 목표를 위한 돈이라 끌어쓸 수 없다
+        if (goalAssetMapper.existsByAsset(AssetType.ACCOUNT, sourceAccountId)) {
+            throw new BusinessException(GoalErrorCode.PULL_SOURCE_ACCOUNT_LINKED);
+        }
+
+        // 조회 잔액은 이미 그 계좌에 딸린 저금통 몫이 빠진, 실제로 끌어쓸 수 있는 값이다
+        if (sourceAccount.getBalance() < amount) {
+            throw new BusinessException(GoalErrorCode.PULL_INSUFFICIENT_BALANCE);
+        }
+
+        GoalAsset target = findPullTarget(goalId);
+
+        accountMapper.decreaseBalance(sourceAccountId, userId, amount);
+
+        if (target.getAssetType() == AssetType.MONEY_BOX) {
+            depositToMoneyBox(userId, sourceAccountId, target.getAssetId(), amount);
+        } else {
+            depositToAccount(userId, sourceAccountId, target.getAssetId(), amount);
+        }
+
+        return GoalPullFundsResponse.builder()
+                .pulledAmount(amount)
+                .currentAmount(calculateCurrentAmount(goalId))
+                .build();
+    }
+
+    // 목표 하나는 사실상 저축 자산 하나(예적금 또는 저금통)로 운영되므로 처음 찾은 걸 쓴다
+    private GoalAsset findPullTarget(Long goalId) {
+        return goalAssetMapper.findByGoalId(goalId).stream()
+                .filter(asset -> asset.getAssetType() == AssetType.ACCOUNT
+                        || asset.getAssetType() == AssetType.MONEY_BOX)
+                .findFirst()
+                .orElseThrow(() -> new BusinessException(GoalErrorCode.PULL_TARGET_NOT_SUPPORTED));
+    }
+
+    private void depositToMoneyBox(Long userId, Long sourceAccountId, Long moneyBoxId, Long amount) {
+        MoneyBox moneyBox = moneyBoxMapper.findById(moneyBoxId);
+
+        if (moneyBox == null) {
+            throw new BusinessException(GoalErrorCode.PULL_TARGET_NOT_SUPPORTED);
+        }
+
+        accountTransferService.transfer(userId, sourceAccountId, moneyBox.getAccountId(), amount);
+        moneyBoxMapper.increaseBalance(moneyBoxId, amount);
+    }
+
+    private void depositToAccount(Long userId, Long sourceAccountId, Long targetAccountId, Long amount) {
+        accountTransferService.transfer(userId, sourceAccountId, targetAccountId, amount);
+        accountMapper.increaseBalance(targetAccountId, userId, amount);
     }
 
     private void validateDuplicateAssets(

@@ -246,14 +246,14 @@
       AND ga.asset_type IN ('ACCOUNT', 'MONEY_BOX')
     ORDER BY ga.goal_id, wa.account_id
   </select>
-  <select id="existsGoalDepositAccountByUserIdAndAccountId" resultType="java.lang.Boolean">
+  <select id="existsGoalDepositAssetByUserIdAndAsset" resultType="java.lang.Boolean">
     SELECT EXISTS (SELECT 1
                    FROM goal g
                           JOIN goal_asset ga
                                ON g.goal_id = ga.goal_id
                    WHERE g.user_id = #{userId}
-                     AND ga.asset_type = 'ACCOUNT'
-                     AND ga.asset_id = #{accountId})
+                     AND ga.asset_type = #{assetType}
+                     AND ga.asset_id = #{assetId})
   </select>
 
   <update id="updateMaxAmount">

@@ -29,9 +29,11 @@ public class AccountController {
   @ApiOperation(value = "내 계좌 목록 조회", notes = "로그인 사용자의 계좌 목록과 목록에 포함된 계좌 잔액의 합계를 조회합니다. accountType으로 계좌 유형을 필터링할 수 있습니다.")
   public ResponseEntity<ApiResponse<AccountListResponse>> getAccounts(
       @AuthenticationPrincipal AuthenticatedUser user,
-      @ApiParam(value = "계좌 유형 필터. CHECKING, SAVINGS, DEPOSIT, INSTALLMENT, ISA, CMA 중 하나", example = "SAVINGS") @RequestParam(required = false) String accountType
+      @ApiParam(value = "계좌 유형 필터. CHECKING, SAVINGS, DEPOSIT, INSTALLMENT, ISA, CMA 중 하나", example = "SAVINGS") @RequestParam(required = false) String accountType,
+      @ApiParam(value = "true면 이미 목표에 연결된 계좌를 제외합니다. 끌어쓰기 출처 계좌를 고를 때 사용합니다.", example = "false") @RequestParam(defaultValue = "false") boolean excludeGoalLinked
   ) {
-    AccountListResponse response = accountService.getAccounts(user.getUserId(), accountType);
+    AccountListResponse response =
+        accountService.getAccounts(user.getUserId(), accountType, excludeGoalLinked);
     return ResponseEntity.ok(ApiResponse.success(response));
   }
 

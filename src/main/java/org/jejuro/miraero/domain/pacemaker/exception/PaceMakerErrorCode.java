@@ -36,7 +36,7 @@ public enum PaceMakerErrorCode implements ErrorCode {
   FORBIDDEN_GOAL_ACCOUNT(
       HttpStatus.FORBIDDEN,
       "PACEMAKER_005",
-      "Account is not connected to user's goal."
+      "Asset is not connected to user's goal, or is not a valid deposit target."
   ),
 
   ALREADY_REGISTERED(
