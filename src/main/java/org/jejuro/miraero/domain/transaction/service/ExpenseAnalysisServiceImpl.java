@@ -25,7 +25,6 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
     private static final long THREE_MONTHS = 3L;
 
     private final ExpenseAnalysisMapper expenseAnalysisMapper;
-    private final PeerAverageService peerAverageService;
 
     @Override
     @Transactional(readOnly = true)
@@ -46,7 +45,6 @@ public class ExpenseAnalysisServiceImpl implements ExpenseAnalysisService {
                                 expenseAnalysisMapper.findCategoryThreeMonthExpenses(userId, threeMonthCondition)
                         )
                 ),
-                peerAverageService.getPeerAverages(userId, year, month),
                 toCategoryMonthChanges(
                         expenseAnalysisMapper.findCategoryMonthExpenses(
                                 userId,

@@ -2,6 +2,7 @@ package org.jejuro.miraero.domain.transaction.service;
 
 import java.time.YearMonth;
 import java.util.List;
+import java.time.YearMonth;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.transaction.domain.PeerCategoryAverageQueryResult;
@@ -17,16 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class PeerAverageServiceImpl implements PeerAverageService {
 
-    private static final int MIN_YEAR = 2000;
-
     private final PeerAverageMapper peerAverageMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public PeerAverageResponse getPeerAverages(Long userId, Integer year, Integer month) {
-        validate(userId, year, month);
+    public PeerAverageResponse getPeerAverages(Long userId) {
+        validate(userId);
 
-        YearMonth yearMonth = YearMonth.of(year, month);
+        YearMonth yearMonth = YearMonth.now();
         List<PeerAverageCategoryResponse> categories = peerAverageMapper.findCategoryPeerAverages(
                         userId,
                         yearMonth.atDay(1).atStartOfDay(),
@@ -38,9 +37,8 @@ public class PeerAverageServiceImpl implements PeerAverageService {
         return new PeerAverageResponse(categories);
     }
 
-    private void validate(Long userId, Integer year, Integer month) {
-        if (userId == null || userId <= 0 || year == null || year < MIN_YEAR
-                || year > YearMonth.now().getYear() + 1 || month == null || month < 1 || month > 12) {
+    private void validate(Long userId) {
+        if (userId == null || userId <= 0) {
             throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
         }
     }

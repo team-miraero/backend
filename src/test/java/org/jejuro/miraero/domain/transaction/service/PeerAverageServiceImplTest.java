@@ -7,7 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,16 +34,17 @@ class PeerAverageServiceImplTest {
 
     @Test
     void getPeerAverages_returnsCategoryAveragesIncludingZeroAmount() {
+        YearMonth currentMonth = YearMonth.now();
         when(peerAverageMapper.findCategoryPeerAverages(
                 eq(1L),
-                eq(LocalDateTime.of(2026, 7, 1, 0, 0)),
-                eq(LocalDateTime.of(2026, 8, 1, 0, 0))
+                eq(currentMonth.atDay(1).atStartOfDay()),
+                eq(currentMonth.plusMonths(1).atDay(1).atStartOfDay())
         )).thenReturn(List.of(
                 new PeerCategoryAverageQueryResult(1L, "Food", 285_000L),
                 new PeerCategoryAverageQueryResult(2L, "Cafe", 0L)
         ));
 
-        PeerAverageResponse response = service.getPeerAverages(1L, 2026, 7);
+        PeerAverageResponse response = service.getPeerAverages(1L);
 
         assertEquals(2, response.getCategories().size());
         assertEquals(1L, response.getCategories().get(0).getCategoryId());
@@ -53,27 +54,27 @@ class PeerAverageServiceImplTest {
     }
 
     @Test
-    void getPeerAverages_usesRequestedMonthRange() {
+    void getPeerAverages_usesCurrentMonthRange() {
+        YearMonth currentMonth = YearMonth.now();
         when(peerAverageMapper.findCategoryPeerAverages(
                 eq(1L),
-                eq(LocalDateTime.of(2026, 1, 1, 0, 0)),
-                eq(LocalDateTime.of(2026, 2, 1, 0, 0))
+                eq(currentMonth.atDay(1).atStartOfDay()),
+                eq(currentMonth.plusMonths(1).atDay(1).atStartOfDay())
         )).thenReturn(List.of());
 
-        service.getPeerAverages(1L, 2026, 1);
+        service.getPeerAverages(1L);
 
         verify(peerAverageMapper).findCategoryPeerAverages(
                 1L,
-                LocalDateTime.of(2026, 1, 1, 0, 0),
-                LocalDateTime.of(2026, 2, 1, 0, 0)
+                currentMonth.atDay(1).atStartOfDay(),
+                currentMonth.plusMonths(1).atDay(1).atStartOfDay()
         );
     }
 
     @Test
     void getPeerAverages_rejectsInvalidInput() {
-        assertThrows(BusinessException.class, () -> service.getPeerAverages(null, 2026, 7));
-        assertThrows(BusinessException.class, () -> service.getPeerAverages(1L, 1999, 7));
-        assertThrows(BusinessException.class, () -> service.getPeerAverages(1L, 2026, 13));
+        assertThrows(BusinessException.class, () -> service.getPeerAverages(null));
+        assertThrows(BusinessException.class, () -> service.getPeerAverages(0L));
 
         verifyNoInteractions(peerAverageMapper);
     }

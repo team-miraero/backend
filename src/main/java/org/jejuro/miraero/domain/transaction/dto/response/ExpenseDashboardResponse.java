@@ -16,8 +16,6 @@ public class ExpenseDashboardResponse {
     private Integer month;
     @ApiModelProperty(value = "기준 월 직전 3개월 카테고리별 월평균")
     private CategoryThreeMonthAverageResponse categoryThreeMonthAverages;
-    @ApiModelProperty(value = "기준 월 또래 카테고리별 평균 지출")
-    private PeerAverageResponse peerCategoryAverages;
     @ApiModelProperty(value = "기준 월과 전월의 카테고리별 지출 변화")
     private List<CategoryMonthChangeResponse> categoryMonthChanges;
 }

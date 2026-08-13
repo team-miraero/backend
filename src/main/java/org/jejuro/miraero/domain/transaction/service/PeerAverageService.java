@@ -4,5 +4,5 @@ import org.jejuro.miraero.domain.transaction.dto.response.PeerAverageResponse;
 
 public interface PeerAverageService {
 
-    PeerAverageResponse getPeerAverages(Long userId, Integer year, Integer month);
+    PeerAverageResponse getPeerAverages(Long userId);
 }
