@@ -4,12 +4,12 @@ on:
   push:
     branches:
       - main
-      # Remove this branch after validating the security group workflow.
+      # 자동 배포 테스트가 끝나면 제거
       - bug/145-deploy-workflow
   workflow_dispatch:
 
-# The main and test branches deploy to the same DEV instance. Serialize deployments
-# and let each run reach its security group cleanup step.
+# main과 테스트 브랜치가 같은 DEV EC2를 사용하므로
+# 동시에 배포되지 않도록 직렬화
 concurrency:
   group: dev-deploy
   cancel-in-progress: false
@@ -23,9 +23,11 @@ jobs:
       id-token: write
 
     steps:
+      # 1. 코드 Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2. Java 17 설정
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -33,25 +35,71 @@ jobs:
           java-version: "17"
           cache: gradle
 
+      # 3. WAR 빌드
       - name: Build WAR
         run: |
           chmod +x gradlew
           ./gradlew clean war -x test
           cp build/libs/miraero-1.0-SNAPSHOT.war miraero.war
 
+      # =========================================================
+      # 임시 디버깅
+      # 실제 GitHub OIDC Token의 claim을 확인하기 위한 Step
+      # OIDC 문제 해결 후 삭제
+      # =========================================================
+      - name: Debug OIDC claims
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TOKEN_JSON=$(curl -sS \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sts.amazonaws.com")
+
+          TOKEN=$(echo "$TOKEN_JSON" | \
+            python3 -c "import sys,json; print(json.load(sys.stdin)['value'])")
+
+          PAYLOAD=$(echo "$TOKEN" | cut -d '.' -f2)
+
+          python3 - "$PAYLOAD" <<'PY'
+          import sys
+          import json
+          import base64
+
+          payload = sys.argv[1]
+          payload += "=" * (-len(payload) % 4)
+
+          claims = json.loads(
+              base64.urlsafe_b64decode(payload)
+          )
+
+          print("===== GitHub OIDC Claims =====")
+          print("aud =", claims.get("aud"))
+          print("sub =", claims.get("sub"))
+          print("repository =", claims.get("repository"))
+          print("repository_id =", claims.get("repository_id"))
+          print("repository_owner =", claims.get("repository_owner"))
+          print("repository_owner_id =", claims.get("repository_owner_id"))
+          print("ref =", claims.get("ref"))
+          print("===============================")
+          PY
+
+      # 4. AWS OIDC 인증
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
+      # 5. 현재 GitHub Actions Runner의 Public IP 조회
       - name: Get runner public IP
         id: runner-ip
         shell: bash
         run: |
           set -euo pipefail
 
-          RUNNER_IP="$(curl --fail --silent --show-error https://checkip.amazonaws.com | tr -d '[:space:]')"
+          RUNNER_IP="$(curl --fail --silent --show-error \
+            https://checkip.amazonaws.com | tr -d '[:space:]')"
 
           if [[ ! "$RUNNER_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
             echo "Invalid runner IPv4 address: $RUNNER_IP" >&2
@@ -60,6 +108,7 @@ jobs:
 
           echo "cidr=$RUNNER_IP/32" >> "$GITHUB_OUTPUT"
 
+      # 6. Runner IP에 대해서만 EC2 SSH(22) 임시 허용
       - name: Allow runner SSH access
         id: allow-ssh
         shell: bash
@@ -68,6 +117,7 @@ jobs:
           RUNNER_CIDR: ${{ steps.runner-ip.outputs.cidr }}
         run: |
           set -euo pipefail
+
           echo "rule-added=false" >> "$GITHUB_OUTPUT"
 
           RULE_ID="$(aws ec2 authorize-security-group-ingress \
@@ -81,9 +131,10 @@ jobs:
           echo "rule-id=$RULE_ID" >> "$GITHUB_OUTPUT"
           echo "rule-added=true" >> "$GITHUB_OUTPUT"
 
-          # Allow a short window for the ingress rule to propagate before SSH.
+          # Security Group 반영 대기
           sleep 5
 
+      # 7. SSH 설정
       - name: Configure SSH
         env:
           EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
@@ -97,6 +148,7 @@ jobs:
           ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
+      # 8. WAR를 EC2 임시 디렉터리에 업로드
       - name: Upload WAR
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -106,6 +158,14 @@ jobs:
             miraero.war \
             "$EC2_USER@$EC2_HOST:/tmp/miraero.war"
 
+      # 9. 테스트 WAR 배포
+      #
+      # 중요:
+      # ROOT.war는 건드리지 않음.
+      #
+      # ROOT.war    → 기존 사람들이 사용하는 서버
+      # miraero.war → 현재 자동 배포 테스트
+      #
       - name: Deploy WAR
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -116,7 +176,7 @@ jobs:
 
             TOMCAT_HOME="/home/ubuntu/apache-tomcat-9.0.120"
 
-            echo "Deploying WAR..."
+            echo "Deploying test WAR..."
 
             sudo rm -rf "$TOMCAT_HOME/webapps/miraero"
             sudo rm -f "$TOMCAT_HOME/webapps/miraero.war"
@@ -138,6 +198,7 @@ jobs:
             echo "Deploy complete."
           EOF
 
+      # 10. Tomcat 상태 확인
       - name: Check Tomcat status
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
@@ -146,6 +207,8 @@ jobs:
           ssh -i ~/.ssh/id_ec2 "$EC2_USER@$EC2_HOST" \
             "sudo systemctl --no-pager --full status tomcat"
 
+      # 11. 임시로 추가했던 SSH Security Group Rule 제거
+      # 중간 Step이 실패해도 실행
       - name: Revoke runner SSH access
         if: ${{ always() && steps.allow-ssh.outputs.rule-added == 'true' }}
         shell: bash
