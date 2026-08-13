@@ -24,9 +24,20 @@
 
     </insert>
 
+    <resultMap id="goalAssetResultMap"
+               type="org.jejuro.miraero.domain.goal.domain.GoalAsset">
+
+        <id property="goalAssetId" column="goal_asset_id"/>
+        <result property="goalId" column="goal_id"/>
+        <result property="assetType" column="asset_type"/>
+        <result property="assetId" column="asset_id"/>
+        <result property="createdAt" column="created_at"/>
+
+    </resultMap>
 
 
-    <select id="findByGoalId" resultType="org.jejuro.miraero.domain.goal.domain.GoalAsset">
+    <select id="findByGoalId"
+            resultMap="goalAssetResultMap">
         SELECT asset_id,asset_type FROM goal_asset WHERE goal_id = #{goalId}
     </select>
 
