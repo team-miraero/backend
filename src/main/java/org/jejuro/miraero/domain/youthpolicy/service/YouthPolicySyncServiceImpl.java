@@ -135,7 +135,7 @@ public class YouthPolicySyncServiceImpl implements YouthPolicySyncService {
                 .maxAge(toInteger(source.getSprtTrgtMaxAge()))
                 .incomeConditionCode(source.getEarnCndSeCd())
                 .minIncome(toLong(source.getEarnMinAmt()))
-                .maxIncome(toLong(source.getEarnMaxAmt()))
+                .maxIncome(toPositiveLong(source.getEarnMaxAmt()))
                 .incomeConditionText(source.getEarnEtcCn())
                 .qualification(createQualification(
                         source.getAddAplyQlfcCndCn(),
@@ -187,6 +187,11 @@ public class YouthPolicySyncServiceImpl implements YouthPolicySyncService {
         } catch (NumberFormatException exception) {
             return null;
         }
+    }
+
+    private Long toPositiveLong(String value) {
+        Long parsedValue = toLong(value);
+        return parsedValue == null || parsedValue == 0 ? null : parsedValue;
     }
 
     private String createQualification(String additionalQualification, String participationTarget) {

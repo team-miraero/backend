@@ -53,13 +53,13 @@ class YouthPolicyServiceImplTest {
     }
 
     @Test
-    void getYouthPolicies_filtersUsingAgeAndIncomeAndMapsDDay() {
+    void getYouthPolicies_returnsActivePoliciesWithoutEligibilityFilter() {
         LocalDate applicationEndDate = LocalDate.now().plusDays(7);
         when(youthPolicyMapper.findYouthPolicies(
-                null, null, null, AGE, MONTHLY_INCOME, 0L, 10
+                null, null, null, 0L, 10
         )).thenReturn(List.of(listResult(applicationEndDate)));
         when(youthPolicyMapper.countYouthPolicies(
-                null, null, null, AGE, MONTHLY_INCOME
+                null, null, null
         )).thenReturn(1L);
 
         PageResponse<YouthPolicyListResponse> response = youthPolicyService
@@ -69,32 +69,27 @@ class YouthPolicyServiceImplTest {
         assertEquals(1, response.getContent().size());
         assertEquals(7L, response.getContent().get(0).getDDay());
         verify(youthPolicyMapper).findYouthPolicies(
-                null, null, null, AGE, MONTHLY_INCOME, 0L, 10
+                null, null, null, 0L, 10
         );
         verify(youthPolicyMapper).countYouthPolicies(
-                null, null, null, AGE, MONTHLY_INCOME
+                null, null, null
         );
     }
 
     @Test
-    void getYouthPolicies_rejectsUserWithoutEligibilityInformation() {
-        when(userMapper.findById(USER_ID)).thenReturn(User.create(
-                "Test user",
-                null,
-                null,
-                MONTHLY_INCOME,
-                "test@example.com",
-                "password",
-                null
-        ));
+    void getRecommendedYouthPolicies_filtersUsingAgeAndIncome() {
+        LocalDate applicationEndDate = LocalDate.now().plusDays(7);
+        when(youthPolicyMapper.findRecommendedYouthPolicies(AGE, MONTHLY_INCOME, 3))
+                .thenReturn(List.of(listResult(applicationEndDate)));
+        when(youthPolicyMapper.countRecommendedYouthPolicies(AGE, MONTHLY_INCOME)).thenReturn(1L);
 
-        BusinessException exception = assertThrows(
-                BusinessException.class,
-                () -> youthPolicyService.getYouthPolicies(USER_ID, null, null, null, 1, 10)
-        );
+        PageResponse<YouthPolicyListResponse> response = youthPolicyService
+                .getRecommendedYouthPolicies(USER_ID);
 
-        assertEquals(CommonErrorCode.INVALID_INPUT_VALUE, exception.getErrorCode());
-        verifyNoInteractions(youthPolicyMapper);
+        assertEquals(1L, response.getTotalElements());
+        assertEquals(1, response.getContent().size());
+        verify(youthPolicyMapper).findRecommendedYouthPolicies(AGE, MONTHLY_INCOME, 3);
+        verify(youthPolicyMapper).countRecommendedYouthPolicies(AGE, MONTHLY_INCOME);
     }
 
     @Test

@@ -48,6 +48,17 @@ public class YouthPolicyController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
+    @GetMapping("/recommended")
+    @ApiOperation(value = "추천 청년 정책 조회", notes = "로그인 사용자의 나이와 월소득 조건에 맞는 접수 중 정책을 최대 3개 조회합니다.")
+    public ResponseEntity<ApiResponse<PageResponse<YouthPolicyListResponse>>> getRecommendedYouthPolicies(
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        PageResponse<YouthPolicyListResponse> response = youthPolicyService
+                .getRecommendedYouthPolicies(user.getUserId());
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @GetMapping("/{youthPolicyId}")
     @ApiOperation(value = "청년 정책 상세 조회", notes = "정책 소개, 지원 내용, 신청 기간, 연령·소득 조건, 신청 방법 및 관련 URL을 조회합니다.")
     public ResponseEntity<ApiResponse<YouthPolicyDetailResponse>> getYouthPolicyDetail(
