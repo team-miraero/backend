@@ -10,7 +10,7 @@ import org.jejuro.miraero.domain.goal.domain.GoalStatus;
 @Mapper
 public interface GoalMapper {
 
-  void save(Goal goal);
+  void save(@Param("goal") Goal goal);
 
   List<Goal> findGoalsByUserId(@Param("userId") Long userId);
 
@@ -39,8 +39,8 @@ public interface GoalMapper {
   );
 
   void updateStatus(
-      Long goalId,
-      GoalStatus status
+      @Param("goalId") Long goalId,
+      @Param("status") GoalStatus status
   );
 
   boolean existsActiveGoalByUserId(@Param("userId") Long userId);
