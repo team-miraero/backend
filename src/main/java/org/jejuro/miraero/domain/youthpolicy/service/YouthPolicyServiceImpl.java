@@ -44,15 +44,16 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
             int size
     ) {
         validatePage(page, size);
+        String regionCode = resolveRegionCode(region);
         long offset = (long) (page - 1) * size;
         List<YouthPolicyListResponse> policies = youthPolicyMapper
-                .findYouthPolicies(keyword, region, search, offset, size)
+                .findYouthPolicies(keyword, regionCode, search, offset, size)
                 .stream()
                 .map(this::toYouthPolicyListResponse)
                 .collect(Collectors.toList());
         long totalElements = youthPolicyMapper.countYouthPolicies(
                 keyword,
-                region,
+                regionCode,
                 search
         );
 
@@ -99,6 +100,14 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
         if (youthPolicyId == null || youthPolicyId <= 0) {
             throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
         }
+    }
+
+    private String resolveRegionCode(String region) {
+        String regionCode = YouthPolicyRegionResolver.resolveRegionCode(region);
+        if (region != null && !region.isBlank() && regionCode == null) {
+            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+        return regionCode;
     }
 
     private YouthPolicyListResponse toYouthPolicyListResponse(YouthPolicyListQueryResult result) {

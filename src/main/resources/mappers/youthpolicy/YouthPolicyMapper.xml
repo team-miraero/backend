@@ -14,6 +14,7 @@
             support_content,
             provider_institution_code,
             provider_institution_name,
+            zip_cd,
             application_start_date,
             application_end_date,
             application_period_text,
@@ -36,6 +37,7 @@
             #{supportContent},
             #{providerInstitutionCode},
             #{providerInstitutionName},
+            #{zipCd},
             #{applicationStartDate},
             #{applicationEndDate},
             #{applicationPeriodText},
@@ -58,6 +60,7 @@
             support_content = new.support_content,
             provider_institution_code = new.provider_institution_code,
             provider_institution_name = new.provider_institution_name,
+            zip_cd = new.zip_cd,
             application_start_date = new.application_start_date,
             application_end_date = new.application_end_date,
             application_period_text = new.application_period_text,
@@ -74,13 +77,46 @@
             synced_at = new.synced_at
     </insert>
 
+    <select id="findYouthPolicyIdByPolicyNo" resultType="long">
+        SELECT youth_policy_id
+        FROM youth_policy
+        WHERE policy_no = #{policyNo}
+    </select>
+
+    <delete id="deleteRegionsByYouthPolicyId">
+        DELETE FROM youth_policy_region
+        WHERE youth_policy_id = #{youthPolicyId}
+    </delete>
+
+    <insert id="insertRegions">
+        INSERT INTO youth_policy_region (
+            youth_policy_id,
+            region_code,
+            region_name,
+            is_nationwide
+        ) VALUES
+        <foreach collection="regions" item="region" separator=",">
+            (
+                #{youthPolicyId},
+                #{region.regionCode},
+                #{region.regionName},
+                #{region.nationwide}
+            )
+        </foreach>
+    </insert>
+
     <sql id="activeYouthPolicyCondition">
         <where>
             <if test="keyword != null and keyword != ''">
                 AND yp.policy_keyword LIKE CONCAT('%', #{keyword}, '%')
             </if>
-            <if test="region != null and region != ''">
-                AND yp.provider_institution_name LIKE CONCAT('%', #{region}, '%')
+            <if test="regionCode != null and regionCode != ''">
+                AND EXISTS (
+                    SELECT 1
+                    FROM youth_policy_region ypr
+                    WHERE ypr.youth_policy_id = yp.youth_policy_id
+                      AND (ypr.region_code = #{regionCode} OR ypr.is_nationwide = TRUE)
+                )
             </if>
             <if test="search != null and search != ''">
                 AND yp.policy_name LIKE CONCAT('%', #{search}, '%')

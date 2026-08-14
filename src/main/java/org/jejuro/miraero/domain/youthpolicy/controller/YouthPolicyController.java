@@ -31,7 +31,7 @@ public class YouthPolicyController {
     public ResponseEntity<ApiResponse<PageResponse<YouthPolicyListResponse>>> getYouthPolicies(
             @AuthenticationPrincipal AuthenticatedUser user,
             @ApiParam(value = "정책 키워드", example = "주거") @RequestParam(required = false) String keyword,
-            @ApiParam(value = "지역명", example = "서울") @RequestParam(required = false) String region,
+            @ApiParam(value = "시도 코드 또는 지역명. 선택 지역과 전국 정책을 함께 조회", example = "11") @RequestParam(required = false) String region,
             @ApiParam(value = "정책명·내용 통합 검색어", example = "청년 월세") @RequestParam(required = false) String search,
             @ApiParam(value = "페이지 번호. 1부터 시작", example = "1") @RequestParam(defaultValue = "1") int page,
             @ApiParam(value = "페이지당 항목 수", example = "10") @RequestParam(defaultValue = "10") int size

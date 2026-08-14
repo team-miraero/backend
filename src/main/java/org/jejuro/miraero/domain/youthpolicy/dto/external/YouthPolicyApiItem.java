@@ -29,4 +29,5 @@ public class YouthPolicyApiItem {
     private String addAplyQlfcCndCn;
     private String ptcpPrpTrgtCn;
     private String lastMdfcnDt;
+    private String zipCd;
 }

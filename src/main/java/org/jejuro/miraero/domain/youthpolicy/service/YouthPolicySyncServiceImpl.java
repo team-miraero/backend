@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.youthpolicy.client.YouthPolicyApiClient;
 import org.jejuro.miraero.domain.youthpolicy.domain.YouthPolicy;
+import org.jejuro.miraero.domain.youthpolicy.domain.YouthPolicyRegion;
 import org.jejuro.miraero.domain.youthpolicy.dto.external.YouthPolicyApiItem;
 import org.jejuro.miraero.domain.youthpolicy.dto.external.YouthPolicyApiPaging;
 import org.jejuro.miraero.domain.youthpolicy.dto.external.YouthPolicyApiResponse;
@@ -47,6 +48,16 @@ public class YouthPolicySyncServiceImpl implements YouthPolicySyncService {
     @Transactional
     public void syncYouthPolicy(YouthPolicyApiItem source) {
         youthPolicyMapper.upsert(toYouthPolicy(source));
+        Long youthPolicyId = youthPolicyMapper.findYouthPolicyIdByPolicyNo(source.getPlcyNo());
+        if (youthPolicyId == null) {
+            throw new BusinessException(CommonErrorCode.SERVICE_UNAVAILABLE);
+        }
+
+        youthPolicyMapper.deleteRegionsByYouthPolicyId(youthPolicyId);
+        List<YouthPolicyRegion> regions = YouthPolicyRegionResolver.resolve(source.getZipCd());
+        if (!regions.isEmpty()) {
+            youthPolicyMapper.insertRegions(youthPolicyId, regions);
+        }
     }
 
     @Override
@@ -125,6 +136,7 @@ public class YouthPolicySyncServiceImpl implements YouthPolicySyncService {
                 .supportContent(source.getPlcySprtCn())
                 .providerInstitutionCode(source.getSprvsnInstCd())
                 .providerInstitutionName(source.getSprvsnInstCdNm())
+                .zipCd(source.getZipCd())
                 .applicationStartDate(applicationPeriod.getApplicationStartDate())
                 .applicationEndDate(applicationPeriod.getApplicationEndDate())
                 .applicationPeriodText(source.getAplyYmd())

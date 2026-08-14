@@ -93,6 +93,19 @@ class YouthPolicyServiceImplTest {
     }
 
     @Test
+    void getYouthPolicies_convertsRegionNameToSidoCode() {
+        when(youthPolicyMapper.findYouthPolicies(
+                null, "11", null, 0L, 10
+        )).thenReturn(List.of());
+        when(youthPolicyMapper.countYouthPolicies(null, "11", null)).thenReturn(0L);
+
+        youthPolicyService.getYouthPolicies(USER_ID, null, "서울특별시", null, 1, 10);
+
+        verify(youthPolicyMapper).findYouthPolicies(null, "11", null, 0L, 10);
+        verify(youthPolicyMapper).countYouthPolicies(null, "11", null);
+    }
+
+    @Test
     void getYouthPolicies_rejectsInvalidPageBeforeQuerying() {
         BusinessException exception = assertThrows(
                 BusinessException.class,
