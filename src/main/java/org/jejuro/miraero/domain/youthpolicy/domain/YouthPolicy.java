@@ -20,6 +20,7 @@ public class YouthPolicy {
     private String supportContent;
     private String providerInstitutionCode;
     private String providerInstitutionName;
+    private String zipCd;
     private LocalDate applicationStartDate;
     private LocalDate applicationEndDate;
     private String applicationPeriodText;

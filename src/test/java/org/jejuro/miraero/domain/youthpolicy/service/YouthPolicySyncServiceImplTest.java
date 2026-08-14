@@ -9,6 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
@@ -41,6 +42,7 @@ class YouthPolicySyncServiceImplTest {
     @BeforeEach
     void setUp() {
         youthPolicySyncService = new YouthPolicySyncServiceImpl(youthPolicyApiClient, youthPolicyMapper);
+        lenient().when(youthPolicyMapper.findYouthPolicyIdByPolicyNo(anyString())).thenReturn(1L);
     }
 
     @Test

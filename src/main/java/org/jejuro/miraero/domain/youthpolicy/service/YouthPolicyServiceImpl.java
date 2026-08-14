@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class YouthPolicyServiceImpl implements YouthPolicyService {
 
     private static final int MAX_PAGE_SIZE = 100;
+    private static final int RECOMMENDED_POLICY_SIZE = 3;
     private static final String APPLICATION_PERIOD_BETWEEN_SEPARATOR = " ~ ";
     private static final String APPLICATION_PERIOD_START_ONLY_SUFFIX = " ~";
     private static final String APPLICATION_PERIOD_END_ONLY_PREFIX = "~ ";
@@ -43,25 +44,37 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
             int size
     ) {
         validatePage(page, size);
-        User user = getUserWithEligibilityInfo(userId);
-        int age = calculateAge(user.getBirthDate());
-        Long monthlyIncome = user.getMonthlyIncome();
-
+        String regionCode = resolveRegionCode(region);
         long offset = (long) (page - 1) * size;
         List<YouthPolicyListResponse> policies = youthPolicyMapper
-                .findYouthPolicies(keyword, region, search, age, monthlyIncome, offset, size)
+                .findYouthPolicies(keyword, regionCode, search, offset, size)
                 .stream()
                 .map(this::toYouthPolicyListResponse)
                 .collect(Collectors.toList());
         long totalElements = youthPolicyMapper.countYouthPolicies(
                 keyword,
-                region,
-                search,
-                age,
-                monthlyIncome
+                regionCode,
+                search
         );
 
         return PageResponse.of(policies, page - 1, size, totalElements);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<YouthPolicyListResponse> getRecommendedYouthPolicies(Long userId) {
+        User user = getUserWithEligibilityInfo(userId);
+        int age = calculateAge(user.getBirthDate());
+        Long monthlyIncome = user.getMonthlyIncome();
+
+        List<YouthPolicyListResponse> policies = youthPolicyMapper
+                .findRecommendedYouthPolicies(age, monthlyIncome, RECOMMENDED_POLICY_SIZE)
+                .stream()
+                .map(this::toYouthPolicyListResponse)
+                .collect(Collectors.toList());
+        long totalElements = youthPolicyMapper.countRecommendedYouthPolicies(age, monthlyIncome);
+
+        return PageResponse.of(policies, 0, RECOMMENDED_POLICY_SIZE, totalElements);
     }
 
     @Override
@@ -87,6 +100,14 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
         if (youthPolicyId == null || youthPolicyId <= 0) {
             throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
         }
+    }
+
+    private String resolveRegionCode(String region) {
+        String regionCode = YouthPolicyRegionResolver.resolveRegionCode(region);
+        if (region != null && !region.isBlank() && regionCode == null) {
+            throw new BusinessException(CommonErrorCode.INVALID_INPUT_VALUE);
+        }
+        return regionCode;
     }
 
     private YouthPolicyListResponse toYouthPolicyListResponse(YouthPolicyListQueryResult result) {

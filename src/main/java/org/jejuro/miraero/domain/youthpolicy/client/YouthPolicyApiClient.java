@@ -222,7 +222,8 @@ public class YouthPolicyApiClient {
                     childText(element, "sprtTrgtMaxAge"), childText(element, "earnCndSeCd"),
                     childText(element, "earnMinAmt"), childText(element, "earnMaxAmt"),
                     childText(element, "earnEtcCn"), childText(element, "addAplyQlfcCndCn"),
-                    childText(element, "ptcpPrpTrgtCn"), childText(element, "lastMdfcnDt")
+                    childText(element, "ptcpPrpTrgtCn"), childText(element, "lastMdfcnDt"),
+                    childText(element, "zipCd")
             ));
         }
         return items;
