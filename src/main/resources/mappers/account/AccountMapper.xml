@@ -102,12 +102,26 @@
     </if>
     <!-- 끌어쓰기 출처 후보 조회용. 이미 목표에 직접 연결된 계좌는 그 목표를 위한 돈이라 제외한다 -->
     <if test="excludeGoalLinked">
+      <!-- 목표 자산으로 직접 연결된 계좌 -->
       AND NOT EXISTS (
         SELECT 1 FROM goal_asset ga
         JOIN goal g ON ga.goal_id = g.goal_id
         WHERE g.user_id = #{userId}
           AND ga.asset_type = 'ACCOUNT'
           AND ga.asset_id = a.account_id
+      )
+      <!--
+          목표 저금통이 올라가 있는 계좌.
+          끌어쓰기는 다른 계좌에서 자금을 가져오는 동작이라, 목표 자산이 이미
+          얹힌 계좌를 고르면 출금·입금이 같은 계좌가 되어 이체가 불가능하다.
+      -->
+      AND NOT EXISTS (
+        SELECT 1 FROM goal_asset ga
+        JOIN goal g ON ga.goal_id = g.goal_id
+        JOIN money_box mb ON mb.money_box_id = ga.asset_id
+        WHERE g.user_id = #{userId}
+          AND ga.asset_type = 'MONEY_BOX'
+          AND mb.account_id = a.account_id
       )
     </if>
     ORDER BY a.account_id

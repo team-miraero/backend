@@ -254,6 +254,45 @@ class AccountMapperTest {
     assertFalse(free.stream().anyMatch(a -> linkedAccountId.equals(a.getAccountId())));
   }
 
+  @Test
+  @DisplayName("excludeGoalLinked면 목표 저금통이 올라간 계좌도 빠진다")
+  void findAllByUserId_excludeGoalLinked_moneyBoxHostAccount() {
+    Long boxHostExAccountId = 999204L;
+    Long freeExAccountId = 999205L;
+    accountMapper.upsert(exAccount(boxHostExAccountId, "hash-999204", "3333*****33"));
+    accountMapper.upsert(exAccount(freeExAccountId, "hash-999205", "4444*****44"));
+    Long boxHostAccountId = accountMapper.findAccountIdByExAccountId(boxHostExAccountId);
+    Long freeAccountId = accountMapper.findAccountIdByExAccountId(freeExAccountId);
+
+    // 목표 저금통을 boxHostAccount에 만든다 — goal_asset에는 MONEY_BOX만 잡힌다
+    MoneyBox goalBox = MoneyBox.builder()
+        .userId(userId).accountId(boxHostAccountId).balance(0L)
+        .moneyBoxType(MoneyBoxType.GOAL).build();
+    moneyBoxMapper.insert(goalBox);
+
+    Goal goal = Goal.builder()
+        .userId(userId)
+        .goalType(GoalType.EMERGENCY)
+        .goalName("비상금")
+        .goalAmount(5_000_000L)
+        .startAmount(0L)
+        .goalDate(LocalDate.of(2027, 1, 1))
+        .startDate(LocalDate.of(2026, 1, 1))
+        .goalStatus(GoalStatus.ACTIVE)
+        .isCollected(false)
+        .build();
+    goalMapper.save(goal);
+    goalAssetMapper.saveAll(goal.getGoalId(), List.of(
+        GoalAssetRequest.builder()
+            .assetType(AssetType.MONEY_BOX).assetId(goalBox.getMoneyBoxId()).build()
+    ));
+
+    List<AccountResponse> free = accountMapper.findAllByUserId(userId, "CHECKING", true);
+
+    assertTrue(free.stream().anyMatch(a -> freeAccountId.equals(a.getAccountId())));
+    assertFalse(free.stream().anyMatch(a -> boxHostAccountId.equals(a.getAccountId())));
+  }
+
   private Account exAccount(Long exAccountId, String hash, String masked) {
     return Account.of(
         userId, financialInstitutionId, exAccountId, "CHECKING", "KB 입출금통장",
