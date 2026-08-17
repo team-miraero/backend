@@ -58,4 +58,12 @@ class AiCoachGuardrailServiceTest {
         assertEquals(AiCoachGuardrailAction.SAFE_REDIRECT, decision.getAction());
         assertEquals(AiCoachRiskType.FINANCIAL_HIGH_RISK, decision.getRiskType());
     }
+
+    @Test
+    void blocksFlaggedModerationResult() {
+        AiCoachGuardrailDecision decision = guardrailService.inspectModerationResult(true);
+
+        assertEquals(AiCoachGuardrailAction.BLOCK, decision.getAction());
+        assertEquals(AiCoachRiskType.GENERAL_HARM, decision.getRiskType());
+    }
 }

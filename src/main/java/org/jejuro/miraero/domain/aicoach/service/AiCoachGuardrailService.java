@@ -17,6 +17,9 @@ public class AiCoachGuardrailService {
     private static final String FINANCIAL_HIGH_RISK_MESSAGE =
             "특정 금융상품의 매수·매도나 대출 실행을 결정해 드릴 수는 없어요. "
                     + "대신 위험 요소와 예산 관리 기준을 함께 살펴볼 수 있어요.";
+    private static final String GENERAL_HARM_MESSAGE =
+            "안전한 상담을 위해 이 요청에는 답변을 제공할 수 없어요. "
+                    + "저축, 예산, 소비 관리와 관련된 질문을 해 주세요.";
 
     private static final List<Pattern> PROMPT_ATTACK_PATTERNS = List.of(
             Pattern.compile("(?i)(ignore|disregard).{0,30}(previous|above|system|instruction)"),
@@ -77,6 +80,13 @@ public class AiCoachGuardrailService {
             );
         }
         return AiCoachGuardrailDecision.allow();
+    }
+
+    public AiCoachGuardrailDecision inspectModerationResult(boolean flagged) {
+        if (!flagged) {
+            return AiCoachGuardrailDecision.allow();
+        }
+        return AiCoachGuardrailDecision.block(AiCoachRiskType.GENERAL_HARM, GENERAL_HARM_MESSAGE);
     }
 
     private boolean matchesAny(String content, List<Pattern> patterns) {
