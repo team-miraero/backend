@@ -488,6 +488,35 @@ class GoalAssetServiceImplTest {
     }
 
     @Test
+    @DisplayName("목표 저금통이 있는 계좌를 출처로 지정하면 끌어쓸 수 없다")
+    void pullFunds_sameAccount_throws() {
+        Long sharedAccountId = 60L;
+        org.jejuro.miraero.domain.goal.dto.request.GoalPullFundsRequest request =
+                pullRequest(sharedAccountId, 100_000L);
+
+        given(goalMapper.findByIdAndUserId(USER_ID, GOAL_ID))
+                .willReturn(Goal.builder().goalId(GOAL_ID).userId(USER_ID).build());
+        given(accountMapper.findResponseByIdAndUserId(sharedAccountId, USER_ID))
+                .willReturn(AccountResponse.builder().accountId(sharedAccountId).balance(500_000L).build());
+        given(goalAssetMapper.existsByAsset(AssetType.ACCOUNT, sharedAccountId)).willReturn(false);
+        given(goalAssetMapper.findByGoalId(GOAL_ID))
+                .willReturn(List.of(
+                        GoalAsset.builder().goalId(GOAL_ID).assetType(AssetType.MONEY_BOX).assetId(30L).build()));
+        // 목표 저금통이 출처와 같은 계좌에 있는 상황
+        given(moneyBoxMapper.findById(30L))
+                .willReturn(MoneyBox.builder().moneyBoxId(30L).accountId(sharedAccountId).build());
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> goalAssetService.pullFunds(USER_ID, GOAL_ID, request));
+
+        assertEquals(org.jejuro.miraero.domain.goal.exception.GoalErrorCode.PULL_SAME_ACCOUNT,
+                exception.getErrorCode());
+        verify(accountMapper, never()).decreaseBalance(anyLong(), anyLong(), anyLong());
+        verify(accountTransferService, never()).transfer(anyLong(), anyLong(), anyLong(), anyLong());
+        verify(moneyBoxMapper, never()).increaseBalance(anyLong(), anyLong());
+    }
+
+    @Test
     @DisplayName("예적금이 연결된 목표는 그 계좌로 바로 끌어쓴다")
     void pullFunds_toAccount() {
         Long sourceAccountId = 50L;
