@@ -4,21 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.time.LocalDate;
-
-import org.jejuro.miraero.domain.mydata.client.MyDataAuthClient;
 import org.jejuro.miraero.domain.mydata.dto.external.MyDataTokenResponse;
 import org.jejuro.miraero.domain.mydata.dto.response.MyDataConnectResponse;
 import org.jejuro.miraero.domain.mydata.exception.MyDataErrorCode;
 import org.jejuro.miraero.domain.mydata.mapper.MyDataConsentMapper;
-import org.jejuro.miraero.domain.mydata.mapper.ReferenceDataMapper;
-import org.jejuro.miraero.domain.mydata.repository.MyDataTokenRepository;
 import org.jejuro.miraero.domain.user.domain.User;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -37,64 +31,34 @@ class MyDataConnectServiceImplTest {
   private static final Long INSTITUTION_ID = 1L;
 
   @Mock
-  private MyDataAuthClient myDataAuthClient;
-  @Mock
-  private MyDataTokenRepository myDataTokenRepository;
-  @Mock
   private MyDataSyncService myDataSyncService;
   @Mock
   private UserMapper userMapper;
   @Mock
-  private ReferenceDataMapper referenceDataMapper;
-  @Mock
   private MyDataConsentMapper myDataConsentMapper;
+  @Mock
+  private MyDataTokenProvider myDataTokenProvider;
 
   private MyDataConnectService myDataConnectService;
 
   @BeforeEach
   void setUp() {
     myDataConnectService = new MyDataConnectServiceImpl(
-        myDataAuthClient, myDataTokenRepository, myDataSyncService, userMapper,
-        referenceDataMapper, myDataConsentMapper);
+        myDataSyncService, userMapper, myDataConsentMapper, myDataTokenProvider);
   }
 
   @Test
-  @DisplayName("연동에 성공하면 토큰을 저장하고 kbUserId를 반환하며 연동 상태를 기록한다")
+  @DisplayName("연동에 성공하면 kbUserId를 반환한다")
   void connect() {
     User user = createUser("miraero01@test.com");
     when(userMapper.findById(USER_ID)).thenReturn(user);
-    when(myDataAuthClient.requestAuthorizationCode("miraero01@test.com")).thenReturn("code-1");
-    when(referenceDataMapper.findFinancialInstitutionIdByCode("004")).thenReturn(INSTITUTION_ID);
-
-    MyDataTokenResponse token = createToken("token-1", 3600L, 10001L);
-    when(myDataAuthClient.exchangeToken("code-1")).thenReturn(token);
+    when(myDataTokenProvider.authenticateAndPersist(USER_ID, user))
+        .thenReturn(createToken("token-1", 3600L, 10001L));
 
     MyDataConnectResponse response = myDataConnectService.connect(USER_ID);
 
     assertEquals(10001L, response.getKbUserId());
-    verify(myDataTokenRepository).save(USER_ID, "token-1", 3600L);
-    verify(myDataConsentMapper).upsertConnection(eq(USER_ID), eq(INSTITUTION_ID), eq("CONNECTED"), any());
-  }
-
-  @Test
-  @DisplayName("연동 시 목서버가 내려준 본인확인 정보로 회원가입 목업 값을 덮어쓴다")
-  void connect_updatesProfileFromMyData() {
-    User user = createUser("miraero01@test.com");
-    when(userMapper.findById(USER_ID)).thenReturn(user);
-    when(myDataAuthClient.requestAuthorizationCode("miraero01@test.com")).thenReturn("code-1");
-    when(referenceDataMapper.findFinancialInstitutionIdByCode("004")).thenReturn(INSTITUTION_ID);
-
-    MyDataTokenResponse token = createToken("token-1", 3600L, 10001L);
-    ReflectionTestUtils.setField(token, "name", "탁민주");
-    ReflectionTestUtils.setField(token, "birthDate", LocalDate.of(1999, 4, 18));
-    ReflectionTestUtils.setField(token, "monthlyIncome", 2_850_000L);
-    ReflectionTestUtils.setField(token, "companyName", "중견기업J");
-    when(myDataAuthClient.exchangeToken("code-1")).thenReturn(token);
-
-    myDataConnectService.connect(USER_ID);
-
-    verify(userMapper).updateProfile(
-        USER_ID, "탁민주", LocalDate.of(1999, 4, 18), "중견기업J", 2_850_000L);
+    verify(myDataTokenProvider).authenticateAndPersist(USER_ID, user);
   }
 
   @Test
@@ -106,12 +70,23 @@ class MyDataConnectServiceImplTest {
   }
 
   @Test
+  @DisplayName("연동 이력이 없으면 동기화할 수 없다")
+  void sync_notConnected() {
+    when(userMapper.findById(USER_ID)).thenReturn(createUser("miraero01@test.com"));
+
+    BusinessException exception =
+        assertThrows(BusinessException.class, () -> myDataConnectService.sync(USER_ID));
+
+    assertEquals(MyDataErrorCode.MYDATA_NOT_CONNECTED, exception.getErrorCode());
+  }
+
+  @Test
   @DisplayName("동기화 성공 시 synced_at을 갱신한다")
   void sync_updatesSyncedAt() {
     User user = createUser("miraero01@test.com");
     ReflectionTestUtils.setField(user, "kbPayId", 10001L);
     when(userMapper.findById(USER_ID)).thenReturn(user);
-    when(referenceDataMapper.findFinancialInstitutionIdByCode("004")).thenReturn(INSTITUTION_ID);
+    when(myDataTokenProvider.resolveMockInstitutionId()).thenReturn(INSTITUTION_ID);
 
     myDataConnectService.sync(USER_ID);
 
@@ -125,10 +100,7 @@ class MyDataConnectServiceImplTest {
     User user = createUser("miraero01@test.com");
     ReflectionTestUtils.setField(user, "kbPayId", 10001L);
     when(userMapper.findById(USER_ID)).thenReturn(user);
-    when(referenceDataMapper.findFinancialInstitutionIdByCode("004")).thenReturn(INSTITUTION_ID);
-    when(myDataAuthClient.requestAuthorizationCode("miraero01@test.com")).thenReturn("code-1");
-    when(myDataAuthClient.exchangeToken("code-1"))
-        .thenReturn(createToken("token-2", 3600L, 10001L));
+    when(myDataTokenProvider.resolveMockInstitutionId()).thenReturn(INSTITUTION_ID);
 
     doThrow(new BusinessException(MyDataErrorCode.MYDATA_TOKEN_EXPIRED))
         .doNothing()
@@ -137,7 +109,23 @@ class MyDataConnectServiceImplTest {
     myDataConnectService.sync(USER_ID);
 
     verify(myDataSyncService, times(2)).sync(anyLong(), anyLong());
-    verify(myDataTokenRepository).save(USER_ID, "token-2", 3600L);
+    verify(myDataTokenProvider).authenticateAndPersist(USER_ID, user);
+  }
+
+  @Test
+  @DisplayName("토큰 만료가 아닌 오류는 재시도하지 않고 그대로 던진다")
+  void sync_otherError_notRetried() {
+    User user = createUser("miraero01@test.com");
+    ReflectionTestUtils.setField(user, "kbPayId", 10001L);
+    when(userMapper.findById(USER_ID)).thenReturn(user);
+
+    doThrow(new BusinessException(MyDataErrorCode.MYDATA_SYNC_FAILED))
+        .when(myDataSyncService).sync(anyLong(), anyLong());
+
+    assertThrows(BusinessException.class, () -> myDataConnectService.sync(USER_ID));
+
+    verify(myDataSyncService, times(1)).sync(anyLong(), anyLong());
+    verify(myDataTokenProvider, times(0)).authenticateAndPersist(anyLong(), any());
   }
 
   private User createUser(String email) {

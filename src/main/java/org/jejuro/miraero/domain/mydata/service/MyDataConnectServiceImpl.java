@@ -1,14 +1,10 @@
 package org.jejuro.miraero.domain.mydata.service;
 
-import java.time.LocalDateTime;
 import lombok.RequiredArgsConstructor;
-import org.jejuro.miraero.domain.mydata.client.MyDataAuthClient;
 import org.jejuro.miraero.domain.mydata.dto.external.MyDataTokenResponse;
 import org.jejuro.miraero.domain.mydata.dto.response.MyDataConnectResponse;
 import org.jejuro.miraero.domain.mydata.exception.MyDataErrorCode;
 import org.jejuro.miraero.domain.mydata.mapper.MyDataConsentMapper;
-import org.jejuro.miraero.domain.mydata.mapper.ReferenceDataMapper;
-import org.jejuro.miraero.domain.mydata.repository.MyDataTokenRepository;
 import org.jejuro.miraero.domain.user.domain.User;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -21,16 +17,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class MyDataConnectServiceImpl implements MyDataConnectService {
 
-  // mock-server가 지금은 국민은행 하나만 시뮬레이션하므로 고정 코드로 조회한다
-  private static final String MOCK_INSTITUTION_CODE = "004";
-  private static final String CONNECTION_STATUS_CONNECTED = "CONNECTED";
-
-  private final MyDataAuthClient myDataAuthClient;
-  private final MyDataTokenRepository myDataTokenRepository;
   private final MyDataSyncService myDataSyncService;
   private final UserMapper userMapper;
-  private final ReferenceDataMapper referenceDataMapper;
   private final MyDataConsentMapper myDataConsentMapper;
+  private final MyDataTokenProvider myDataTokenProvider;
 
   @Override
   @Transactional
@@ -40,7 +30,7 @@ public class MyDataConnectServiceImpl implements MyDataConnectService {
       throw new BusinessException(CommonErrorCode.RESOURCE_NOT_FOUND);
     }
 
-    MyDataTokenResponse token = authenticateAndPersist(userId, user);
+    MyDataTokenResponse token = myDataTokenProvider.authenticateAndPersist(userId, user);
 
     return new MyDataConnectResponse(token.getKbUserId());
   }
@@ -59,7 +49,7 @@ public class MyDataConnectServiceImpl implements MyDataConnectService {
 
     syncWithTokenRefresh(userId, user);
 
-    myDataConsentMapper.updateSyncedAt(userId, resolveMockInstitutionId());
+    myDataConsentMapper.updateSyncedAt(userId, myDataTokenProvider.resolveMockInstitutionId());
   }
 
   // 토큰이 Redis TTL로 만료됐으면 재인증 후 1회만 재시도한다 (사용자에게 재연동을 요구하지 않기 위함)
@@ -70,36 +60,8 @@ public class MyDataConnectServiceImpl implements MyDataConnectService {
       if (exception.getErrorCode() != MyDataErrorCode.MYDATA_TOKEN_EXPIRED) {
         throw exception;
       }
-      authenticateAndPersist(userId, user);
+      myDataTokenProvider.authenticateAndPersist(userId, user);
       myDataSyncService.sync(userId, user.getKbPayId());
     }
-  }
-
-  private MyDataTokenResponse authenticateAndPersist(Long userId, User user) {
-    String authorizationCode = myDataAuthClient.requestAuthorizationCode(user.getEmail());
-    MyDataTokenResponse token = myDataAuthClient.exchangeToken(authorizationCode);
-
-    myDataTokenRepository.save(userId, token.getAccessToken(), token.getExpiresIn());
-    userMapper.updateKbPayId(userId, token.getKbUserId());
-    userMapper.updateProfile(
-        userId, token.getName(), token.getBirthDate(),
-        token.getCompanyName(), token.getMonthlyIncome());
-
-    myDataConsentMapper.upsertConnection(
-        userId,
-        resolveMockInstitutionId(),
-        CONNECTION_STATUS_CONNECTED,
-        LocalDateTime.now().plusSeconds(token.getExpiresIn())
-    );
-
-    return token;
-  }
-
-  private Long resolveMockInstitutionId() {
-    Long financialInstitutionId = referenceDataMapper.findFinancialInstitutionIdByCode(MOCK_INSTITUTION_CODE);
-    if (financialInstitutionId == null) {
-      throw new BusinessException(MyDataErrorCode.MYDATA_INSTITUTION_NOT_FOUND);
-    }
-    return financialInstitutionId;
   }
 }
