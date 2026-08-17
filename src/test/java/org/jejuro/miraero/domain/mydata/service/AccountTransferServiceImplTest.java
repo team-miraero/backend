@@ -13,7 +13,6 @@ import org.jejuro.miraero.domain.account.mapper.AccountMapper;
 import org.jejuro.miraero.domain.mydata.client.MyDataApiClient;
 import org.jejuro.miraero.domain.mydata.dto.external.MyDataTransferRequest;
 import org.jejuro.miraero.domain.mydata.exception.MyDataErrorCode;
-import org.jejuro.miraero.domain.mydata.repository.MyDataTokenRepository;
 import org.jejuro.miraero.domain.user.domain.User;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -37,7 +36,7 @@ class AccountTransferServiceImplTest {
   private UserMapper userMapper;
 
   @Mock
-  private MyDataTokenRepository myDataTokenRepository;
+  private MyDataTokenProvider myDataTokenProvider;
 
   @Mock
   private AccountMapper accountMapper;
@@ -51,7 +50,7 @@ class AccountTransferServiceImplTest {
   @Test
   @DisplayName("계좌 소유자의 accessToken과 mock 서버 계좌 ID로 이체를 요청한다")
   void transfer_success() {
-    when(myDataTokenRepository.findByUserId(USER_ID)).thenReturn("token");
+    when(myDataTokenProvider.getValidToken(USER_ID)).thenReturn("token");
     when(userMapper.findById(USER_ID)).thenReturn(userWithKbPayId(500L));
     when(accountMapper.findByIdAndUserId(WITHDRAWAL_ACCOUNT_ID, USER_ID))
         .thenReturn(accountWithExId(WITHDRAWAL_EX_ACCOUNT_ID));
@@ -64,9 +63,10 @@ class AccountTransferServiceImplTest {
   }
 
   @Test
-  @DisplayName("마이데이터 연동이 안 되어 있으면 이체할 수 없다")
+  @DisplayName("연동 이력이 없으면 재발급도 실패하므로 이체할 수 없다")
   void transfer_notConnected_throws() {
-    when(myDataTokenRepository.findByUserId(USER_ID)).thenReturn(null);
+    when(myDataTokenProvider.getValidToken(USER_ID))
+        .thenThrow(new BusinessException(MyDataErrorCode.MYDATA_NOT_CONNECTED));
 
     BusinessException exception = assertThrows(BusinessException.class,
         () -> accountTransferService.transfer(

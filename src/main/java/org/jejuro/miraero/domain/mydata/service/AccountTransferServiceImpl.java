@@ -9,7 +9,6 @@ import org.jejuro.miraero.domain.account.mapper.AccountMapper;
 import org.jejuro.miraero.domain.mydata.client.MyDataApiClient;
 import org.jejuro.miraero.domain.mydata.dto.external.MyDataTransferRequest;
 import org.jejuro.miraero.domain.mydata.exception.MyDataErrorCode;
-import org.jejuro.miraero.domain.mydata.repository.MyDataTokenRepository;
 import org.jejuro.miraero.domain.user.domain.User;
 import org.jejuro.miraero.domain.user.mapper.UserMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
@@ -20,16 +19,15 @@ import org.springframework.stereotype.Service;
 public class AccountTransferServiceImpl implements AccountTransferService {
 
   private final UserMapper userMapper;
-  private final MyDataTokenRepository myDataTokenRepository;
+  private final MyDataTokenProvider myDataTokenProvider;
   private final AccountMapper accountMapper;
   private final MyDataApiClient myDataApiClient;
 
   @Override
   public void transfer(Long userId, Long withdrawalAccountId, Long depositAccountId, Long amount) {
-    String accessToken = myDataTokenRepository.findByUserId(userId);
-    if (accessToken == null) {
-      throw new BusinessException(MyDataErrorCode.MYDATA_NOT_CONNECTED);
-    }
+    // 조회는 동기화해둔 로컬 데이터로 되지만 이체는 매번 외부 호출이 필요하다.
+    // 토큰이 만료됐으면 재연동을 요구하는 대신 자동으로 재발급받는다.
+    String accessToken = myDataTokenProvider.getValidToken(userId);
 
     User user = userMapper.findById(userId);
 
