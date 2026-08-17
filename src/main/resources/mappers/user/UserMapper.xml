@@ -102,5 +102,16 @@
     SET kb_pay_id = #{kbPayId}
     WHERE user_id = #{userId}
   </update>
+
+  <!-- 마이데이터가 본인확인 정보를 제공하므로 회원가입 시 목업 값을 덮어쓴다.
+       사용자가 이름 등을 직접 수정하는 기능이 없어 덮어써도 안전하다. -->
+  <update id="updateProfile">
+    UPDATE miraero_user
+    SET name = #{name},
+        birth_date = #{birthDate},
+        company_name = #{companyName},
+        monthly_income = #{monthlyIncome}
+    WHERE user_id = #{userId}
+  </update>
 </mapper>
 

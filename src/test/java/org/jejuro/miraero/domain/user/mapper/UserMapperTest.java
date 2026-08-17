@@ -89,4 +89,29 @@ public class UserMapperTest {
     //then
     assertNull(foundUser);
   }
+
+  @Test
+  @DisplayName("마이데이터 연동 시 회원가입 목업 값을 본인확인 정보로 덮어쓴다")
+  void updateProfile() {
+    User user = User.create(
+        "테스트 사용자",
+        LocalDate.of(2000, 1, 1),
+        "테스트 회사",
+        3_000_000L,
+        "profile-test@example.com",
+        "encodedPassword",
+        null
+    );
+    userMapper.save(user);
+
+    int updated = userMapper.updateProfile(
+        user.getUserId(), "탁민주", LocalDate.of(1999, 4, 18), "중견기업J", 2_850_000L);
+
+    assertEquals(1, updated);
+    User found = userMapper.findByEmail("profile-test@example.com");
+    assertEquals("탁민주", found.getName());
+    assertEquals(LocalDate.of(1999, 4, 18), found.getBirthDate());
+    assertEquals("중견기업J", found.getCompanyName());
+    assertEquals(2_850_000L, found.getMonthlyIncome());
+  }
 }
