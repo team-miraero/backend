@@ -106,13 +106,21 @@ public class GoalAssetServiceImpl implements GoalAssetService {
         }
 
         GoalAsset target = findPullTarget(goalId);
+        Long targetAccountId = resolveTargetAccountId(target);
+
+        // 같은 계좌면 이체가 성립하지 않는다. 외부 이체 API가 거부하기 전에 걸러낸다.
+        if (sourceAccountId.equals(targetAccountId)) {
+            throw new BusinessException(GoalErrorCode.PULL_SAME_ACCOUNT);
+        }
 
         accountMapper.decreaseBalance(sourceAccountId, userId, amount);
 
+        accountTransferService.transfer(userId, sourceAccountId, targetAccountId, amount);
+        accountMapper.increaseBalance(targetAccountId, userId, amount);
+
+        // 저금통이 대상이면 계좌로 옮긴 금액을 저금통 몫으로 다시 묶는다
         if (target.getAssetType() == AssetType.MONEY_BOX) {
-            depositToMoneyBox(userId, sourceAccountId, target.getAssetId(), amount);
-        } else {
-            depositToAccount(userId, sourceAccountId, target.getAssetId(), amount);
+            moneyBoxMapper.increaseBalance(target.getAssetId(), amount);
         }
 
         return GoalPullFundsResponse.builder()
@@ -130,20 +138,22 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                 .orElseThrow(() -> new BusinessException(GoalErrorCode.PULL_TARGET_NOT_SUPPORTED));
     }
 
-    private void depositToMoneyBox(Long userId, Long sourceAccountId, Long moneyBoxId, Long amount) {
-        MoneyBox moneyBox = moneyBoxMapper.findById(moneyBoxId);
+    /**
+     * 자금이 실제로 들어갈 계좌를 찾는다.
+     * 저금통은 자체 계좌가 없으므로 소속 계좌가 입금 대상이 된다.
+     */
+    private Long resolveTargetAccountId(GoalAsset target) {
+        if (target.getAssetType() != AssetType.MONEY_BOX) {
+            return target.getAssetId();
+        }
+
+        MoneyBox moneyBox = moneyBoxMapper.findById(target.getAssetId());
 
         if (moneyBox == null) {
             throw new BusinessException(GoalErrorCode.PULL_TARGET_NOT_SUPPORTED);
         }
 
-        accountTransferService.transfer(userId, sourceAccountId, moneyBox.getAccountId(), amount);
-        moneyBoxMapper.increaseBalance(moneyBoxId, amount);
-    }
-
-    private void depositToAccount(Long userId, Long sourceAccountId, Long targetAccountId, Long amount) {
-        accountTransferService.transfer(userId, sourceAccountId, targetAccountId, amount);
-        accountMapper.increaseBalance(targetAccountId, userId, amount);
+        return moneyBox.getAccountId();
     }
 
     private void validateDuplicateAssets(

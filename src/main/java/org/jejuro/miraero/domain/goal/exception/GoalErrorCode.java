@@ -108,6 +108,12 @@ public enum GoalErrorCode implements ErrorCode {
             HttpStatus.BAD_REQUEST,
             "GOAL_017",
             "목표 유형은 INDEPENDENCE, EMERGENCY, WEDDING, LOAN만 가능합니다."
+    ),
+
+    PULL_SAME_ACCOUNT(
+            HttpStatus.BAD_REQUEST,
+            "GOAL_018",
+            "목표 자산이 있는 계좌에서는 끌어쓸 수 없습니다."
     );
 
 
