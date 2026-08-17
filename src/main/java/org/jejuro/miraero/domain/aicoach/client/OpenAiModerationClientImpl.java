@@ -30,7 +30,7 @@ public class OpenAiModerationClientImpl implements OpenAiModerationClient {
 
     @Override
     public boolean isFlagged(String content) {
-        if (!StringUtils.hasText(content)) {
+        if (!openAiProperties.isModerationEnabled() || !StringUtils.hasText(content)) {
             return false;
         }
 
