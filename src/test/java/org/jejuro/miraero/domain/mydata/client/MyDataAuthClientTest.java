@@ -9,6 +9,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDate;
 import org.jejuro.miraero.domain.mydata.dto.external.MyDataTokenResponse;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,6 +74,24 @@ class MyDataAuthClientTest {
     assertEquals(3600L, response.getExpiresIn());
     assertEquals(10001L, response.getKbUserId());
     mockServer.verify();
+  }
+
+  @Test
+  @DisplayName("토큰 응답의 본인확인 정보(생년월일 포함)를 역직렬화한다")
+  void exchangeToken_parsesProfile() {
+    mockServer.expect(requestTo(BASE_URL + "/mock/oauth/token"))
+        .andRespond(withSuccess(
+            "{\"accessToken\":\"token-1\",\"expiresIn\":3600,\"kbUserId\":10001,"
+                + "\"name\":\"탁민주\",\"birthDate\":\"1999-04-18\","
+                + "\"monthlyIncome\":2850000,\"companyName\":\"중견기업J\"}",
+            MediaType.APPLICATION_JSON));
+
+    MyDataTokenResponse response = myDataAuthClient.exchangeToken("code-1");
+
+    assertEquals("탁민주", response.getName());
+    assertEquals(LocalDate.of(1999, 4, 18), response.getBirthDate());
+    assertEquals(2_850_000L, response.getMonthlyIncome());
+    assertEquals("중견기업J", response.getCompanyName());
   }
 
   @Test

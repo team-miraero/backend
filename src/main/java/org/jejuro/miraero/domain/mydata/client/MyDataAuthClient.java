@@ -1,6 +1,7 @@
 package org.jejuro.miraero.domain.mydata.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.util.Map;
 import org.jejuro.miraero.domain.mydata.dto.external.MyDataAuthorizeResponse;
 import org.jejuro.miraero.domain.mydata.dto.external.MyDataTokenResponse;
@@ -46,7 +47,8 @@ public class MyDataAuthClient {
       String clientSecret
   ) {
     this.restTemplate = restTemplate;
-    this.objectMapper = objectMapper;
+    // MyDataTokenResponse.birthDate(LocalDate) 역직렬화를 위해 필요
+    this.objectMapper = objectMapper.registerModule(new JavaTimeModule());
     this.baseUrl = baseUrl;
     this.authorizePath = authorizePath;
     this.tokenPath = tokenPath;

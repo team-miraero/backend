@@ -10,6 +10,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
+
 import org.jejuro.miraero.domain.mydata.client.MyDataAuthClient;
 import org.jejuro.miraero.domain.mydata.dto.external.MyDataTokenResponse;
 import org.jejuro.miraero.domain.mydata.dto.response.MyDataConnectResponse;
@@ -72,6 +74,27 @@ class MyDataConnectServiceImplTest {
     assertEquals(10001L, response.getKbUserId());
     verify(myDataTokenRepository).save(USER_ID, "token-1", 3600L);
     verify(myDataConsentMapper).upsertConnection(eq(USER_ID), eq(INSTITUTION_ID), eq("CONNECTED"), any());
+  }
+
+  @Test
+  @DisplayName("연동 시 목서버가 내려준 본인확인 정보로 회원가입 목업 값을 덮어쓴다")
+  void connect_updatesProfileFromMyData() {
+    User user = createUser("miraero01@test.com");
+    when(userMapper.findById(USER_ID)).thenReturn(user);
+    when(myDataAuthClient.requestAuthorizationCode("miraero01@test.com")).thenReturn("code-1");
+    when(referenceDataMapper.findFinancialInstitutionIdByCode("004")).thenReturn(INSTITUTION_ID);
+
+    MyDataTokenResponse token = createToken("token-1", 3600L, 10001L);
+    ReflectionTestUtils.setField(token, "name", "탁민주");
+    ReflectionTestUtils.setField(token, "birthDate", LocalDate.of(1999, 4, 18));
+    ReflectionTestUtils.setField(token, "monthlyIncome", 2_850_000L);
+    ReflectionTestUtils.setField(token, "companyName", "중견기업J");
+    when(myDataAuthClient.exchangeToken("code-1")).thenReturn(token);
+
+    myDataConnectService.connect(USER_ID);
+
+    verify(userMapper).updateProfile(
+        USER_ID, "탁민주", LocalDate.of(1999, 4, 18), "중견기업J", 2_850_000L);
   }
 
   @Test
