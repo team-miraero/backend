@@ -81,6 +81,9 @@ public class MyDataConnectServiceImpl implements MyDataConnectService {
 
     myDataTokenRepository.save(userId, token.getAccessToken(), token.getExpiresIn());
     userMapper.updateKbPayId(userId, token.getKbUserId());
+    userMapper.updateProfile(
+        userId, token.getName(), token.getBirthDate(),
+        token.getCompanyName(), token.getMonthlyIncome());
 
     myDataConsentMapper.upsertConnection(
         userId,
