@@ -10,7 +10,7 @@ import org.jejuro.miraero.domain.goal.domain.GoalStatus;
 @Mapper
 public interface GoalMapper {
 
-  void save(@Param("goal") Goal goal);
+  void save(Goal goal);
 
   List<Goal> findGoalsByUserId(@Param("userId") Long userId);
 
