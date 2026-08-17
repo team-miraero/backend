@@ -26,6 +26,7 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
 
     private static final int MAX_PAGE_SIZE = 100;
     private static final int RECOMMENDED_POLICY_SIZE = 3;
+    private static final int MONTHS_PER_YEAR = 12;
     private static final String APPLICATION_PERIOD_BETWEEN_SEPARATOR = " ~ ";
     private static final String APPLICATION_PERIOD_START_ONLY_SUFFIX = " ~";
     private static final String APPLICATION_PERIOD_END_ONLY_PREFIX = "~ ";
@@ -65,14 +66,14 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
     public PageResponse<YouthPolicyListResponse> getRecommendedYouthPolicies(Long userId) {
         User user = getUserWithEligibilityInfo(userId);
         int age = calculateAge(user.getBirthDate());
-        Long monthlyIncome = user.getMonthlyIncome();
+        Long annualIncome = calculateAnnualIncome(user.getMonthlyIncome());
 
         List<YouthPolicyListResponse> policies = youthPolicyMapper
-                .findRecommendedYouthPolicies(age, monthlyIncome, RECOMMENDED_POLICY_SIZE)
+                .findRecommendedYouthPolicies(age, annualIncome, RECOMMENDED_POLICY_SIZE)
                 .stream()
                 .map(this::toYouthPolicyListResponse)
                 .collect(Collectors.toList());
-        long totalElements = youthPolicyMapper.countRecommendedYouthPolicies(age, monthlyIncome);
+        long totalElements = youthPolicyMapper.countRecommendedYouthPolicies(age, annualIncome);
 
         return PageResponse.of(policies, 0, RECOMMENDED_POLICY_SIZE, totalElements);
     }
@@ -194,6 +195,10 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
 
     private int calculateAge(LocalDate birthDate) {
         return Period.between(birthDate, LocalDate.now()).getYears();
+    }
+
+    private Long calculateAnnualIncome(Long monthlyIncome) {
+        return monthlyIncome * MONTHS_PER_YEAR;
     }
 
     private Long calculateDDay(LocalDate applicationEndDate) {
