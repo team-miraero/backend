@@ -33,13 +33,15 @@ LSSYL_EMAILS=(lssyl1@naver.com lssyl2@naver.com lssyl3@naver.com lssyl4@naver.co
 # 탁민주: 전세 자기부담금. 목표 자산은 기존 저축계좌(SAVINGS)라 저금통을 만들지
 #         않고, 미래로 자동이체도 걸지 않는다(은행 자동이체가 이미 있는 설정).
 MINJOO_GOAL_TYPE="INDEPENDENCE"
-MINJOO_GOAL_NAME="전세 보증금 마련"
+# JSON 유니코드 이스케이프를 사용해 Windows Git Bash의 코드페이지 변환을 피한다.
+MINJOO_GOAL_NAME="\\uC804\\uC138 \\uBCF4\\uC99D\\uAE08 \\uB9C8\\uB828"
 MINJOO_GOAL_AMOUNT=20000000
 MINJOO_GOAL_MONTHS=24
 
 # 송승윤: 비상금. 목표 자산은 새로 만드는 저금통(MONEY_BOX)이고 자동이체를 건다.
 LSSYL_GOAL_TYPE="EMERGENCY"
-LSSYL_GOAL_NAME="비상금 만들기"
+# JSON 유니코드 이스케이프를 사용해 Windows Git Bash의 코드페이지 변환을 피한다.
+LSSYL_GOAL_NAME="\\uBE44\\uC0C1\\uAE08 \\uB9CC\\uB4E4\\uAE30"
 LSSYL_GOAL_AMOUNT=5000000
 LSSYL_GOAL_MONTHS=6
 LSSYL_TRANSFER_AMOUNT=833334   # 5,000,000 / 6개월
