@@ -20,7 +20,7 @@ public interface MilestoneReportMapper {
 
     int insertIfAbsent(MilestoneReport report );
 
-    int updateSuccess(
+    int updateCompleted(
             @Param("reportId") Long reportId,
             @Param("title") String title,
             @Param("content") String content

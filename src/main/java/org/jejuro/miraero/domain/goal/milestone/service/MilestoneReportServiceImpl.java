@@ -21,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class MilestoneReportServiceImpl
         implements MilestoneReportService {
 
+    private static final Logger log =
+            LoggerFactory.getLogger(MilestoneReportServiceImpl.class);
     private final GoalMapper goalMapper;
     private final MilestoneMapper milestoneMapper;
     private final MilestoneReportMapper milestoneReportMapper;
@@ -32,7 +34,6 @@ public class MilestoneReportServiceImpl
             Long milestoneId,
             Long goalId
     ) {
-
         if (milestoneId == null || goalId == null) {
             throw new BusinessException(
                     MilestoneErrorCode.MILESTONE_NOT_FOUND
@@ -42,12 +43,12 @@ public class MilestoneReportServiceImpl
         Milestone milestone =
                 milestoneMapper.findById(milestoneId);
 
+
         if (milestone == null) {
             throw new BusinessException(
                     MilestoneErrorCode.MILESTONE_NOT_FOUND
             );
         }
-
         if (!milestone.isAchieved()) {
             return;
         }

@@ -28,13 +28,13 @@ public class MilestoneReport {
         this.status = status;
     }
 
-    public void success(
+    public void completed(
             String title,
             String content
     ) {
         this.title = title;
         this.content = content;
-        this.status = ReportStatus.SUCCESS;
+        this.status = ReportStatus.COMPLETED;
     }
 
     public void fail() {
