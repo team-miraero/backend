@@ -80,17 +80,30 @@ class YouthPolicyServiceImplTest {
     @Test
     void getRecommendedYouthPolicies_filtersUsingAgeAndIncome() {
         LocalDate applicationEndDate = LocalDate.now().plusDays(7);
-        when(youthPolicyMapper.findRecommendedYouthPolicies(AGE, ANNUAL_INCOME, 3))
+        when(youthPolicyMapper.findRecommendedYouthPolicies(AGE, ANNUAL_INCOME, null, 3))
                 .thenReturn(List.of(listResult(applicationEndDate)));
-        when(youthPolicyMapper.countRecommendedYouthPolicies(AGE, ANNUAL_INCOME)).thenReturn(1L);
+        when(youthPolicyMapper.countRecommendedYouthPolicies(AGE, ANNUAL_INCOME, null)).thenReturn(1L);
 
         PageResponse<YouthPolicyListResponse> response = youthPolicyService
-                .getRecommendedYouthPolicies(USER_ID);
+                .getRecommendedYouthPolicies(USER_ID, null);
 
         assertEquals(1L, response.getTotalElements());
         assertEquals(1, response.getContent().size());
-        verify(youthPolicyMapper).findRecommendedYouthPolicies(AGE, ANNUAL_INCOME, 3);
-        verify(youthPolicyMapper).countRecommendedYouthPolicies(AGE, ANNUAL_INCOME);
+        verify(youthPolicyMapper).findRecommendedYouthPolicies(AGE, ANNUAL_INCOME, null, 3);
+        verify(youthPolicyMapper).countRecommendedYouthPolicies(AGE, ANNUAL_INCOME, null);
+    }
+
+    @Test
+    void getRecommendedYouthPolicies_filtersBySelectedRegion() {
+        when(youthPolicyMapper.findRecommendedYouthPolicies(AGE, ANNUAL_INCOME, "11", 3))
+                .thenReturn(List.of());
+        when(youthPolicyMapper.countRecommendedYouthPolicies(AGE, ANNUAL_INCOME, "11"))
+                .thenReturn(0L);
+
+        youthPolicyService.getRecommendedYouthPolicies(USER_ID, "서울특별시");
+
+        verify(youthPolicyMapper).findRecommendedYouthPolicies(AGE, ANNUAL_INCOME, "11", 3);
+        verify(youthPolicyMapper).countRecommendedYouthPolicies(AGE, ANNUAL_INCOME, "11");
     }
 
     @Test

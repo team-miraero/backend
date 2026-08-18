@@ -132,6 +132,14 @@
             AND (yp.max_age IS NULL OR yp.max_age <![CDATA[>=]]> #{age})
             AND (yp.min_income IS NULL OR yp.min_income <![CDATA[<=]]> #{monthlyIncome})
             AND (yp.max_income IS NULL OR yp.max_income <![CDATA[>=]]> #{monthlyIncome})
+            <if test="regionCode != null and regionCode != ''">
+                AND EXISTS (
+                    SELECT 1
+                    FROM youth_policy_region ypr
+                    WHERE ypr.youth_policy_id = yp.youth_policy_id
+                      AND (ypr.region_code = #{regionCode} OR ypr.is_nationwide = TRUE)
+                )
+            </if>
         </where>
     </sql>
 

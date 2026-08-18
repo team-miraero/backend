@@ -51,10 +51,12 @@ public class YouthPolicyController {
     @GetMapping("/recommended")
     @ApiOperation(value = "추천 청년 정책 조회", notes = "로그인 사용자의 나이와 월소득 조건에 맞는 접수 중 정책을 최대 3개 조회합니다.")
     public ResponseEntity<ApiResponse<PageResponse<YouthPolicyListResponse>>> getRecommendedYouthPolicies(
-            @AuthenticationPrincipal AuthenticatedUser user
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @ApiParam(value = "시도 코드 또는 지역명. 선택 지역과 전국 정책을 함께 조회", example = "11")
+            @RequestParam(required = false) String region
     ) {
         PageResponse<YouthPolicyListResponse> response = youthPolicyService
-                .getRecommendedYouthPolicies(user.getUserId());
+                .getRecommendedYouthPolicies(user.getUserId(), region);
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
