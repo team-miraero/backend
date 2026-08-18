@@ -49,14 +49,17 @@ PACEMAKER_MAX_AMOUNT=30000
 
 # 실패 여부를 파일로 남긴다. token=$(login ...) 처럼 명령 치환으로 호출되는
 # 함수는 서브셸에서 돌아 변수 대입이 부모 셸에 전달되지 않기 때문이다.
-FAIL_FLAG="$(mktemp -t demo-setup-fail)"
+#
+# mktemp는 -t 옵션의 template 규칙이 GNU(XXXXXX 필수)와 BSD에서 달라
+# 환경에 따라 실패한다. 경로를 직접 만들어 구현 차이를 피한다.
+FAIL_FLAG="${TMPDIR:-/tmp}/miraero-demo-setup-fail.$$"
 rm -f "$FAIL_FLAG"
 trap 'rm -f "$FAIL_FLAG"' EXIT
 
 # --- 유틸 -------------------------------------------------------------------
 
 log()  { printf '  %s\n' "$*"; }
-fail() { printf '  ✗ %s\n' "$*" >&2; : > "$FAIL_FLAG"; }
+fail() { printf '  [실패] %s\n' "$*" >&2; : > "$FAIL_FLAG" 2>/dev/null || true; }
 
 # jq 없이 동작하도록 최소한의 JSON 스칼라 추출만 한다.
 json_get() {
