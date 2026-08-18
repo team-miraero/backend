@@ -63,7 +63,7 @@ public class MilestoneReportAsyncService {
                     );
 
             int updated =
-                    milestoneReportMapper.updateSuccess(
+                    milestoneReportMapper.updateCompleted(
                             reportId,
                             report.title(),
                             report.content()

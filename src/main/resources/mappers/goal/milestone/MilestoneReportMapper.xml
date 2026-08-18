@@ -78,12 +78,12 @@
             milestone_id = milestone_id
     </insert>
 
-    <update id="updateSuccess">
+    <update id="updateCompleted">
         UPDATE milestone_report
         SET
             title = #{title},
             content = #{content},
-            status = 'SUCCESS'
+            status = 'COMPLETED'
         WHERE milestone_report_id = #{reportId}
             AND status = 'PENDING'
     </update>
