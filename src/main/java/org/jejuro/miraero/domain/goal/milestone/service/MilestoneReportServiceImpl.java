@@ -13,16 +13,17 @@ import org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport;
 import org.jejuro.miraero.domain.goal.milestone.domain.ReportStatus;
 import org.jejuro.miraero.domain.goal.milestone.mapper.MilestoneMapper;
 import org.jejuro.miraero.domain.goal.milestone.mapper.MilestoneReportMapper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class MilestoneReportServiceImpl
         implements MilestoneReportService {
 
-    private static final Logger log =
-            LoggerFactory.getLogger(MilestoneReportServiceImpl.class);
     private final GoalMapper goalMapper;
     private final MilestoneMapper milestoneMapper;
     private final MilestoneReportMapper milestoneReportMapper;
@@ -53,6 +54,7 @@ public class MilestoneReportServiceImpl
             return;
         }
 
+
         Goal goal =
                 goalMapper.findById(goalId);
 
@@ -72,6 +74,7 @@ public class MilestoneReportServiceImpl
                 milestoneReportMapper.findByMilestoneId(
                         milestoneId
                 );
+
 
         /*
          * 기존 리포트가 있는 경우
@@ -148,5 +151,19 @@ public class MilestoneReportServiceImpl
                 goalId,
                 report.getMilestoneReportId()
         );
+    }
+
+    @Override
+    @Async("milestoneReportExecutor")
+    public void generateReports(
+            List<Milestone> milestones,
+            Long goalId
+    ) {
+        for (Milestone milestone : milestones) {
+            generateReport(
+                    milestone.getMilestoneId(),
+                    goalId
+            );
+        }
     }
 }
