@@ -12,16 +12,19 @@ public class OpenAiProperties {
     private final String model;
     private final String baseUrl;
     private final int timeoutMs;
+    private final boolean moderationEnabled;
 
     public OpenAiProperties(
             @Value("${openai.api-key}") String apiKey,
             @Value("${openai.model}") String model,
             @Value("${openai.base-url}") String baseUrl,
-            @Value("${openai.timeout-ms}") int timeoutMs
+            @Value("${openai.timeout-ms}") int timeoutMs,
+            @Value("${openai.moderation.enabled:false}") boolean moderationEnabled
     ) {
         this.apiKey = apiKey;
         this.model = model;
         this.baseUrl = baseUrl;
         this.timeoutMs = timeoutMs;
+        this.moderationEnabled = moderationEnabled;
     }
 }

@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.aicoach.client.OpenAiClient;
+import org.jejuro.miraero.domain.aicoach.client.OpenAiModerationClient;
 import org.jejuro.miraero.domain.aicoach.context.AiCoachFinancialContext;
 import org.jejuro.miraero.domain.aicoach.domain.AiCoachConversation;
 import org.jejuro.miraero.domain.aicoach.domain.AiCoachMessage;
@@ -31,6 +32,8 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
     private final AiCoachFinancialContextService aiCoachFinancialContextService;
     private final AiCoachPromptBuilder aiCoachPromptBuilder;
     private final OpenAiClient openAiClient;
+    private final OpenAiModerationClient openAiModerationClient;
+    private final AiCoachGuardrailService aiCoachGuardrailService;
     private final PlatformTransactionManager transactionManager;
 
     private static final int MAX_TITLE_LENGTH = 100;
@@ -87,6 +90,15 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
         AiCoachConversation conversation = getOwnedConversation(userId, conversationId);
         boolean firstQuestion = aiCoachMessageMapper.countByConversationId(conversationId) == 0;
 
+        AiCoachGuardrailDecision inputDecision = inspectInput(request.getContent());
+        if (!inputDecision.isAllowed()) {
+            return executeInNewTransaction(() -> saveGuardrailMessage(
+                    userId,
+                    conversationId,
+                    inputDecision.getSafeMessage()
+            ));
+        }
+
         executeInNewTransaction(() -> saveUserMessage(userId, conversationId, request));
 
         AiCoachFinancialContext financialContext = aiCoachFinancialContextService.getFinancialContext(userId);
@@ -107,6 +119,15 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
                 ? getTitle(parsedResponse.getTitle(), request.getContent())
                 : null;
 
+        AiCoachGuardrailDecision outputDecision = inspectOutput(answer);
+        if (!outputDecision.isAllowed()) {
+            return executeInNewTransaction(() -> saveGuardrailMessage(
+                    userId,
+                    conversationId,
+                    outputDecision.getSafeMessage()
+            ));
+        }
+
         return executeInNewTransaction(() -> saveAssistantMessage(
                 userId,
                 conversationId,
@@ -114,6 +135,22 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
                 title,
                 conversationSummary
         ));
+    }
+
+    private AiCoachGuardrailDecision inspectInput(String content) {
+        AiCoachGuardrailDecision ruleDecision = aiCoachGuardrailService.inspectInput(content);
+        if (!ruleDecision.isAllowed()) {
+            return ruleDecision;
+        }
+        return aiCoachGuardrailService.inspectModerationResult(openAiModerationClient.isFlagged(content));
+    }
+
+    private AiCoachGuardrailDecision inspectOutput(String content) {
+        AiCoachGuardrailDecision ruleDecision = aiCoachGuardrailService.inspectOutput(content);
+        if (!ruleDecision.isAllowed()) {
+            return ruleDecision;
+        }
+        return aiCoachGuardrailService.inspectModerationResult(openAiModerationClient.isFlagged(content));
     }
 
     private AiCoachMessageResponse saveAssistantMessage(
@@ -142,6 +179,28 @@ public class AiCoachMessageServiceImpl implements AiCoachMessageService {
                 conversationId,
                 conversationSummary
         ) != 1) {
+            throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        if (aiCoachConversationMapper.updateLastMessageAt(userId, conversationId, now) != 1) {
+            throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
+        }
+        return AiCoachMessageResponse.from(message);
+    }
+
+    private AiCoachMessageResponse saveGuardrailMessage(
+            Long userId,
+            Long conversationId,
+            String content
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        AiCoachMessage message = AiCoachMessage.builder()
+                .aiCoachConversationId(conversationId)
+                .senderType(AiCoachMessageSenderType.ASSISTANT)
+                .content(content)
+                .createdAt(now)
+                .build();
+
+        if (aiCoachMessageMapper.save(message) != 1) {
             throw new BusinessException(CommonErrorCode.INTERNAL_SERVER_ERROR);
         }
         if (aiCoachConversationMapper.updateLastMessageAt(userId, conversationId, now) != 1) {

@@ -29,6 +29,7 @@ class YouthPolicyServiceImplTest {
     private static final Long USER_ID = 1L;
     private static final int AGE = 25;
     private static final Long MONTHLY_INCOME = 3_000_000L;
+    private static final Long ANNUAL_INCOME = MONTHLY_INCOME * 12;
 
     @Mock
     private YouthPolicyMapper youthPolicyMapper;
@@ -79,17 +80,17 @@ class YouthPolicyServiceImplTest {
     @Test
     void getRecommendedYouthPolicies_filtersUsingAgeAndIncome() {
         LocalDate applicationEndDate = LocalDate.now().plusDays(7);
-        when(youthPolicyMapper.findRecommendedYouthPolicies(AGE, MONTHLY_INCOME, 3))
+        when(youthPolicyMapper.findRecommendedYouthPolicies(AGE, ANNUAL_INCOME, 3))
                 .thenReturn(List.of(listResult(applicationEndDate)));
-        when(youthPolicyMapper.countRecommendedYouthPolicies(AGE, MONTHLY_INCOME)).thenReturn(1L);
+        when(youthPolicyMapper.countRecommendedYouthPolicies(AGE, ANNUAL_INCOME)).thenReturn(1L);
 
         PageResponse<YouthPolicyListResponse> response = youthPolicyService
                 .getRecommendedYouthPolicies(USER_ID);
 
         assertEquals(1L, response.getTotalElements());
         assertEquals(1, response.getContent().size());
-        verify(youthPolicyMapper).findRecommendedYouthPolicies(AGE, MONTHLY_INCOME, 3);
-        verify(youthPolicyMapper).countRecommendedYouthPolicies(AGE, MONTHLY_INCOME);
+        verify(youthPolicyMapper).findRecommendedYouthPolicies(AGE, ANNUAL_INCOME, 3);
+        verify(youthPolicyMapper).countRecommendedYouthPolicies(AGE, ANNUAL_INCOME);
     }
 
     @Test
