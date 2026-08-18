@@ -69,4 +69,16 @@ class YouthPolicyControllerTest {
 
         verify(youthPolicyService).getYouthPolicies(USER_ID, null, null, null, 1, 10);
     }
+
+    @Test
+    void getRecommendedYouthPolicies_passesRegionFilter() throws Exception {
+        given(youthPolicyService.getRecommendedYouthPolicies(USER_ID, "서울특별시"))
+                .willReturn(PageResponse.of(List.of(), 0, 3, 0));
+
+        mockMvc.perform(get("/api/youth-policies/recommended").param("region", "서울특별시"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(youthPolicyService).getRecommendedYouthPolicies(USER_ID, "서울특별시");
+    }
 }

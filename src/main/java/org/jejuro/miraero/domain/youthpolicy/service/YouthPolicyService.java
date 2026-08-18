@@ -15,7 +15,7 @@ public interface YouthPolicyService {
             int size
     );
 
-    PageResponse<YouthPolicyListResponse> getRecommendedYouthPolicies(Long userId);
+    PageResponse<YouthPolicyListResponse> getRecommendedYouthPolicies(Long userId, String region);
 
     YouthPolicyDetailResponse getYouthPolicyDetail(Long youthPolicyId);
 }

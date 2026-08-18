@@ -39,12 +39,14 @@ public interface YouthPolicyMapper {
     List<YouthPolicyListQueryResult> findRecommendedYouthPolicies(
             @Param("age") Integer age,
             @Param("monthlyIncome") Long monthlyIncome,
+            @Param("regionCode") String regionCode,
             @Param("size") Integer size
     );
 
     long countRecommendedYouthPolicies(
             @Param("age") Integer age,
-            @Param("monthlyIncome") Long monthlyIncome
+            @Param("monthlyIncome") Long monthlyIncome,
+            @Param("regionCode") String regionCode
     );
 
     YouthPolicyDetailQueryResult findYouthPolicyById(

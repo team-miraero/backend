@@ -63,17 +63,22 @@ public class YouthPolicyServiceImpl implements YouthPolicyService {
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<YouthPolicyListResponse> getRecommendedYouthPolicies(Long userId) {
+    public PageResponse<YouthPolicyListResponse> getRecommendedYouthPolicies(Long userId, String region) {
         User user = getUserWithEligibilityInfo(userId);
         int age = calculateAge(user.getBirthDate());
         Long annualIncome = calculateAnnualIncome(user.getMonthlyIncome());
+        String regionCode = resolveRegionCode(region);
 
         List<YouthPolicyListResponse> policies = youthPolicyMapper
-                .findRecommendedYouthPolicies(age, annualIncome, RECOMMENDED_POLICY_SIZE)
+                .findRecommendedYouthPolicies(age, annualIncome, regionCode, RECOMMENDED_POLICY_SIZE)
                 .stream()
                 .map(this::toYouthPolicyListResponse)
                 .collect(Collectors.toList());
-        long totalElements = youthPolicyMapper.countRecommendedYouthPolicies(age, annualIncome);
+        long totalElements = youthPolicyMapper.countRecommendedYouthPolicies(
+                age,
+                annualIncome,
+                regionCode
+        );
 
         return PageResponse.of(policies, 0, RECOMMENDED_POLICY_SIZE, totalElements);
     }
