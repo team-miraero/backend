@@ -28,4 +28,29 @@ public class AsyncConfig {
 
         return executor;
     }
+
+    @Bean(name = "aiCoachStreamExecutor")
+    public Executor aiCoachStreamExecutor() {
+        return createExecutor(2, 10, 30, "ai-coach-stream-");
+    }
+
+    @Bean(name = "aiCoachSummaryExecutor")
+    public Executor aiCoachSummaryExecutor() {
+        return createExecutor(1, 1, 50, "ai-coach-summary-");
+    }
+
+    private Executor createExecutor(
+            int corePoolSize,
+            int maxPoolSize,
+            int queueCapacity,
+            String threadNamePrefix
+    ) {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(corePoolSize);
+        executor.setMaxPoolSize(maxPoolSize);
+        executor.setQueueCapacity(queueCapacity);
+        executor.setThreadNamePrefix(threadNamePrefix);
+        executor.initialize();
+        return executor;
+    }
 }

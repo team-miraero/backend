@@ -12,6 +12,8 @@ public class OpenAiProperties {
     private final String model;
     private final String baseUrl;
     private final int timeoutMs;
+    private final int maxOutputTokens;
+    private final String reasoningEffort;
     private final boolean moderationEnabled;
 
     public OpenAiProperties(
@@ -19,12 +21,16 @@ public class OpenAiProperties {
             @Value("${openai.model}") String model,
             @Value("${openai.base-url}") String baseUrl,
             @Value("${openai.timeout-ms}") int timeoutMs,
+            @Value("${openai.max-output-tokens:700}") int maxOutputTokens,
+            @Value("${openai.reasoning-effort:low}") String reasoningEffort,
             @Value("${openai.moderation.enabled:false}") boolean moderationEnabled
     ) {
         this.apiKey = apiKey;
         this.model = model;
         this.baseUrl = baseUrl;
         this.timeoutMs = timeoutMs;
+        this.maxOutputTokens = maxOutputTokens;
+        this.reasoningEffort = reasoningEffort;
         this.moderationEnabled = moderationEnabled;
     }
 }
