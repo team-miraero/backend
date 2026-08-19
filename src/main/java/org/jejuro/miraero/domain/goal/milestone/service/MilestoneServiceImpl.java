@@ -110,34 +110,69 @@ public class MilestoneServiceImpl implements MilestoneService {
         List<Milestone> milestones =
                 milestoneMapper.findByGoalId(goalId);
 
-        List<Milestone> achievedMilestones = new ArrayList<>();
 
+        /*
+         * 현재 금액 기준으로 새롭게 달성된 마일스톤의 상태를 업데이트
+         */
         for (Milestone milestone : milestones) {
 
             if(!milestone.achieveIfReached(currentAmount)) continue;
 
-            int updated = milestoneMapper.updateAchievement(milestone);
-
-            if (updated == 0) {
-                continue;
-            }
-
-            achievedMilestones.add(milestone);
+            milestoneMapper.updateAchievement(milestone);
 
         }
-        if (!achievedMilestones.isEmpty()) {
-            TransactionSynchronizationManager.registerSynchronization(
-                    new TransactionSynchronization() {
-                        @Override
-                        public void afterCommit() {
-                            milestoneReportService.generateReports(
-                                    achievedMilestones,
-                                    goalId
-                            );
-                        }
+
+        /*
+         * 유저의 모든 마일스톤의 리포트 조회
+         */
+        List<Long> milestoneIds = milestones.stream()
+                .map(Milestone::getMilestoneId)
+                .toList();
+
+        List<MilestoneReport> reports =
+                milestoneReportMapper.findByMilestoneIds(milestoneIds);
+
+        Map<Long, MilestoneReport> reportMap =
+                reports.stream()
+                        .collect(Collectors.toMap(
+                                MilestoneReport::getMilestoneId,
+                                report -> report
+                        ));
+
+        /*
+         * 3. COMPLETED 상태이면서
+         *    아직 리포트가 없는 마일스톤만 리포트 생성 대상
+         */
+        List<Milestone> reportTargets = milestones.stream()
+                .filter(Milestone::isAchieved)
+                .filter(milestone ->
+                        !reportMap.containsKey(
+                                milestone.getMilestoneId()
+                        )
+                )
+                .toList();
+
+        if (reportTargets.isEmpty()) {
+            return;
+        }
+
+
+        /*
+         * 4. 마일스톤 상태 변경 트랜잭션이
+         *    정상적으로 커밋된 이후 리포트 생성
+         */
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+
+                    @Override
+                    public void afterCommit() {
+                        milestoneReportService.generateReports(
+                                reportTargets,
+                                goalId
+                        );
                     }
-            );
-        }
+                }
+        );
 
     }
 
