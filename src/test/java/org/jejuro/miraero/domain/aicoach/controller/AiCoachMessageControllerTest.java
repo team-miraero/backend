@@ -22,6 +22,7 @@ import org.jejuro.miraero.domain.aicoach.domain.AiCoachMessageSenderType;
 import org.jejuro.miraero.domain.aicoach.dto.request.AiCoachMessageCreateRequest;
 import org.jejuro.miraero.domain.aicoach.dto.response.AiCoachMessageResponse;
 import org.jejuro.miraero.domain.aicoach.service.AiCoachMessageService;
+import org.jejuro.miraero.domain.aicoach.service.AiCoachStreamingService;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.jejuro.miraero.global.exception.GlobalExceptionHandler;
@@ -51,12 +52,18 @@ class AiCoachMessageControllerTest {
     @Mock
     private AiCoachMessageService aiCoachMessageService;
 
+    @Mock
+    private AiCoachStreamingService aiCoachStreamingService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() {
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new AiCoachMessageController(aiCoachMessageService))
+                .standaloneSetup(new AiCoachMessageController(
+                        aiCoachMessageService,
+                        aiCoachStreamingService
+                ))
                 .setControllerAdvice(new GlobalExceptionHandler())
                 .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .addFilters(new AuthenticationRequiredFilter())

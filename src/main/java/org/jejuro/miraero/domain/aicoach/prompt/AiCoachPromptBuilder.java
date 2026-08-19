@@ -18,7 +18,22 @@ public class AiCoachPromptBuilder {
             제공된 데이터만을 근거로 답변하고, 없는 정보는 추측하지 않습니다.
             확정적인 수익이나 목표 달성을 보장하지 않습니다.
             주식 종목과 매수·매도 추천은 하지 않습니다.
-            답변은 현재 상황, 근거, 실천 방안 2~3개, 목표 영향 순서로 간결하게 작성합니다.
+            사용자는 자신의 재무 현황을 이미 알고 있으므로 자산, 소득, 지출, 목표 금액을 반복하지 않습니다.
+            질문에 대한 결론을 첫 문장에 바로 답하고, 판단에 꼭 필요한 숫자만 언급합니다.
+            근거나 현재 상황 섹션은 만들지 말고 실천 방안 2개와 목표 영향만 간결하게 작성합니다.
+            모든 문장은 금융 서비스에 맞는 정중한 합니다체로 작성합니다. 반말이나 해라체를 사용하지 않습니다.
+            """;
+    private static final String STREAMING_RESPONSE_FORMAT = """
+            답변 본문만 작성하세요. TITLE, ANSWER, SUMMARY 같은 레이블은 쓰지 마세요.
+            아래 형식을 지키고 250자 이내로 제한하세요.
+            결론: 질문에 대한 직접적인 답변
+            - 실천 방안 1
+            - 실천 방안 2
+            목표 영향: 한 문장
+            """;
+    private static final String SUMMARY_RESPONSE_FORMAT = """
+            대화 요약만 작성하세요. TITLE, ANSWER, SUMMARY 같은 레이블은 쓰지 마세요.
+            중요한 사실과 결정만 남기고 300자 이내로 작성하세요.
             """;
     /*
             첫 질문이므로 아래 형식을 반드시 지키세요.
@@ -58,6 +73,41 @@ public class AiCoachPromptBuilder {
                 .append("The summary must preserve important facts, decisions, and the current "
                         + "question and answer. Keep it concise and within 1000 Korean characters.");
         return prompt.toString();
+    }
+
+    public String buildStreamingPrompt(
+            AiCoachFinancialContext financialContext,
+            String conversationSummary,
+            String currentQuestion
+    ) {
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("[SYSTEM]\n")
+                .append(SYSTEM_PROMPT)
+                .append('\n')
+                .append(STREAMING_RESPONSE_FORMAT)
+                .append("\n[FINANCIAL_CONTEXT]\n");
+        appendFinancialContext(prompt, financialContext);
+        prompt.append("\n[PREVIOUS_CONVERSATION_SUMMARY]\n")
+                .append(conversationSummary == null || conversationSummary.isBlank()
+                        ? UNKNOWN_INFORMATION
+                        : conversationSummary)
+                .append("\n[CURRENT_USER_QUESTION]\nUSER: ")
+                .append(currentQuestion);
+        return prompt.toString();
+    }
+
+    public String buildSummaryPrompt(
+            String previousSummary,
+            String currentQuestion,
+            String answer
+    ) {
+        return "[SYSTEM]\n" + SUMMARY_RESPONSE_FORMAT
+                + "\n[PREVIOUS_CONVERSATION_SUMMARY]\n"
+                + (previousSummary == null || previousSummary.isBlank()
+                        ? UNKNOWN_INFORMATION
+                        : previousSummary)
+                + "\n[CURRENT_USER_QUESTION]\nUSER: " + currentQuestion
+                + "\n[CURRENT_ASSISTANT_ANSWER]\nASSISTANT: " + answer;
     }
 
     private void appendFinancialContext(

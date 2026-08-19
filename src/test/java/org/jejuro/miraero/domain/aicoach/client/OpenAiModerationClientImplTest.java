@@ -14,6 +14,8 @@ class OpenAiModerationClientImplTest {
                 "gpt-5-nano",
                 "https://api.openai.com/v1",
                 1,
+                700,
+                "low",
                 false
         );
         OpenAiModerationClient client = new OpenAiModerationClientImpl(properties);
