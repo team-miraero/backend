@@ -17,6 +17,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -159,11 +160,14 @@ public class MilestoneReportServiceImpl
             List<Milestone> milestones,
             Long goalId
     ) {
-        for (Milestone milestone : milestones) {
-            generateReport(
-                    milestone.getMilestoneId(),
-                    goalId
-            );
+        if (milestones == null || milestones.isEmpty()) {
+            return;
         }
+
+        Milestone lastMilestone = milestones.stream()
+                .max(Comparator.comparing(Milestone::getMilestonePercentage))
+                .orElseThrow();
+
+        generateReport(lastMilestone.getMilestoneId(),goalId);
     }
 }
