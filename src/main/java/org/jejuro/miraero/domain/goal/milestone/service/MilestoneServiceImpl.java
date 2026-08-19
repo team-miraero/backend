@@ -14,7 +14,10 @@ import org.jejuro.miraero.domain.goal.milestone.mapper.MilestoneReportMapper;
 import org.jejuro.miraero.global.exception.BusinessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -107,6 +110,8 @@ public class MilestoneServiceImpl implements MilestoneService {
         List<Milestone> milestones =
                 milestoneMapper.findByGoalId(goalId);
 
+        List<Milestone> achievedMilestones = new ArrayList<>();
+
         for (Milestone milestone : milestones) {
 
             if(!milestone.achieveIfReached(currentAmount)) continue;
@@ -117,11 +122,23 @@ public class MilestoneServiceImpl implements MilestoneService {
                 continue;
             }
 
-            milestoneReportService.generateReport(
-                    milestone.getMilestoneId(),
-                    goalId
+            achievedMilestones.add(milestone);
+
+        }
+        if (!achievedMilestones.isEmpty()) {
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            milestoneReportService.generateReports(
+                                    achievedMilestones,
+                                    goalId
+                            );
+                        }
+                    }
             );
         }
+
     }
 
     /**

@@ -31,7 +31,6 @@ public class MilestoneReportAsyncService {
     private final MilestoneReportDataService dataService;
     private final MilestoneReportAiService aiService;
 
-    @Async("milestoneReportExecutor")
     public void generate(
             Long milestoneId,
             Long goalId,
@@ -62,12 +61,20 @@ public class MilestoneReportAsyncService {
                             request
                     );
 
+            log.info(
+                    "AI REPORT RESULT - reportId={}, title={}, content={}",
+                    reportId,
+                    report.title(),
+                    report.content()
+            );
+
             int updated =
                     milestoneReportMapper.updateCompleted(
                             reportId,
                             report.title(),
                             report.content()
                     );
+
 
             if (updated == 0) {
                 log.warn(
