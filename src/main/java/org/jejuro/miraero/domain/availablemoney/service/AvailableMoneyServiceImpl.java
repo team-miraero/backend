@@ -1,7 +1,6 @@
 package org.jejuro.miraero.domain.availablemoney.service;
 
 import lombok.RequiredArgsConstructor;
-import org.jejuro.miraero.domain.autotransfer.service.AutoTransferQueryService;
 import org.jejuro.miraero.domain.availablemoney.calculator.AvailableMoneyCalculator;
 import org.jejuro.miraero.domain.availablemoney.dto.response.DailyAvailableMoneyResponse;
 import org.jejuro.miraero.domain.availablemoney.dto.response.MonthlyAvailableMoneyResponse;
@@ -22,7 +21,8 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
 
     private final AvailableMoneyCalculator calculator;
     private final TransactionQueryService transactionQueryService;
-    private final AutoTransferQueryService autoTransferQueryService;
+    // 자동이체 금액을 여유자금에서 차감하는 정책이 다시 적용될 경우 복구한다.
+    // private final AutoTransferQueryService autoTransferQueryService;
     private final UserService userService;
 
     @Override
@@ -37,8 +37,11 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
                 userId, period.startDate, period.endDate);
 
         Long monthlyIncome =  userService.getMonthlyIncome(userId);
-        Long targetTransfer = autoTransferQueryService.getTargetGoalTransferAmount(goalId);
-        Long otherTransfer = autoTransferQueryService.getOtherGoalTransferAmount(userId, goalId);
+        // 목표 자동이체 금액은 여유자금 계산에서 제외한다.
+        // Long targetTransfer = autoTransferQueryService.getTargetGoalTransferAmount(goalId);
+        // Long otherTransfer = autoTransferQueryService.getOtherGoalTransferAmount(userId, goalId);
+        Long targetTransfer = 0L;
+        Long otherTransfer = 0L;
 
         Long availableMoney = calculator.calculateMonthlyAvailableMoney(
                 monthlyIncome, fixedExpense, variableExpense, targetTransfer, otherTransfer);
@@ -66,8 +69,8 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
                 .monthlyIncome(monthlyIncome)
                 .fixedExpense(fixedExpense)
                 .variableExpense(variableExpense)
-                .targetGoalAutoTransfer(targetTransfer)
-                .otherGoalAutoTransfer(otherTransfer)
+                // .targetGoalAutoTransfer(targetTransfer)
+                // .otherGoalAutoTransfer(otherTransfer)
                 .monthlyAvailableMoney(availableMoney)
                 .elapsedDays(elapsedDays)
                 .remainingDays(remainingDays)
@@ -114,11 +117,15 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
                 transactionQueryService.getLatestSalaryDateTimes(userId, 3);
         PaydayPeriod period = resolvePaydayPeriod(salaryDateTimes);
 
+        // 전체 목표 자동이체 금액은 페이스메이커 정산용 여유자금에서도 제외한다.
+        // Long totalTransfer = autoTransferQueryService.getTotalTransferAmount(userId);
+        Long totalTransfer = 0L;
+
         Long monthlyAvailableMoney = calculator.calculateMonthlyAvailableMoney(
                 userService.getMonthlyIncome(userId),
                 transactionQueryService.getFixedExpenseSum(userId, period.startDate, period.endDate),
                 transactionQueryService.getVariableExpenseSum(userId, period.startDate, period.endDate),
-                autoTransferQueryService.getTotalTransferAmount(userId),
+                totalTransfer,
                 0L
         );
 
