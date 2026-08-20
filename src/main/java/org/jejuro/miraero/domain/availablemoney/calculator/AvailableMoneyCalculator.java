@@ -18,10 +18,11 @@ public class AvailableMoneyCalculator {
         long income = (monthlyIncome != null) ? monthlyIncome : 0L;
         long fixed = (fixedExpense != null) ? fixedExpense : 0L;
         long variable = (variableExpense != null) ? variableExpense : 0L;
-        long target = (targetAutoTransfer != null) ? targetAutoTransfer : 0L;
-        long other = (otherAutoTransfer != null) ? otherAutoTransfer : 0L;
+        // 목표 자동이체 금액을 차감하던 기존 정책은 복구 가능하도록 남겨둔다.
+        // long target = (targetAutoTransfer != null) ? targetAutoTransfer : 0L;
+        // long other = (otherAutoTransfer != null) ? otherAutoTransfer : 0L;
 
-        long result = income - (fixed + variable + target + other);
+        long result = income - (fixed + variable);
         return Math.max(result, 0L);
     }
 

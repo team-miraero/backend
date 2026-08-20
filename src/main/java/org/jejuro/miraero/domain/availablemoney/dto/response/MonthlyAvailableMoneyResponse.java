@@ -15,10 +15,11 @@ public class MonthlyAvailableMoneyResponse {
     private Long fixedExpense;
     @ApiModelProperty(value = "월 변동 지출(원)")
     private Long variableExpense;
-    @ApiModelProperty(value = "현재 목표 자동 이체 금액(원)")
-    private Long targetGoalAutoTransfer;
-    @ApiModelProperty(value = "다른 목표 자동 이체 금액(원)")
-    private Long otherGoalAutoTransfer;
+    // 자동이체 항목을 응답에서 다시 제공해야 할 경우 복구한다.
+    // @ApiModelProperty(value = "현재 목표 자동 이체 금액(원)")
+    // private Long targetGoalAutoTransfer;
+    // @ApiModelProperty(value = "다른 목표 자동 이체 금액(원)")
+    // private Long otherGoalAutoTransfer;
     @ApiModelProperty(value = "월 가용 금액(원)")
     private Long monthlyAvailableMoney;
     private Long elapsedDays;
