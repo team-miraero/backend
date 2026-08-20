@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.jejuro.miraero.domain.autotransfer.domain.SavingHistorySummary;
 import org.jejuro.miraero.domain.autotransfer.domain.TransferStatus;
 
 /**
@@ -37,5 +38,16 @@ public interface SavingHistoryMapper {
       @Param("amount") Long amount,
       @Param("transactedAt") LocalDate transactedAt,
       @Param("transferStatus") TransferStatus transferStatus
+  );
+
+  /**
+   * 구간 내 적립 이력을 집계한다. 마일스톤 리포트가 적립 성실도를 판단하는 데 쓴다.
+   *
+   * @return 이력이 하나도 없어도 0으로 채워진 객체를 반환한다
+   */
+  SavingHistorySummary findSummary(
+      @Param("userId") Long userId,
+      @Param("startDate") LocalDate startDate,
+      @Param("endDate") LocalDate endDate
   );
 }
