@@ -3,10 +3,10 @@ package org.jejuro.miraero.domain.goal.service;
 import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.availablemoney.dto.response.MonthlyAvailableMoneyResponse;
 import org.jejuro.miraero.domain.availablemoney.service.AvailableMoneyService;
+import org.jejuro.miraero.domain.goal.calculator.GoalPaceCalculator;
 import org.jejuro.miraero.domain.goal.domain.Goal;
 import org.jejuro.miraero.domain.goal.domain.GoalPossibility;
 import org.jejuro.miraero.domain.goal.domain.GoalStatus;
-import org.jejuro.miraero.domain.goal.domain.PaceStatus;
 import org.jejuro.miraero.domain.goal.dto.request.GoalAssetRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalCreateRequest;
 import org.jejuro.miraero.domain.goal.dto.request.GoalPossibilityRequest;
@@ -40,6 +40,7 @@ public class GoalServiceImpl implements GoalService{
     private final ExpenseCategoryTargetService expenseCategoryTargetService;
     private final AvailableMoneyService availableMoneyService;
     private final UserService userService;
+    private final GoalPaceCalculator goalPaceCalculator;
 
 
     /**
@@ -298,7 +299,7 @@ public class GoalServiceImpl implements GoalService{
                 .build();
 
         // 페이스 계산
-        GoalPaceResponse pace = calculatePace(
+        GoalPaceResponse pace = goalPaceCalculator.calculate(
                 goal,
                 currentAmount
         );
@@ -315,73 +316,6 @@ public class GoalServiceImpl implements GoalService{
                 .period(period)
                 .pace(pace)
                 .build();
-    }
-
-    private GoalPaceResponse calculatePace(
-            Goal goal,
-            Long currentAmount
-    ) {
-
-        long goalMonths = ChronoUnit.MONTHS.between(
-                YearMonth.from(goal.getStartDate()),
-                YearMonth.from(goal.getGoalDate())
-        );
-
-        long elapsedMonths = ChronoUnit.MONTHS.between(
-                YearMonth.from(goal.getStartDate()),
-                YearMonth.now()
-        );
-
-        long requiredMonthly = calculateRequiredMonthly(
-                goal.getGoalAmount(),
-                goal.getStartAmount(),
-                goalMonths
-        );
-
-
-        long expectedAmount = goal.getStartAmount() + (requiredMonthly*Math.min(elapsedMonths,goalMonths));
-
-
-        long differenceAmount =
-                (currentAmount == null ? 0L : currentAmount) - expectedAmount;
-
-
-        PaceStatus status;
-
-        if (differenceAmount > 0) {
-            status = PaceStatus.AHEAD;
-        } else if (differenceAmount < 0) {
-            status = PaceStatus.BEHIND;
-        } else {
-            status = PaceStatus.ON_TRACK;
-        }
-
-        differenceAmount = Math.abs(differenceAmount);
-
-
-        return GoalPaceResponse.builder()
-                .expectedAmount(expectedAmount)
-                .differenceAmount(differenceAmount)
-                .paceStatus(status)
-                .build();
-    }
-
-    private long calculateRequiredMonthly(
-            long goalAmount,
-            long startAmount,
-            long goalMonths
-    ) {
-        if (goalMonths <= 0) {
-            throw new BusinessException(
-                    CommonErrorCode.INVALID_INPUT_VALUE
-            );
-        }
-
-        if (startAmount >= goalAmount) {
-            return 0L;
-        }
-
-        return (goalAmount - startAmount + goalMonths - 1) / goalMonths;
     }
 
     private void validateGoalInput(
