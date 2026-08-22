@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.jejuro.miraero.domain.availablemoney.calculator.AvailableMoneyCalculator;
 import org.jejuro.miraero.domain.availablemoney.dto.response.DailyAvailableMoneyResponse;
 import org.jejuro.miraero.domain.availablemoney.dto.response.MonthlyAvailableMoneyResponse;
+import org.jejuro.miraero.domain.transaction.dto.response.AvailableMoneyExpenseSummary;
 import org.jejuro.miraero.domain.transaction.service.TransactionQueryService;
 import org.jejuro.miraero.domain.user.service.UserService;
 import org.springframework.stereotype.Service;
@@ -26,83 +27,76 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
     private final UserService userService;
 
     @Override
-    public MonthlyAvailableMoneyResponse getMonthlyAvailableMoney(Long userId, Long goalId) {
-        List<LocalDateTime> salaryDateTimes = transactionQueryService.getLatestSalaryDateTimes(userId, 3);
+    public MonthlyAvailableMoneyResponse getMonthlyAvailableMoney(
+            Long userId,
+            Long goalId
+    ) {
+        List<LocalDateTime> salaryDateTimes =
+                transactionQueryService.getLatestSalaryDateTimes(userId, 3);
 
         PaydayPeriod period = resolvePaydayPeriod(salaryDateTimes);
 
-        Long fixedExpense = transactionQueryService.getFixedExpenseSum(
-                userId, period.startDate, period.endDate);
-        Long variableExpense = transactionQueryService.getVariableExpenseSum(
-                userId, period.startDate, period.endDate);
+        return calculateMonthlyAvailableMoney(
+                userId,
+                goalId,
+                period
+        );
+    }
 
-        Long monthlyIncome =  userService.getMonthlyIncome(userId);
-        // 목표 자동이체 금액은 여유자금 계산에서 제외한다.
-        // Long targetTransfer = autoTransferQueryService.getTargetGoalTransferAmount(goalId);
-        // Long otherTransfer = autoTransferQueryService.getOtherGoalTransferAmount(userId, goalId);
-        Long targetTransfer = 0L;
-        Long otherTransfer = 0L;
+    @Override
+    public DailyAvailableMoneyResponse getDailyAvailableMoney(
+            Long userId,
+            Long goalId
+    ) {
+        List<LocalDateTime> salaryDateTimes =
+                transactionQueryService.getLatestSalaryDateTimes(userId, 3);
 
-        Long availableMoney = calculator.calculateMonthlyAvailableMoney(
-                monthlyIncome, fixedExpense, variableExpense, targetTransfer, otherTransfer);
+        PaydayPeriod period = resolvePaydayPeriod(salaryDateTimes);
+
+        MonthlyAvailableMoneyResponse monthly =
+                calculateMonthlyAvailableMoney(userId, goalId, period);
 
         LocalDate businessDate =
                 LocalDateTime.now().minusHours(8).toLocalDate();
 
-        long elapsedDays = ChronoUnit.DAYS.between(
-                period.startDate.toLocalDate(),
-                businessDate
-        );
+        long remainingDays =
+                ChronoUnit.DAYS.between(
+                        businessDate,
+                        period.endDate.toLocalDate()
+                ) + 1;
 
-        long remainingDays = ChronoUnit.DAYS.between(
-                businessDate,
-                period.nextSalaryDate.toLocalDate()
-        );
+        if (remainingDays <= 0) {
+            remainingDays = 1;
+        }
 
-        long periodDays = ChronoUnit.DAYS.between(
-                period.startDate.toLocalDate(),
-                period.nextSalaryDate.toLocalDate()
-        );
+        Long todayAvailableMoney =
+                calculator.calculateDailyAvailableMoney(
+                        monthly.getMonthlyAvailableMoney(),
+                        remainingDays
+                );
 
+        LocalDateTime startDateTime =
+                businessDate.atTime(8, 0);
 
-        return MonthlyAvailableMoneyResponse.builder()
-                .monthlyIncome(monthlyIncome)
-                .fixedExpense(fixedExpense)
-                .variableExpense(variableExpense)
-                // .targetGoalAutoTransfer(targetTransfer)
-                // .otherGoalAutoTransfer(otherTransfer)
-                .monthlyAvailableMoney(availableMoney)
-                .elapsedDays(elapsedDays)
-                .remainingDays(remainingDays)
-                .periodDays(periodDays)
-                .build();
-    }
+        LocalDateTime endDateTime =
+                businessDate.plusDays(1).atTime(8, 0);
 
-    @Override
-    public DailyAvailableMoneyResponse getDailyAvailableMoney(Long userId, Long goalId) {
-        MonthlyAvailableMoneyResponse monthly = getMonthlyAvailableMoney(userId, goalId);
-
-        List<LocalDateTime> salaryDateTimes = transactionQueryService.getLatestSalaryDateTimes(userId, 3);
-        PaydayPeriod period = resolvePaydayPeriod(salaryDateTimes);
-
-        // 아침 8시 기준 영업일 날짜 계산
-        LocalDate businessDate = LocalDateTime.now().minusHours(8).toLocalDate();
-        long remainingDays = ChronoUnit.DAYS.between(businessDate, period.endDate.toLocalDate()) + 1;
-        if (remainingDays <= 0) remainingDays = 1;
-
-        Long todayAvailableMoney = calculator.calculateDailyAvailableMoney(
-                monthly.getMonthlyAvailableMoney(), remainingDays);
-
-        LocalDateTime startDateTime = businessDate.atTime(8,0);
-
-        LocalDateTime endDateTime = businessDate.plusDays(1).atTime(8,0);
-
-        Long todayExpense = transactionQueryService.getTodayExpenseSum(userId,startDateTime,endDateTime);
+        Long todayExpense =
+                transactionQueryService.getTodayExpenseSum(
+                        userId,
+                        startDateTime,
+                        endDateTime
+                );
 
         return DailyAvailableMoneyResponse.builder()
                 .todayAvailableMoney(todayAvailableMoney)
                 .todayExpense(todayExpense)
-                .remainingAvailableMoney(calculator.calculateRemainingMoney(todayAvailableMoney, todayExpense))
+                .remainingAvailableMoney(
+                        calculator.calculateRemainingMoney(
+                                todayAvailableMoney,
+                                todayExpense
+                        )
+                )
                 .build();
     }
 
@@ -115,34 +109,57 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
     public Long getRemainingMoneyOf(Long userId, LocalDate businessDate) {
         List<LocalDateTime> salaryDateTimes =
                 transactionQueryService.getLatestSalaryDateTimes(userId, 3);
+
         PaydayPeriod period = resolvePaydayPeriod(salaryDateTimes);
 
         // 전체 목표 자동이체 금액은 페이스메이커 정산용 여유자금에서도 제외한다.
-        // Long totalTransfer = autoTransferQueryService.getTotalTransferAmount(userId);
+        // Long totalTransfer =
+        //         autoTransferQueryService.getTotalTransferAmount(userId);
         Long totalTransfer = 0L;
 
-        Long monthlyAvailableMoney = calculator.calculateMonthlyAvailableMoney(
-                userService.getMonthlyIncome(userId),
-                transactionQueryService.getFixedExpenseSum(userId, period.startDate, period.endDate),
-                transactionQueryService.getVariableExpenseSum(userId, period.startDate, period.endDate),
-                totalTransfer,
-                0L
-        );
+        AvailableMoneyExpenseSummary expenseSummary =
+                transactionQueryService.getAvailableMoneyExpenseSummary(
+                        userId,
+                        period.startDate,
+                        period.endDate
+                );
+
+        Long monthlyAvailableMoney =
+                calculator.calculateMonthlyAvailableMoney(
+                        userService.getMonthlyIncome(userId),
+                        expenseSummary.getFixedExpense(),
+                        expenseSummary.getVariableExpense(),
+                        totalTransfer,
+                        0L
+                );
 
         long remainingDays =
-                ChronoUnit.DAYS.between(businessDate, period.endDate.toLocalDate()) + 1;
-        if (remainingDays <= 0) remainingDays = 1;
+                ChronoUnit.DAYS.between(
+                        businessDate,
+                        period.endDate.toLocalDate()
+                ) + 1;
+
+        if (remainingDays <= 0) {
+            remainingDays = 1;
+        }
 
         Long dailyAvailableMoney =
-                calculator.calculateDailyAvailableMoney(monthlyAvailableMoney, remainingDays);
+                calculator.calculateDailyAvailableMoney(
+                        monthlyAvailableMoney,
+                        remainingDays
+                );
 
-        Long expense = transactionQueryService.getTodayExpenseSum(
-                userId,
-                businessDate.atTime(8, 0),
-                businessDate.plusDays(1).atTime(8, 0)
+        Long expense =
+                transactionQueryService.getTodayExpenseSum(
+                        userId,
+                        businessDate.atTime(8, 0),
+                        businessDate.plusDays(1).atTime(8, 0)
+                );
+
+        return calculator.calculateRemainingMoney(
+                dailyAvailableMoney,
+                expense
         );
-
-        return calculator.calculateRemainingMoney(dailyAvailableMoney, expense);
     }
 
     private PaydayPeriod resolvePaydayPeriod(List<LocalDateTime> salaryDateTimes) {
@@ -245,5 +262,63 @@ public class AvailableMoneyServiceImpl implements AvailableMoneyService {
                     nextSalaryDate.toLocalDate()
             );
         }
+    }
+
+    private MonthlyAvailableMoneyResponse calculateMonthlyAvailableMoney(
+            Long userId,
+            Long goalId,
+            PaydayPeriod period
+    ) {
+        AvailableMoneyExpenseSummary expenseSummary =
+                transactionQueryService.getAvailableMoneyExpenseSummary(
+                        userId,
+                        period.startDate,
+                        period.endDate
+                );
+
+        Long fixedExpense = expenseSummary.getFixedExpense();
+        Long variableExpense = expenseSummary.getVariableExpense();
+
+        Long monthlyIncome = userService.getMonthlyIncome(userId);
+
+        Long targetTransfer = 0L;
+        Long otherTransfer = 0L;
+
+        Long availableMoney =
+                calculator.calculateMonthlyAvailableMoney(
+                        monthlyIncome,
+                        fixedExpense,
+                        variableExpense,
+                        targetTransfer,
+                        otherTransfer
+                );
+
+        LocalDate businessDate =
+                LocalDateTime.now().minusHours(8).toLocalDate();
+
+        long elapsedDays = ChronoUnit.DAYS.between(
+                period.startDate.toLocalDate(),
+                businessDate
+        );
+
+        long remainingDays = ChronoUnit.DAYS.between(
+                businessDate,
+                period.nextSalaryDate.toLocalDate()
+        );
+
+        long periodDays = ChronoUnit.DAYS.between(
+                period.startDate.toLocalDate(),
+                period.nextSalaryDate.toLocalDate()
+        );
+
+        return MonthlyAvailableMoneyResponse.builder()
+                .monthlyIncome(monthlyIncome)
+                .fixedExpense(fixedExpense)
+                .variableExpense(variableExpense)
+                .monthlyAvailableMoney(availableMoney)
+                .elapsedDays(elapsedDays)
+                .remainingDays(remainingDays)
+                .periodDays(periodDays)
+                .build();
     }
 }

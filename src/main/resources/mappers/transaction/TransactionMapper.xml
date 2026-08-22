@@ -74,32 +74,41 @@
         LIMIT 1
     </select>
 
-    <!-- 2. 고정 지출 합산 (WITHDRAWAL + PAYMENT 반영) -->
-    <select id="findFixedExpenseSum"
-            resultType="long">
-        SELECT COALESCE(SUM(t.amount), 0)
-        FROM `transaction` t
-            JOIN expense_category ec
-                ON t.expense_category_id = ec.expense_category_id
-        WHERE t.user_id = #{userId}
-            AND t.transaction_type IN ('WITHDRAWAL', 'PAYMENT')
-            AND ec.expense_type = 'FIXED'
-            AND t.transacted_at <![CDATA[>=]]> #{startDateTime}
-            AND t.transacted_at <![CDATA[<]]> #{endDateTime}
-    </select>
+    <select id="findAvailableMoneyExpenseSummary"
+            resultType="org.jejuro.miraero.domain.transaction.dto.response.AvailableMoneyExpenseSummary">
 
-    <!-- 3. 변동 지출 합산 (WITHDRAWAL + PAYMENT 반영) -->
-    <select id="findVariableExpenseSum"
-            resultType="long">
-        SELECT COALESCE(SUM(t.amount), 0)
-        FROM `transaction` t
-            JOIN expense_category ec
-                ON t.expense_category_id = ec.expense_category_id
+        SELECT
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN ec.expense_type = 'FIXED'
+                        THEN t.amount
+                        ELSE 0
+                    END
+                ),
+                0
+            ) AS fixedExpense,
+
+            COALESCE(
+                SUM(
+                    CASE
+                        WHEN ec.expense_type = 'VARIABLE'
+                        THEN t.amount
+                        ELSE 0
+                    END
+                ),
+                0
+            ) AS variableExpense
+
+        FROM transaction t
+        JOIN expense_category ec
+            ON t.expense_category_id = ec.expense_category_id
+
         WHERE t.user_id = #{userId}
             AND t.transaction_type IN ('WITHDRAWAL', 'PAYMENT')
-            AND ec.expense_type = 'VARIABLE'
-            AND t.transacted_at <![CDATA[>=]]> #{startDateTime}
+            AND t.transacted_at >= #{startDateTime}
             AND t.transacted_at <![CDATA[<]]> #{endDateTime}
+
     </select>
 
     <!-- 4. 오늘 지출 합산 (WITHDRAWAL + PAYMENT 반영 및 파라미터 유연성 확보) -->

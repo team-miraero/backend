@@ -1,5 +1,7 @@
 package org.jejuro.miraero.domain.transaction.service;
 
+import org.jejuro.miraero.domain.transaction.dto.response.AvailableMoneyExpenseSummary;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -20,32 +22,10 @@ public interface TransactionQueryService {
      */
     Long getSalaryAccountId(Long userId);
 
-    /**
-     * 특정 기간 내 고정 지출 금액 합계를 조회한다
-     *
-     * @param userId 사용자 ID
-     * @param startDateTime 조회 시작 일시
-     * @param endDateTime 조회 종료 일시
-     * @return 고정 지출 합계 금액
-     */
-    Long getFixedExpenseSum(
+    AvailableMoneyExpenseSummary getAvailableMoneyExpenseSummary(
             Long userId,
-            LocalDateTime startDateTime,
-            LocalDateTime endDateTime
-    );
-
-    /**
-     * 특정 기간 내 변동 지출 금액 합계를 조회한다.
-     *
-     * @param userId 사용자 ID
-     * @param startDateTime 조회 시작 일시
-     * @param endDateTime 조회 종료 일시
-     * @return 변동 지출 합계 금액
-     */
-    Long getVariableExpenseSum(
-            Long userId,
-            LocalDateTime startDateTime,
-            LocalDateTime endDateTime
+            LocalDateTime startDate,
+            LocalDateTime endDate
     );
 
     /**
@@ -59,5 +39,7 @@ public interface TransactionQueryService {
             LocalDateTime startDateTime,
             LocalDateTime endDateTime
     );
+
+
 
 }

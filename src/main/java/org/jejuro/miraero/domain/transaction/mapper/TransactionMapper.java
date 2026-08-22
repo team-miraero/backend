@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.transaction.domain.TransactionQueryResult;
 import org.jejuro.miraero.domain.transaction.dto.request.TransactionSearchCondition;
+import org.jejuro.miraero.domain.transaction.dto.response.AvailableMoneyExpenseSummary;
 import org.jejuro.miraero.domain.transaction.dto.response.ExpenseCategorySummaryResponse;
 
 public interface TransactionMapper {
@@ -26,15 +27,7 @@ public interface TransactionMapper {
     // 저금통 자동이체는 급여가 들어오는 계좌에서만 허용하므로 그 계좌를 특정한다
     Long findLatestSalaryAccountId(@Param("userId") Long userId);
 
-    // 고정 지출 합산
-    Long findFixedExpenseSum(
-            @Param("userId") Long userId,
-            @Param("startDateTime") LocalDateTime startDateTime,
-            @Param("endDateTime") LocalDateTime endDateTime
-    );
-
-    // 변동 지출 합산
-    Long findVariableExpenseSum(
+    AvailableMoneyExpenseSummary findAvailableMoneyExpenseSummary(
             @Param("userId") Long userId,
             @Param("startDateTime") LocalDateTime startDateTime,
             @Param("endDateTime") LocalDateTime endDateTime
