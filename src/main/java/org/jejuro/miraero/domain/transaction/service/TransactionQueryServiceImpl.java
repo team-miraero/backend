@@ -1,6 +1,7 @@
 package org.jejuro.miraero.domain.transaction.service;
 
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.transaction.dto.response.AvailableMoneyExpenseSummary;
 import org.jejuro.miraero.domain.transaction.mapper.TransactionMapper;
 import org.springframework.stereotype.Service;
 
@@ -24,16 +25,25 @@ public class TransactionQueryServiceImpl implements TransactionQueryService {
         return transactionMapper.findLatestSalaryAccountId(userId);
     }
 
-    @Override
-    public Long getFixedExpenseSum(Long userId, LocalDateTime startDate, LocalDateTime endDate) {
-        Long sum = transactionMapper.findFixedExpenseSum(userId, startDate, endDate);
-        return sum == null ? 0L : sum;
-    }
 
     @Override
-    public Long getVariableExpenseSum(Long userId, LocalDateTime startDate, LocalDateTime endDate) {
-        Long sum = transactionMapper.findVariableExpenseSum(userId, startDate, endDate);
-        return sum == null ? 0L : sum;
+    public AvailableMoneyExpenseSummary getAvailableMoneyExpenseSummary(
+            Long userId,
+            LocalDateTime startDate,
+            LocalDateTime endDate
+    ) {
+        AvailableMoneyExpenseSummary summary =
+                transactionMapper.findAvailableMoneyExpenseSummary(
+                        userId,
+                        startDate,
+                        endDate
+                );
+
+        if (summary == null) {
+            return new AvailableMoneyExpenseSummary(0L, 0L);
+        }
+
+        return summary;
     }
 
     @Override
