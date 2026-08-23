@@ -74,4 +74,25 @@
         )
     </select>
 
+    <select id="findByGoalIds"
+            resultMap="goalAssetResultMap">
+
+        SELECT
+            goal_asset_id,
+            goal_id,
+            asset_type,
+            asset_id,
+            created_at
+        FROM goal_asset
+        WHERE goal_id IN
+        <foreach collection="goalIds"
+                 item="goalId"
+                 open="("
+                 separator=","
+                 close=")">
+            #{goalId}
+        </foreach>
+
+    </select>
+
 </mapper>

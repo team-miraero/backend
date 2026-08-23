@@ -27,6 +27,7 @@ import java.time.YearMonth;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -194,19 +195,39 @@ public class GoalServiceImpl implements GoalService{
     @Transactional(readOnly = true)
     public List<GoalListResponse> getGoalsByUserId(Long userId) {
 
-        List<Goal> goals = goalMapper.findGoalsByUserId(userId);
+        List<Goal> goals =
+                goalMapper.findGoalsByUserId(userId);
+
+        if (goals == null || goals.isEmpty()) {
+            return List.of();
+        }
+
+        // 목표 ID 일괄 추출
+        List<Long> goalIds = goals.stream()
+                .map(Goal::getGoalId)
+                .toList();
+
+        // 모든 목표의 현재 금액을 한 번에 계산
+        Map<Long, Long> currentAmountMap =
+                goalAssetService.calculateCurrentAmounts(
+                        userId,
+                        goalIds
+                );
 
         return goals.stream()
                 .map(goal -> {
-                    Long currentAmount = goalAssetService.calculateCurrentAmount(
-                            userId,
-                            goal.getGoalId()
-                    );
 
-                    Integer progressRate = calculateProgressRate(
-                            currentAmount,
-                            goal.getGoalAmount()
-                    );
+                    Long currentAmount =
+                            currentAmountMap.getOrDefault(
+                                    goal.getGoalId(),
+                                    0L
+                            );
+
+                    Integer progressRate =
+                            calculateProgressRate(
+                                    currentAmount,
+                                    goal.getGoalAmount()
+                            );
 
                     return GoalListResponse.from(
                             goal,

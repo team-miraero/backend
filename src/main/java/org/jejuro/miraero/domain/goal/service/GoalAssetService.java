@@ -7,6 +7,7 @@ import org.jejuro.miraero.domain.goal.dto.response.GoalPullFundsResponse;
 import org.jejuro.miraero.domain.goal.dto.response.asset.GoalAssetListResponse;
 
 import java.util.List;
+import java.util.Map;
 
 public interface GoalAssetService {
 
@@ -28,6 +29,11 @@ public interface GoalAssetService {
      * @return 목표에 연결된 자산의 현재 금액 합산
      */
     Long calculateCurrentAmount(Long userId, Long goalId);
+
+    Map<Long, Long> calculateCurrentAmounts(
+            Long userId,
+            List<Long> goalIds
+    );
 
     GoalAssetListResponse getGoalAssets(Long userId, Long goalId);
 

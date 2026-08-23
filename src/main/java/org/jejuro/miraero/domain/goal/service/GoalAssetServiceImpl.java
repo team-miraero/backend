@@ -229,26 +229,189 @@ public class GoalAssetServiceImpl implements GoalAssetService {
     @Override
     @Transactional(readOnly = true)
     public Long calculateCurrentAmount(Long userId, Long goalId) {
-        List<GoalAsset> assets = goalAssetMapper.findByGoalId(goalId);
-        Goal goal = goalMapper.findByIdAndUserId(userId, goalId);
 
-        if(goal == null) throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        List<GoalAsset> assets =
+                goalAssetMapper.findByGoalId(goalId);
+
+        if (assets == null || assets.isEmpty()) {
+            return 0L;
+        }
+
+        List<Long> accountIds = assets.stream()
+                .filter(asset ->
+                        asset.getAssetType() == AssetType.ACCOUNT)
+                .map(GoalAsset::getAssetId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        List<Long> moneyBoxIds = assets.stream()
+                .filter(asset ->
+                        asset.getAssetType() == AssetType.MONEY_BOX)
+                .map(GoalAsset::getAssetId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, AccountResponse> accountMap =
+                accountIds.isEmpty()
+                        ? Map.of()
+                        : toAccountMap(
+                        accountMapper.findResponsesByIds(
+                                accountIds,
+                                userId
+                        )
+                );
+
+        Map<Long, MoneyBox> moneyBoxMap =
+                moneyBoxIds.isEmpty()
+                        ? Map.of()
+                        : toMoneyBoxMap(
+                        moneyBoxMapper.findByIds(
+                                moneyBoxIds,
+                                userId
+                        )
+                );
 
         long totalAmount = 0L;
 
         for (GoalAsset asset : assets) {
 
             Long amount = switch (asset.getAssetType()) {
-                case ACCOUNT -> findAccountBalance(asset.getAssetId());
 
-                case MONEY_BOX -> moneyBoxMapper.findBalanceById(asset.getAssetId());
+                case ACCOUNT -> {
+                    AccountResponse account =
+                            accountMap.get(asset.getAssetId());
 
-                case LOAN -> 0L; // 대출 제외
+                    yield account == null
+                            ? 0L
+                            : account.getBalance();
+                }
+
+                case MONEY_BOX -> {
+                    MoneyBox moneyBox =
+                            moneyBoxMap.get(asset.getAssetId());
+
+                    yield moneyBox == null
+                            ? 0L
+                            : moneyBox.getBalance();
+                }
+
+                case LOAN -> 0L;
             };
 
-            totalAmount += (amount == null ? 0L : amount);
+            totalAmount += amount;
         }
+
         return totalAmount;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, Long> calculateCurrentAmounts(
+            Long userId,
+            List<Long> goalIds
+    ) {
+
+        if (goalIds == null || goalIds.isEmpty()) {
+            return Map.of();
+        }
+
+        // 1. 모든 목표의 연결 자산을 한 번에 조회
+        List<GoalAsset> assets =
+                goalAssetMapper.findByGoalIds(goalIds);
+
+        if (assets == null || assets.isEmpty()) {
+            return goalIds.stream()
+                    .collect(
+                            java.util.stream.Collectors.toMap(
+                                    goalId -> goalId,
+                                    goalId -> 0L
+                            )
+                    );
+        }
+
+        // 2. ACCOUNT ID 추출
+        List<Long> accountIds = assets.stream()
+                .filter(asset ->
+                        asset.getAssetType() == AssetType.ACCOUNT)
+                .map(GoalAsset::getAssetId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        // 3. MONEY_BOX ID 추출
+        List<Long> moneyBoxIds = assets.stream()
+                .filter(asset ->
+                        asset.getAssetType() == AssetType.MONEY_BOX)
+                .map(GoalAsset::getAssetId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        // 4. Account 일괄 조회
+        Map<Long, AccountResponse> accountMap =
+                accountIds.isEmpty()
+                        ? Map.of()
+                        : toAccountMap(
+                        accountMapper.findResponsesByIds(
+                                accountIds,
+                                userId
+                        )
+                );
+
+        // 5. MoneyBox 일괄 조회
+        Map<Long, MoneyBox> moneyBoxMap =
+                moneyBoxIds.isEmpty()
+                        ? Map.of()
+                        : toMoneyBoxMap(
+                        moneyBoxMapper.findByIds(
+                                moneyBoxIds,
+                                userId
+                        )
+                );
+
+        // 6. 목표별 현재 금액 계산
+        Map<Long, Long> currentAmountMap = new HashMap<>();
+
+        for (GoalAsset asset : assets) {
+
+            Long amount = switch (asset.getAssetType()) {
+
+                case ACCOUNT -> {
+                    AccountResponse account =
+                            accountMap.get(asset.getAssetId());
+
+                    yield account == null
+                            ? 0L
+                            : account.getBalance();
+                }
+
+                case MONEY_BOX -> {
+                    MoneyBox moneyBox =
+                            moneyBoxMap.get(asset.getAssetId());
+
+                    yield moneyBox == null
+                            ? 0L
+                            : moneyBox.getBalance();
+                }
+
+                case LOAN -> 0L;
+            };
+
+            currentAmountMap.merge(
+                    asset.getGoalId(),
+                    amount,
+                    Long::sum
+            );
+        }
+
+        // 연결 자산이 없는 목표도 0으로 넣어준다.
+        for (Long goalId : goalIds) {
+            currentAmountMap.putIfAbsent(goalId, 0L);
+        }
+
+        return currentAmountMap;
     }
 
     // 목표 자산은 예적금만 허용한다. 입출금통장은 저금통이 달리는 계좌라 목표 자산이 아니다.
