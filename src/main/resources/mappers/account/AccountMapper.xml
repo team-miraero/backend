@@ -167,4 +167,38 @@
     WHERE a.account_id = #{accountId}
     AND a.user_id = #{userId}
   </select>
+
+  <select id="findResponsesByIds"
+          resultType="org.jejuro.miraero.domain.account.dto.response.AccountResponse">
+
+    SELECT
+      a.account_id AS accountId,
+      a.account_type AS accountType,
+      a.account_name AS accountName,
+      fi.financial_institution_name AS institutionName,
+      a.masked_account_number AS maskedAccountNumber,
+      a.balance - COALESCE((
+        SELECT SUM(mb.balance)
+        FROM money_box mb
+        WHERE mb.account_id = a.account_id
+      ), 0) AS balance,
+      a.account_status AS accountStatus,
+      a.opened_at AS openedAt,
+      a.maturity_at AS maturityAt,
+      a.interest_rate AS interestRate,
+      a.monthly_payment_limit AS monthlyPaymentLimit
+    FROM account a
+    INNER JOIN financial_institution fi
+      ON a.financial_institution_id = fi.financial_institution_id
+    WHERE a.user_id = #{userId}
+      AND a.account_id IN
+      <foreach collection="accountIds"
+               item="accountId"
+               open="("
+               separator=","
+               close=")">
+          #{accountId}
+      </foreach>
+
+  </select>
 </mapper>
