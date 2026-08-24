@@ -102,7 +102,7 @@ class MilestoneReportAsyncServiceTest {
                 )
         );
 
-        when(milestoneReportMapper.updateSuccess(
+        when(milestoneReportMapper.updateCompleted(
                 eq(100L),
                 eq("지출 관리가 잘 되고 있어요"),
                 eq("현재 목표 달성 과정에서 안정적으로 지출을 관리하고 있습니다.")
@@ -134,7 +134,7 @@ class MilestoneReportAsyncServiceTest {
                 );
 
         verify(milestoneReportMapper, times(1))
-                .updateSuccess(
+                .updateCompleted(
                         eq(100L),
                         eq("지출 관리가 잘 되고 있어요"),
                         eq("현재 목표 달성 과정에서 안정적으로 지출을 관리하고 있습니다.")
@@ -183,7 +183,7 @@ class MilestoneReportAsyncServiceTest {
                 .updateFailed(100L);
 
         verify(milestoneReportMapper, never())
-                .updateSuccess(
+                .updateCompleted(
                         anyLong(),
                         anyString(),
                         anyString()

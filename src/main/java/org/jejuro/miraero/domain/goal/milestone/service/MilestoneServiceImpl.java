@@ -8,6 +8,7 @@ import org.jejuro.miraero.domain.goal.milestone.domain.Milestone;
 import org.jejuro.miraero.domain.goal.milestone.domain.MilestoneReport;
 import org.jejuro.miraero.domain.goal.milestone.dto.response.MilestoneListResponse;
 import org.jejuro.miraero.domain.goal.milestone.dto.response.MilestoneReportResponse;
+import org.jejuro.miraero.domain.goal.milestone.domain.ReportStatus;
 import org.jejuro.miraero.domain.goal.milestone.dto.response.MilestoneResponse;
 import org.jejuro.miraero.domain.goal.milestone.mapper.MilestoneMapper;
 import org.jejuro.miraero.domain.goal.milestone.mapper.MilestoneReportMapper;
@@ -140,16 +141,19 @@ public class MilestoneServiceImpl implements MilestoneService {
                         ));
 
         /*
-         * 3. COMPLETED 상태이면서
-         *    아직 리포트가 없는 마일스톤만 리포트 생성 대상
+         * 3. 달성했으면서 리포트가 없거나 이전에 실패한 마일스톤이 생성 대상.
+         *
+         * FAILED를 제외하면 일시적인 외부 API 장애로 한 번 실패한 리포트가
+         * 영구히 복구되지 않는다. 재시도 여부는 generateReport가 판단한다.
          */
         List<Milestone> reportTargets = milestones.stream()
                 .filter(Milestone::isAchieved)
-                .filter(milestone ->
-                        !reportMap.containsKey(
-                                milestone.getMilestoneId()
-                        )
-                )
+                .filter(milestone -> {
+                    MilestoneReport report =
+                            reportMap.get(milestone.getMilestoneId());
+                    return report == null
+                            || report.getStatus() == ReportStatus.FAILED;
+                })
                 .toList();
 
         if (reportTargets.isEmpty()) {

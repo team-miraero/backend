@@ -1,7 +1,12 @@
 package org.jejuro.miraero.domain.goal.milestone.service;
 
 import lombok.RequiredArgsConstructor;
+import org.jejuro.miraero.domain.autotransfer.domain.SavingHistorySummary;
+import org.jejuro.miraero.domain.autotransfer.mapper.SavingHistoryMapper;
+import org.jejuro.miraero.domain.goal.calculator.GoalPaceCalculator;
 import org.jejuro.miraero.domain.goal.domain.Goal;
+import org.jejuro.miraero.domain.goal.dto.response.GoalPaceResponse;
+import org.jejuro.miraero.domain.goal.service.GoalAssetService;
 import org.jejuro.miraero.domain.goal.milestone.domain.Milestone;
 import org.jejuro.miraero.domain.goal.milestone.dto.request.MilestoneReportAiRequest;
 import org.jejuro.miraero.domain.goal.milestone.mapper.MilestoneMapper;
@@ -31,6 +36,9 @@ public class MilestoneReportDataService {
 
     private final MilestoneMapper milestoneMapper;
     private final TransactionMapper transactionMapper;
+    private final SavingHistoryMapper savingHistoryMapper;
+    private final GoalAssetService goalAssetService;
+    private final GoalPaceCalculator goalPaceCalculator;
 
     /**
      * AI 요청에 필요한 모든 데이터를 구성한다.
@@ -79,6 +87,11 @@ public class MilestoneReportDataService {
                                 .goalName(
                                         goal.getGoalName()
                                 )
+                                .goalType(
+                                        goal.getGoalType() == null
+                                                ? null
+                                                : goal.getGoalType().name()
+                                )
                                 .goalAmount(
                                         goal.getGoalAmount()
                                 )
@@ -116,7 +129,117 @@ public class MilestoneReportDataService {
                 .expenseSummary(
                         expenseSummary
                 )
+                .pace(
+                        buildPaceInfo(goal)
+                )
+                .savingSummary(
+                        buildSavingSummary(
+                                goal.getUserId(),
+                                periodStartDate,
+                                reportEndDate
+                        )
+                )
                 .build();
+    }
+
+    /**
+     * 목표 진행 속도를 계산한다.
+     *
+     * 계산에 실패해도 리포트 자체는 생성되어야 하므로 null을 반환한다.
+     * 프롬프트가 pace 없으면 진행 속도를 언급하지 않도록 지시받는다.
+     */
+    private MilestoneReportAiRequest.PaceInfo buildPaceInfo(
+            Goal goal
+    ) {
+
+        if (goal.getStartDate() == null
+                || goal.getGoalDate() == null) {
+
+            return null;
+        }
+
+        Long currentAmount =
+                goalAssetService.calculateCurrentAmount(
+                        goal.getUserId(),
+                        goal.getGoalId()
+                );
+
+        if (currentAmount == null) {
+            currentAmount = 0L;
+        }
+
+        GoalPaceResponse pace =
+                goalPaceCalculator.calculate(
+                        goal,
+                        currentAmount
+                );
+
+        return MilestoneReportAiRequest.PaceInfo.builder()
+                .currentAmount(currentAmount)
+                .expectedAmount(pace.getExpectedAmount())
+                .differenceAmount(pace.getDifferenceAmount())
+                .paceStatus(
+                        pace.getPaceStatus() == null
+                                ? null
+                                : pace.getPaceStatus().name()
+                )
+                .build();
+    }
+
+    /**
+     * 지출과 같은 구간의 적립 이력을 집계한다.
+     *
+     * 구간을 맞춰야 "소비는 늘었지만 적립은 지켰다" 같은 대비가 가능하다.
+     */
+    private MilestoneReportAiRequest.SavingSummary buildSavingSummary(
+            Long userId,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+
+        if (userId == null
+                || startDate == null
+                || endDate == null
+                || endDate.isBefore(startDate)) {
+
+            return emptySavingSummary();
+        }
+
+        SavingHistorySummary summary =
+                savingHistoryMapper.findSummary(
+                        userId,
+                        startDate,
+                        endDate
+                );
+
+        if (summary == null) {
+            return emptySavingSummary();
+        }
+
+        return MilestoneReportAiRequest.SavingSummary.builder()
+                .attemptCount(zeroIfNull(summary.getAttemptCount()))
+                .successCount(zeroIfNull(summary.getSuccessCount()))
+                .partialCount(zeroIfNull(summary.getPartialCount()))
+                .failedCount(zeroIfNull(summary.getFailedCount()))
+                .totalSavedAmount(zeroIfNull(summary.getTotalSavedAmount()))
+                .maxStreak(zeroIfNull(summary.getMaxStreak()))
+                .build();
+    }
+
+    private MilestoneReportAiRequest.SavingSummary emptySavingSummary() {
+
+        return MilestoneReportAiRequest.SavingSummary.builder()
+                .attemptCount(0L)
+                .successCount(0L)
+                .partialCount(0L)
+                .failedCount(0L)
+                .totalSavedAmount(0L)
+                .maxStreak(0L)
+                .build();
+    }
+
+    private Long zeroIfNull(Long value) {
+        return value == null ? 0L : value;
     }
 
     /**
