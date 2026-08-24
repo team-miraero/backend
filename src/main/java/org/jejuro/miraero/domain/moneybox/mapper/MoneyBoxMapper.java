@@ -5,6 +5,8 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.jejuro.miraero.domain.moneybox.domain.MoneyBox;
 
+import java.util.List;
+
 @Mapper
 public interface MoneyBoxMapper {
 
@@ -32,6 +34,11 @@ public interface MoneyBoxMapper {
   );
 
   MoneyBox findById(@Param("moneyBoxId") Long moneyBoxId);
+
+  List<MoneyBox> findByIds(
+          @Param("moneyBoxIds") List<Long> moneyBoxIds,
+          @Param("userId") Long userId
+  );
 
   MoneyBox findPaceMakerMoneyBoxByIdAndUserIdForUpdate(
       @Param("moneyBoxId") Long moneyBoxId,

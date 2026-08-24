@@ -67,6 +67,7 @@
     FROM money_box
     WHERE money_box_id = #{moneyBoxId}
     AND user_id = #{userId}
+    AND money_box_type = 'GOAL'
     )
   </select>
 
@@ -76,6 +77,25 @@
     <include refid="columns"/>
     FROM money_box
     WHERE money_box_id = #{moneyBoxId}
+  </select>
+
+  <select id="findByIds"
+          resultType="org.jejuro.miraero.domain.moneybox.domain.MoneyBox">
+
+    SELECT
+      <include refid="columns"/>
+    FROM money_box
+    WHERE user_id = #{userId}
+      AND money_box_type = 'GOAL'
+      AND money_box_id IN
+      <foreach collection="moneyBoxIds"
+               item="moneyBoxId"
+               open="("
+               separator=","
+               close=")">
+        #{moneyBoxId}
+      </foreach>
+
   </select>
 
   <select id="findPaceMakerMoneyBoxByIdAndUserIdForUpdate"

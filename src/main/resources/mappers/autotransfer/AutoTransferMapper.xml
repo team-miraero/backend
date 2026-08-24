@@ -70,6 +70,57 @@
 
     </select>
 
+    <select id="findByAssets"
+            resultType="org.jejuro.miraero.domain.autotransfer.domain.AutoTransfer">
+
+        SELECT
+            auto_transfer_id,
+            withdrawal_account_id,
+            deposit_account_id,
+            money_box_id,
+            deposit_institution_name,
+            masked_deposit_account,
+            transfer_amount,
+            transfer_day,
+            start_date,
+            end_date,
+            auto_transfer_status,
+            created_at,
+            updated_at
+        FROM auto_transfer
+        WHERE auto_transfer_status = 'ACTIVE'
+            AND (
+                <if test="accountIds != null and !accountIds.isEmpty()">
+                    deposit_account_id IN
+                    <foreach collection="accountIds"
+                             item="accountId"
+                             open="("
+                             separator=","
+                             close=")">
+                        #{accountId}
+                    </foreach>
+                </if>
+
+                <if test="accountIds != null and !accountIds.isEmpty()
+                          and moneyBoxIds != null and !moneyBoxIds.isEmpty()">
+                    OR
+                </if>
+
+                <if test="moneyBoxIds != null and !moneyBoxIds.isEmpty()">
+                    money_box_id IN
+                    <foreach collection="moneyBoxIds"
+                             item="moneyBoxId"
+                             open="("
+                             separator=","
+                             close=")">
+                        #{moneyBoxId}
+                    </foreach>
+                </if>
+            )
+
+    </select>
+
+
     <!--
         현재 목표 자동이체 금액
         ACCOUNT + MONEY_BOX 모두 조회

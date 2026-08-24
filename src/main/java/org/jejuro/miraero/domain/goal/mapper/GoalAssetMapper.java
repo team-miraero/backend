@@ -19,4 +19,7 @@ public interface GoalAssetMapper {
     );
     void delete(Long goalId,AssetType assetType, Long assetId);
     boolean existsByGoalIdAndAsset(Long goalId, AssetType assetType, Long assetId);
+    List<GoalAsset> findByGoalIds(
+            @Param("goalIds") List<Long> goalIds
+    );
 }

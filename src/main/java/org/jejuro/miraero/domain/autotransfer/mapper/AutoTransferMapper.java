@@ -18,6 +18,11 @@ public interface AutoTransferMapper {
     AutoTransfer findByAsset(@Param("assetType")AssetType assetType,
                              @Param("assetId") Long assetId);
 
+    List<AutoTransfer> findByAssets(
+            @Param("accountIds") List<Long> accountIds,
+            @Param("moneyBoxIds") List<Long> moneyBoxIds
+    );
+
     /**
      * 현재 목표 자동이체 금액
      */

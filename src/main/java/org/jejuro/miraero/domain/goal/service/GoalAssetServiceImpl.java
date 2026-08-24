@@ -30,8 +30,7 @@ import org.jejuro.miraero.global.exception.CommonErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -230,26 +229,189 @@ public class GoalAssetServiceImpl implements GoalAssetService {
     @Override
     @Transactional(readOnly = true)
     public Long calculateCurrentAmount(Long userId, Long goalId) {
-        List<GoalAsset> assets = goalAssetMapper.findByGoalId(goalId);
-        Goal goal = goalMapper.findByIdAndUserId(userId, goalId);
 
-        if(goal == null) throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
+        List<GoalAsset> assets =
+                goalAssetMapper.findByGoalId(goalId);
+
+        if (assets == null || assets.isEmpty()) {
+            return 0L;
+        }
+
+        List<Long> accountIds = assets.stream()
+                .filter(asset ->
+                        asset.getAssetType() == AssetType.ACCOUNT)
+                .map(GoalAsset::getAssetId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        List<Long> moneyBoxIds = assets.stream()
+                .filter(asset ->
+                        asset.getAssetType() == AssetType.MONEY_BOX)
+                .map(GoalAsset::getAssetId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        Map<Long, AccountResponse> accountMap =
+                accountIds.isEmpty()
+                        ? Map.of()
+                        : toAccountMap(
+                        accountMapper.findResponsesByIds(
+                                accountIds,
+                                userId
+                        )
+                );
+
+        Map<Long, MoneyBox> moneyBoxMap =
+                moneyBoxIds.isEmpty()
+                        ? Map.of()
+                        : toMoneyBoxMap(
+                        moneyBoxMapper.findByIds(
+                                moneyBoxIds,
+                                userId
+                        )
+                );
 
         long totalAmount = 0L;
 
         for (GoalAsset asset : assets) {
 
             Long amount = switch (asset.getAssetType()) {
-                case ACCOUNT -> findAccountBalance(asset.getAssetId());
 
-                case MONEY_BOX -> moneyBoxMapper.findBalanceById(asset.getAssetId());
+                case ACCOUNT -> {
+                    AccountResponse account =
+                            accountMap.get(asset.getAssetId());
 
-                case LOAN -> 0L; // 대출 제외
+                    yield account == null
+                            ? 0L
+                            : account.getBalance();
+                }
+
+                case MONEY_BOX -> {
+                    MoneyBox moneyBox =
+                            moneyBoxMap.get(asset.getAssetId());
+
+                    yield moneyBox == null
+                            ? 0L
+                            : moneyBox.getBalance();
+                }
+
+                case LOAN -> 0L;
             };
 
-            totalAmount += (amount == null ? 0L : amount);
+            totalAmount += amount;
         }
+
         return totalAmount;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Long, Long> calculateCurrentAmounts(
+            Long userId,
+            List<Long> goalIds
+    ) {
+
+        if (goalIds == null || goalIds.isEmpty()) {
+            return Map.of();
+        }
+
+        // 1. 모든 목표의 연결 자산을 한 번에 조회
+        List<GoalAsset> assets =
+                goalAssetMapper.findByGoalIds(goalIds);
+
+        if (assets == null || assets.isEmpty()) {
+            return goalIds.stream()
+                    .collect(
+                            java.util.stream.Collectors.toMap(
+                                    goalId -> goalId,
+                                    goalId -> 0L
+                            )
+                    );
+        }
+
+        // 2. ACCOUNT ID 추출
+        List<Long> accountIds = assets.stream()
+                .filter(asset ->
+                        asset.getAssetType() == AssetType.ACCOUNT)
+                .map(GoalAsset::getAssetId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        // 3. MONEY_BOX ID 추출
+        List<Long> moneyBoxIds = assets.stream()
+                .filter(asset ->
+                        asset.getAssetType() == AssetType.MONEY_BOX)
+                .map(GoalAsset::getAssetId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        // 4. Account 일괄 조회
+        Map<Long, AccountResponse> accountMap =
+                accountIds.isEmpty()
+                        ? Map.of()
+                        : toAccountMap(
+                        accountMapper.findResponsesByIds(
+                                accountIds,
+                                userId
+                        )
+                );
+
+        // 5. MoneyBox 일괄 조회
+        Map<Long, MoneyBox> moneyBoxMap =
+                moneyBoxIds.isEmpty()
+                        ? Map.of()
+                        : toMoneyBoxMap(
+                        moneyBoxMapper.findByIds(
+                                moneyBoxIds,
+                                userId
+                        )
+                );
+
+        // 6. 목표별 현재 금액 계산
+        Map<Long, Long> currentAmountMap = new HashMap<>();
+
+        for (GoalAsset asset : assets) {
+
+            Long amount = switch (asset.getAssetType()) {
+
+                case ACCOUNT -> {
+                    AccountResponse account =
+                            accountMap.get(asset.getAssetId());
+
+                    yield account == null
+                            ? 0L
+                            : account.getBalance();
+                }
+
+                case MONEY_BOX -> {
+                    MoneyBox moneyBox =
+                            moneyBoxMap.get(asset.getAssetId());
+
+                    yield moneyBox == null
+                            ? 0L
+                            : moneyBox.getBalance();
+                }
+
+                case LOAN -> 0L;
+            };
+
+            currentAmountMap.merge(
+                    asset.getGoalId(),
+                    amount,
+                    Long::sum
+            );
+        }
+
+        // 연결 자산이 없는 목표도 0으로 넣어준다.
+        for (Long goalId : goalIds) {
+            currentAmountMap.putIfAbsent(goalId, 0L);
+        }
+
+        return currentAmountMap;
     }
 
     // 목표 자산은 예적금만 허용한다. 입출금통장은 저금통이 달리는 계좌라 목표 자산이 아니다.
@@ -267,11 +429,13 @@ public class GoalAssetServiceImpl implements GoalAssetService {
     @Override
     @Transactional(readOnly = true)
     public GoalAssetListResponse getGoalAssets(Long userId, Long goalId) {
+
         Goal goal = goalMapper.findById(goalId);
 
         if (goal == null) {
             throw new BusinessException(GoalErrorCode.GOAL_NOT_FOUND);
         }
+
         if (!goal.getUserId().equals(userId)) {
             throw new BusinessException(GoalErrorCode.GOAL_ACCESS_DENIED);
         }
@@ -279,31 +443,150 @@ public class GoalAssetServiceImpl implements GoalAssetService {
         List<GoalAsset> goalAssets =
                 goalAssetMapper.findByGoalId(goalId);
 
-        //잘못된 LOAN 연결 데이터 검증
-        validateGoalAssetTypes(userId,goal, goalAssets);
+        if (goalAssets == null || goalAssets.isEmpty()) {
+            return GoalAssetListResponse.builder()
+                    .assets(List.of())
+                    .build();
+        }
 
-        List<GoalAssetResponse> assets
-                = goalAssets.stream()
-                .map(this::convertResponse)
+        // Account ID 추출
+        List<Long> accountIds = goalAssets.stream()
+                .filter(asset ->
+                        asset != null
+                                && asset.getAssetType() == AssetType.ACCOUNT)
+                .map(GoalAsset::getAssetId)
+                .filter(Objects::nonNull)
                 .toList();
+
+        // MoneyBox ID 추출
+        List<Long> moneyBoxIds = goalAssets.stream()
+                .filter(asset ->
+                        asset != null
+                                && asset.getAssetType() == AssetType.MONEY_BOX)
+                .map(GoalAsset::getAssetId)
+                .filter(Objects::nonNull)
+                .toList();
+
+        // 자동이체 일괄 조회
+        List<AutoTransfer> autoTransfers =
+                autoTransferMapper.findByAssets(
+                        accountIds,
+                        moneyBoxIds
+                );
+
+        // 자동이체 출금계좌까지 Account 조회 대상에 포함
+        List<Long> allAccountIds = new ArrayList<>(accountIds);
+
+        autoTransfers.stream()
+                .map(AutoTransfer::getWithdrawalAccountId)
+                .filter(Objects::nonNull)
+                .forEach(allAccountIds::add);
+
+        allAccountIds = allAccountIds.stream()
+                .distinct()
+                .toList();
+
+        // Account 일괄 조회
+        Map<Long, AccountResponse> accountMap =
+                allAccountIds.isEmpty()
+                        ? Map.of()
+                        : toAccountMap(
+                        accountMapper.findResponsesByIds(
+                                allAccountIds,
+                                userId
+                        )
+                );
+
+        // MoneyBox 일괄 조회
+        Map<Long, MoneyBox> moneyBoxMap =
+                moneyBoxIds.isEmpty()
+                        ? Map.of()
+                        : toMoneyBoxMap(
+                        moneyBoxMapper.findByIds(
+                                moneyBoxIds,
+                                userId
+                        )
+                );
+
+        // 자산 검증
+        validateGoalAssetTypes(
+                userId,
+                goal,
+                goalAssets,
+                accountMap,
+                moneyBoxMap
+        );
+
+        // 응답 생성
+        Map<Long, AutoTransfer> accountAutoTransferMap =
+                new HashMap<>();
+
+        Map<Long, AutoTransfer> moneyBoxAutoTransferMap =
+                new HashMap<>();
+
+        for (AutoTransfer autoTransfer : autoTransfers) {
+
+            if (autoTransfer.getDepositAccountId() != null) {
+                accountAutoTransferMap.put(
+                        autoTransfer.getDepositAccountId(),
+                        autoTransfer
+                );
+            }
+
+            if (autoTransfer.getMoneyBoxId() != null) {
+                moneyBoxAutoTransferMap.put(
+                        autoTransfer.getMoneyBoxId(),
+                        autoTransfer
+                );
+            }
+        }
+
+        List<GoalAssetResponse> assets =
+                goalAssets.stream()
+                        .map(asset ->
+                                convertResponse(
+                                        asset,
+                                        accountMap,
+                                        moneyBoxMap,
+                                        accountAutoTransferMap,
+                                        moneyBoxAutoTransferMap
+                                )
+                        )
+                        .toList();
 
         return GoalAssetListResponse.builder()
                 .assets(assets)
                 .build();
     }
 
-    // LOAN은 자산 서비스가 없어 최소 정보만 채운다.
     private GoalAssetResponse convertResponse(
-            GoalAsset goalAsset
-    ){
+            GoalAsset goalAsset,
+            Map<Long, AccountResponse> accountMap,
+            Map<Long, MoneyBox> moneyBoxMap,
+            Map<Long, AutoTransfer> accountAutoTransferMap,
+            Map<Long, AutoTransfer> moneyBoxAutoTransferMap
+    ) {
         AssetType assetType = goalAsset.getAssetType();
+        Long assetId = goalAsset.getAssetId();
 
         if (assetType == AssetType.ACCOUNT) {
-            AccountResponse account = accountMapper.findResponseById(goalAsset.getAssetId());
+
+            AccountResponse account =
+                    accountMap.get(assetId);
 
             if (account == null) {
                 return minimalResponse(goalAsset);
             }
+
+            AutoTransfer autoTransfer =
+                    accountAutoTransferMap.get(assetId);
+
+            AccountResponse withdrawalAccount =
+                    autoTransfer == null
+                            ? null
+                            : accountMap.get(
+                            autoTransfer.getWithdrawalAccountId()
+                    );
 
             return GoalAssetResponse.builder()
                     .assetType(assetType)
@@ -316,29 +599,57 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                             .interestRate(account.getInterestRate())
                             .maturityDate(account.getMaturityAt())
                             .build())
-                    .autoTransfer(resolveAutoTransfer(assetType, goalAsset.getAssetId()))
+                    .autoTransfer(
+                            toAutoTransferResponse(
+                                    autoTransfer,
+                                    withdrawalAccount
+                            )
+                    )
                     .build();
         }
 
         if (assetType == AssetType.MONEY_BOX) {
-            MoneyBox moneyBox = moneyBoxMapper.findById(goalAsset.getAssetId());
+
+            MoneyBox moneyBox =
+                    moneyBoxMap.get(assetId);
 
             if (moneyBox == null) {
                 return minimalResponse(goalAsset);
             }
 
-            // 저금통은 자체 계좌번호가 없어 소속 통장의 은행명·마스킹 번호를 쓴다
             AccountResponse ownerAccount =
-                    accountMapper.findResponseById(moneyBox.getAccountId());
+                    accountMap.get(moneyBox.getAccountId());
+
+            AutoTransfer autoTransfer =
+                    moneyBoxAutoTransferMap.get(assetId);
+
+            AccountResponse withdrawalAccount =
+                    autoTransfer == null
+                            ? null
+                            : accountMap.get(
+                            autoTransfer.getWithdrawalAccountId()
+                    );
 
             return GoalAssetResponse.builder()
                     .assetType(assetType)
                     .assetId(moneyBox.getMoneyBoxId())
-                    .bankName(ownerAccount == null ? null : ownerAccount.getInstitutionName())
+                    .bankName(
+                            ownerAccount == null
+                                    ? null
+                                    : ownerAccount.getInstitutionName()
+                    )
                     .accountNumberMasked(
-                            ownerAccount == null ? null : ownerAccount.getMaskedAccountNumber())
+                            ownerAccount == null
+                                    ? null
+                                    : ownerAccount.getMaskedAccountNumber()
+                    )
                     .balance(moneyBox.getBalance())
-                    .autoTransfer(resolveAutoTransfer(assetType, goalAsset.getAssetId()))
+                    .autoTransfer(
+                            toAutoTransferResponse(
+                                    autoTransfer,
+                                    withdrawalAccount
+                            )
+                    )
                     .build();
         }
 
@@ -350,19 +661,6 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                 .assetType(goalAsset.getAssetType())
                 .assetId(goalAsset.getAssetId())
                 .build();
-    }
-
-    // 자동이체가 설정 안 된 자산도 있을 수 있어 null 허용
-    private AutoTransferResponse resolveAutoTransfer(AssetType assetType, Long assetId) {
-        AutoTransfer autoTransfer = autoTransferMapper.findByAsset(assetType, assetId);
-        if (autoTransfer == null) {
-            return null;
-        }
-
-        AccountResponse withdrawalAccount =
-                accountMapper.findResponseById(autoTransfer.getWithdrawalAccountId());
-
-        return AutoTransferResponse.from(autoTransfer, toWithdrawalAccountResponse(withdrawalAccount));
     }
 
     private WithdrawalAccountResponse toWithdrawalAccountResponse(AccountResponse account) {
@@ -379,7 +677,9 @@ public class GoalAssetServiceImpl implements GoalAssetService {
     private void validateGoalAssetTypes(
             Long userId,
             Goal goal,
-            List<GoalAsset> goalAssets
+            List<GoalAsset> goalAssets,
+            Map<Long, AccountResponse> accountMap,
+            Map<Long, MoneyBox> moneyBoxMap
     ) {
         if (goal == null) {
             throw new BusinessException(
@@ -402,13 +702,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
             switch (asset.getAssetType()) {
 
                 case ACCOUNT -> {
-                    AccountResponse account =
-                            accountMapper.findResponseByIdAndUserId(
-                                    asset.getAssetId(),
-                                    userId
-                            );
-
-                    if (account == null) {
+                    if (!accountMap.containsKey(asset.getAssetId())) {
                         throw new BusinessException(
                                 GoalErrorCode.INVALID_GOAL_ASSET
                         );
@@ -416,13 +710,7 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                 }
 
                 case MONEY_BOX -> {
-                    boolean exists =
-                            moneyBoxMapper.existsByIdAndUserId(
-                                    asset.getAssetId(),
-                                    userId
-                            );
-
-                    if (!exists) {
+                    if (!moneyBoxMap.containsKey(asset.getAssetId())) {
                         throw new BusinessException(
                                 GoalErrorCode.INVALID_GOAL_ASSET
                         );
@@ -435,8 +723,6 @@ public class GoalAssetServiceImpl implements GoalAssetService {
                                 GoalErrorCode.INVALID_GOAL_ASSET
                         );
                     }
-
-                    // loanMapper.existsByIdAndUserId()가 생기면 여기서 검증
                 }
             }
         }
@@ -469,5 +755,43 @@ public class GoalAssetServiceImpl implements GoalAssetService {
         );
 
 
+    }
+
+    private Map<Long, AccountResponse> toAccountMap(
+            List<AccountResponse> accounts
+    ) {
+        Map<Long, AccountResponse> map = new HashMap<>();
+
+        for (AccountResponse account : accounts) {
+            map.put(account.getAccountId(), account);
+        }
+
+        return map;
+    }
+
+    private Map<Long, MoneyBox> toMoneyBoxMap(
+            List<MoneyBox> moneyBoxes
+    ) {
+        Map<Long, MoneyBox> map = new HashMap<>();
+
+        for (MoneyBox moneyBox : moneyBoxes) {
+            map.put(moneyBox.getMoneyBoxId(), moneyBox);
+        }
+
+        return map;
+    }
+
+    private AutoTransferResponse toAutoTransferResponse(
+            AutoTransfer autoTransfer,
+            AccountResponse withdrawalAccount
+    ) {
+        if (autoTransfer == null) {
+            return null;
+        }
+
+        return AutoTransferResponse.from(
+                autoTransfer,
+                toWithdrawalAccountResponse(withdrawalAccount)
+        );
     }
 }

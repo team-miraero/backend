@@ -57,4 +57,9 @@ public interface AccountMapper {
 
   // 외부 계좌 ID로 내부 account_id 조회 (거래 동기화 시 FK 연결용)
   Long findAccountIdByExAccountId(@Param("exAccountId") Long exAccountId);
+
+  List<AccountResponse> findResponsesByIds(
+          @Param("accountIds") List<Long> accountIds,
+          @Param("userId") Long userId
+  );
 }
