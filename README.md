@@ -1,314 +1,158 @@
 # 📌 Miraero Backend
 
-> Miraero(미래로) 백엔드 서버입니다.
-> 
+> 미래로(Miraero) 20·30대 사회초년생을 위한 개인화 자산 관리·목표 로드맵 서비스의 백엔드입니다.
 
-목표 기반 자산 관리 서비스를 위한 REST API를 제공합니다.
+사용자의 자산·소비·부채 데이터를 바탕으로 금융 목표를 관리하고, 금융 상품·청년 정책을 연계하며, AI 금융 코치 기능을 REST API로 제공합니다.
 
----
+## 👨‍💻 Contributors
 
-## 📖 프로젝트 소개
+| <img src="https://github.com/leeyoungheon.png" width="100" alt="이영헌" /> | <img src="https://github.com/itleo29.png" width="100" alt="김영진" /> | <img src="https://github.com/tmj5574.png" width="100" alt="탁민주" /> | <img src="https://github.com/SongCodeMaster.png" width="100" alt="송승윤" /> |
+| :---: | :---: | :---: | :---: |
+| **이영헌** | **김영진** | **탁민주** | **송승윤** |
+| [GitHub](https://github.com/leeyoungheon) | [GitHub](https://github.com/itleo29) | [GitHub](https://github.com/tmj5574) | [GitHub](https://github.com/SongCodeMaster) |
 
-Miraero는
-목표(로드맵)를 설정하여 효율적으로 자산을 관리할 수 있도록 돕는 서비스입니다.
-
-백엔드는 사용자 인증, 자산 조회, 목표 관리,
-AI 서비스 연동을 위한 REST API를 제공합니다.
-
----
-
-## 👨‍💻 백엔드 팀
-
-| <img src="https://github.com/leeyoungheon.png" width="120"> | <img src="https://github.com/itleo29.png" width="120"> | <img src="https://github.com/tmj5574.png" width="120"> |
-| --- | --- | --- |
-| **이영헌** | **김영진** | **탁민주** |
-| [GitHub](https://github.com/leeyoungheon) | [GitHub](https://github.com/itleo29) | [GitHub](https://github.com/tmj5574) |
-
-## 🛠 Tech Stack
-
-| 언어 | 프레임워크 | 데이터베이스 & ORM | 보안 & 인증 | API & 외부 서비스 | 빌드 & 배포 |
-| :-: | :-: | :-: | :-: | :-: | :-: |
-|<img src="https://www.vectorlogo.zone/logos/java/java-icon.svg" width="40" height="40" alt="Java" /> | <img src="https://www.vectorlogo.zone/logos/springio/springio-icon.svg" width="40" height="40" alt="Spring" /> | <img src="https://www.vectorlogo.zone/logos/mysql/mysql-icon.svg" width="40" height="40" alt="MySQL" /> <img src="https://mybatis.org/images/mybatis-logo.png" width="70" alt="MyBatis" /> | <img width="40" height="40" alt="jwt" src="https://github.com/user-attachments/assets/d36f48e6-d2a6-4b58-9a97-3cb0d3b45b69" />| <img width="40" height="40" alt="gpt" src="https://github.com/user-attachments/assets/01c80489-da8d-4267-9981-f9d7a27bfc84" />  | <img src="https://www.vectorlogo.zone/logos/gradle/gradle-icon.svg" width="40" height="40" alt="Gradle" />|
-| Java | Spring | MySQL, MyBatis | JWT | ChatGPT API | Gradle |
-
----
 
 ## ✨ 주요 기능
 
-| Feature | Description |
+| 기능 | 설명 |
 | --- | --- |
-| 🎯 **맞춤형 금융 목표 설정** | 목표 금액과 기간을 설정하여 돈 모으기 또는 대출 상환 목표를 생성합니다. |
-| 💳 **자산 연동** | 계좌와 저금통을 목표에 연결하여 자산을 통합 관리합니다. |
-| 📈 **목표 진행 현황** | 목표 달성률, 현재 자산, 적정 페이스를 비교하여 진행 상황을 제공합니다. |
-| 🔄 **자동이체 관리** | 목표 달성을 위한 자동이체를 등록하고 관리합니다. |
-| 🤖 **AI 금융 로드맵** | 금융 성향과 자산 정보를 분석하여 맞춤형 금융 로드맵을 제공합니다. |
-| 💡 **금융 상품 추천** | 목표와 금융 성향에 맞는 금융 상품을 추천합니다. |
+| 🔐 **인증 및 사용자 관리** | 회원가입·로그인·토큰 재발급·로그아웃 및 사용자 프로필을 관리합니다. |
+| 🏦 **자산 연동** | MyData 목 서버 OAuth 연동 후 계좌와 거래 내역을 동기화합니다. |
+| 🎯 **목표 및 자산 관리** | 금융 목표를 생성하고 계좌·저금통 자산을 연결하여 달성 현황을 관리합니다. |
+| 💳 **자동이체 및 저금통** | 목표 달성을 위한 자동이체를 실행하고 저금통 자산을 관리합니다. |
+| 📊 **소비 분석 및 페이스메이커** | 지출 시뮬레이션·또래 평균·목표 달성 페이스를 제공합니다. |
+| 💰 **금융 상품·청년 정책** | 예금·적금 상품과 청년 정책을 조회·추천하고 데이터를 정기 동기화합니다. |
+| 🤖 **AI 금융 코치** | OpenAI Responses API를 사용해 금융 맥락 기반 상담과 분석 응답을 제공합니다. |
 
----
+## 🛠 Tech Stack
+
+| Language | Framework | Security | Data | Cache | Build / Deploy |
+| :---: | :---: | :---: | :---: | :---: | :---: |
+| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" width="48" alt="Java" /><br />Java 17 | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/spring/spring-original.svg" width="48" alt="Spring" /><br />Spring MVC · Spring Security | <img src="https://jwt.io/img/pic_logo.svg" width="48" alt="JWT" /><br />JWT | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/mysql/mysql-original.svg" width="42" alt="MySQL" /> <img src="https://mybatis.org/images/mybatis-logo.png" width="52" alt="MyBatis" /> <img src="https://cdn.simpleicons.org/flyway/CC0200" width="42" alt="Flyway" /><br />MySQL 8 · MyBatis · Flyway | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/redis/redis-original.svg" width="48" alt="Redis" /><br />Redis 7 · Lettuce | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/gradle/gradle-original.svg" width="48" alt="Gradle" /><br />Gradle · WAR · Tomcat 9 · EC2 · GitHub Actions |
+
+**External APIs** · MyData Mock Server · 금융감독원 금융상품 API · 온통청년 정책 API · OpenAI Responses API
+
+## 🏛 백엔드 시스템 아키텍처
+
+![Miraero Backend System Architecture](https://github.com/user-attachments/assets/cad78211-2d46-4695-8ffb-d5bccd602549)
 
 ## 🗄 데이터베이스
 
-ERD
+![Miraero ERD](https://github.com/user-attachments/assets/b25f8102-1b7c-4430-9c49-d31d35c36e1b)
 
-> ERD 이미지 추가 예정
-> 
+## ⚙️ 환경 설정
 
----
+`src/main/resources/application-example.properties`와 `.env.example`을 참고해 로컬 환경 변수를 구성합니다. 실제 비밀값이 포함된 `.env` 파일은 저장소에 커밋하지 않습니다.
 
-## 🏛 아키텍
+```properties
+# Local profile
+SPRING_PROFILES_ACTIVE=local
 
-Architecture Diagram
-
-> 아키텍처 이미지 추가 예정
-> 
-
----
-
-## 📂 프로젝트 구조
-
-```
-backend
-├── src
-│   ├── main
-│   │   ├── java
-│   │   │   └── org.jejuro.miraero
-│   │   │       └── ...
-│   │   └── webapp
-│   └── test
-└── build.gradle
-```
-
----
-
-## 📚 API
-
-| Domain | Description |
-| --- | --- |
-| Auth | 인증 및 인가 |
-| User | 사용자 관리|
-| Goal | 목표 관리 |
-| Account | 계좌 관리|
-| Asset | 자산 관리|
-| Transaction | 거래 |
-| AI | AI 서비스 |
-
-Swagger 또는 API 명세 링크 추가 예정
-
----
-
-## ⚙️ 환경변수
-
-```
-DB_URL=
-DB_USERNAME=
+# MySQL (Docker Compose)
+MYSQL_PORT=3307
+MYSQL_ROOT_PASSWORD=
+MYSQL_DATABASE=miraero
+MYSQL_USER=miraero
+MYSQL_PASSWORD=
+DB_URL=jdbc:mysql://localhost:3307/miraero?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+DB_USERNAME=miraero
 DB_PASSWORD=
 
-JWT_SECRET=
-JWT_ACCESS_TOKEN_EXPIRATION=
-JWT_REFRESH_TOKEN_EXPIRATION=
+# Redis
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_PASSWORD=
 
-AI_API_KEY=
+# JWT
+JWT_SECRET=
+
+# External APIs
+FSS_API_KEY=
+OPENAI_API_KEY=
+MYDATA_OAUTH_CLIENT_SECRET=
+YOUTH_POLICY_API_KEY=
 ```
 
----
+## 🚀 설치 및 실행
 
-## 🚀 Getting Started
+### Prerequisites
 
-## Clone Repository
+- JDK 17
+- Docker Desktop (MySQL·Redis를 Docker로 실행하는 경우)
+- Apache Tomcat 9.x 또는 IntelliJ Tomcat 실행 구성
+
+### 1. Clone repository
 
 ```bash
 git clone https://github.com/team-miraero/backend.git
 cd backend
 ```
 
----
+### 2. Configure environment variables
 
-## Prerequisites
-
-다음 환경이 필요합니다.
-
-- Java 17
-- Gradle 8.x
-- MySQL 8.0+
-- Apache Tomcat 10.x
-
----
-
-## Configure Database
-
-MySQL에 데이터베이스를 생성합니다.
-
-```sql
-CREATE DATABASE miraero DEFAULT CHARACTER SET utf8mb4;
-```
-
----
-
-## Build Project
+`.env.example`을 복사해 `.env` 파일을 만든 뒤, 위 환경 설정의 필수값을 채웁니다.
 
 ```bash
+# macOS / Linux
+cp .env.example .env
+
+# Windows PowerShell
+Copy-Item .env.example .env
+```
+
+### 3. Run MySQL and Redis
+
+```bash
+docker compose up -d
+docker compose ps
+```
+
+MySQL은 기본적으로 `localhost:3307`, Redis는 `localhost:6379`에서 실행됩니다. 중지하려면 `docker compose down`을 실행합니다.
+
+### 4. Build WAR
+
+```bash
+# macOS / Linux
 ./gradlew clean build
-```
 
-Windows
-
-```bash
+# Windows
 gradlew.bat clean build
 ```
 
----
+### 5. Deploy and run
 
-## Run Server
+빌드 결과물 `build/libs/*.war`를 Apache Tomcat 9의 `webapps` 디렉터리에 배포합니다. IntelliJ를 사용할 경우 Tomcat 실행 구성에 동일한 WAR 아티팩트를 등록해 실행할 수 있습니다.
 
-Tomcat에 프로젝트를 배포한 후 실행합니다.
+서버 실행 후 다음 주소에서 Swagger UI와 API 동작을 확인합니다.
 
-또는 IntelliJ에서 Tomcat을 이용하여 실행합니다.
-
----
-
-## Access
-
-브라우저에서 접속합니다.
-
-```
-http://localhost:8080/
+```text
+http://localhost:8080/swagger-ui.html
 ```
 
----
+## 📚 API 명세
 
-# 🌿 Git Convention
+| Domain | Base path | Description |
+| --- | --- | --- |
+| Auth | `/api/auth` | 회원가입, 로그인, 토큰 재발급, 로그아웃 |
+| User | `/api/users` | 사용자 프로필 조회 |
+| MyData | `/api/mydata` | MyData 연결 및 자산 데이터 동기화 |
+| Account / Transaction | `/api/accounts`, `/api/transactions` | 계좌 및 거래 내역 조회 |
+| Goal | `/api/goals` | 목표, 연결 자산, 마일스톤 관리 |
+| Money Box / Auto Transfer | `/api/money-boxes`, `/api/auto-transfers` | 저금통과 자동이체 관리 |
+| Product / Youth Policy | `/api/deposits`, `/api/savings`, `/api/youth-policies` | 금융상품 및 청년 정책 조회·추천 |
+| Expense Analysis | `/api/expense-analysis` | 소비 분석, 지출 시뮬레이션, 또래 평균 |
+| Pace Maker | `/api/pace-maker` | 목표 달성 페이스 관리 |
+| AI Coach | `/api/ai-coach/conversations` | AI 코치 대화 및 메시지 스트리밍 |
 
-## 1. Branch Convention
+## 🌿 Contributing
 
-모든 작업 브랜치는 **`main` 브랜치에서 생성**합니다.
-
-| Branch | Description |
-| --- | --- |
-| `main` | 운영(배포) 브랜치 |
-| `feature/#이슈번호-기능명` | 새로운 기능 개발 |
-| `fix/#이슈번호-기능명` | 버그 수정 |
-| `refactor/#이슈번호-기능명` | 코드 리팩토링 |
-| `docs/#이슈번호-기능명` | 문서 수정 |
-| `test/#이슈번호-기능명` | 테스트 코드 작성 및 수정 |
-| `chore/#이슈번호-작업명` | 설정, 의존성, 빌드 환경 변경 |
-
-### Example
-
-```
-main
- ├── feature/#21-goal-create
- ├── feature/#22-goal-read
- ├── fix/#31-jwt
- └── refactor/#42-goal
-```
-
----
-
-## 2. Commit Convention
-
-### Commit Message Format
-
-```
-type: 작업 내용
-```
-
-### Commit Types
-
-| Type | Description |
-| --- | --- |
-| `feat` | 새로운 기능 추가 |
-| `fix` | 버그 수정 |
-| `refactor` | 코드 리팩토링 (기능 변경 없음) |
-| `docs` | 문서 수정 |
-| `style` | 코드 스타일 변경 (포맷팅 등) |
-| `test` | 테스트 코드 작성 및 수정 |
-| `chore` | 빌드, 설정 파일, 의존성 변경 |
-
-#### Example
-
-```
-feat: 목표 생성 API 구현
-feat: 목표 조회 API 구현
-fix: JWT 토큰 검증 오류 수정
-refactor: GoalService 비즈니스 로직 개선
-docs: README 업데이트
-style: 코드 포맷팅 적용
-chore: Gradle 의존성 업데이트
-```
-
----
-
-## 3. Git Workflow
-
-### 1. Issue 생성
-
-- 작업 시작 전 GitHub Issue를 생성합니다.
-- 하나의 작업은 하나의 Issue로 관리합니다.
-
-### 2. Branch 생성
+작업은 최신 `main` 브랜치에서 분기하고, 변경 범위에 맞는 브랜치와 커밋 메시지를 사용합니다.
 
 ```bash
 git switch main
 git pull origin main
-git switch -c feature/#21-goal-create
+git switch -c docs/#이슈번호-readme
 ```
-
-### 3. 개발 및 Commit
-
-```bash
-git add .
-git commit -m "feat: 목표 생성 API 구현"
-```
-
-### 4. Push
-
-```bash
-git push origin feature/#21-goal-create
-```
-
-### 5. Pull Request 생성
-
-- PR 제목은 Commit Convention을 따릅니다.
-- PR 본문에 관련 Issue를 연결합니다.
-
-```
-Closes #21
-```
-
-### 6. Code Review
-
-- 최소 1명의 승인(Approve) 후 Merge합니다.
-- Merge 완료 시 연결된 Issue는 자동으로 종료됩니다.
-
-### ✅ Rules
-
-- 하나의 Issue는 하나의 기능만 담당합니다.
-- 하나의 브랜치는 하나의 Issue만 작업합니다.
-- 하나의 PR은 하나의 Issue만 포함합니다.
-- 모든 브랜치는 `main`에서 생성합니다.
-- Merge는 Code Review 완료 후 진행합니다.
-
----
-
-# 📏 Code Convention
-
-| Category | Convention |
-| --- | --- |
-| Package | 도메인별 패키지 구성 |
-| Class | PascalCase |
-| Method | camelCase |
-| Variable | camelCase |
-| Constant | UPPER_SNAKE_CASE |
-| DTO | Request / Response 분리 |
-| Exception | Global Exception Handler 사용 |
-| API | RESTful API 설계 |
-| SQL | MyBatis Mapper 사용 |
-
-## 🔥 Troubleshooting
-
-> 프로젝트 진행 중 발생한 주요 이슈와 해결 과정을 기록할 예정입니다.
-
----
 
 ## 📜 License
 
